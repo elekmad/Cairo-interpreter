@@ -246,8 +246,7 @@ int main( int argc, char *argv[ ] )
 
 		OpCanvaContext_set_Canva(&Ctx, &Canva);
 
-		OpContext_freeze_number_of_variabes((OpContext*)&Ctx);
-		Op_execute(root, (OpContext*)&Ctx);
+		Op_launch(root, (OpContext*)&Ctx);
 		Op_free(root);
 		while (one_iter() == 0)
 		{

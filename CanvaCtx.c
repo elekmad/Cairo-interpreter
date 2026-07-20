@@ -159,6 +159,47 @@ void CanvaCtx_set_line_width(CanvaCtx *self, double w)
 	cairo_set_line_width (self->cr, w);
 }
 
+void CanvaCtx_set_font(CanvaCtx *self, const char *name, const char *slant, const char *weight)
+{
+	cairo_font_slant_t s = CAIRO_FONT_SLANT_NORMAL;
+	cairo_font_weight_t w = CAIRO_FONT_WEIGHT_NORMAL;
+
+	if(strcmp(slant, "italic") == 0)
+		s = CAIRO_FONT_SLANT_ITALIC;
+	else if(strcmp(slant, "oblique") == 0)
+		s = CAIRO_FONT_SLANT_OBLIQUE;
+
+	if(strcmp(weight, "bold") == 0)
+		w = CAIRO_FONT_WEIGHT_BOLD;
+
+	printf("Cairo %p font '%s' %d ('%s') %d ('%s')\n", self->cr, name, s, slant, w, weight);
+	cairo_select_font_face (self->cr, name, s, w);
+}
+
+void CanvaCtx_set_font_size(CanvaCtx *self, double size)
+{
+	printf("Cairo %p font size %f\n", self->cr, size);
+	cairo_set_font_size (self->cr, size);
+}
+
+void CanvaCtx_move_to(CanvaCtx *self, double x, double y)
+{
+	printf("Cairo %p move to %f, %f\n", self->cr, x, y);
+	cairo_move_to(self->cr, x, y);
+}
+
+void CanvaCtx_draw_text(CanvaCtx *self, const char *text)
+{
+	printf("Cairo %p draw text '%s'\n", self->cr, text);
+	cairo_show_text(self->cr, text);
+}
+
+void CanvaCtx_draw_text_path(CanvaCtx *self, const char *text)
+{
+	printf("Cairo %p draw text path '%s'\n", self->cr, text);
+	cairo_text_path(self->cr, text);
+}
+
 void CanvaCtx_draw(CanvaCtx *self)
 {
 	double xc = 128.0;

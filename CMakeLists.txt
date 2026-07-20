@@ -83,6 +83,18 @@ endif()
 target_link_libraries(CairoTest PRIVATE LinkedLists)
 target_include_directories(CairoTest PRIVATE ${LinkedLists_SOURCE_DIR})
 
+FetchContent_Declare(
+	Strings
+	GIT_REPOSITORY https://github.com/elekmad/String.git
+)
+
+if( UPDISTANT )
+	FetchContent_MakeAvailable(Strings)
+endif()
+
+target_link_libraries(CairoTest PRIVATE Strings)
+target_include_directories(CairoTest PRIVATE ${Strings_SOURCE_DIR})
+
 find_package(PkgConfig REQUIRED)
 
 #Cairo

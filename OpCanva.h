@@ -73,6 +73,13 @@ typedef struct op_translate
 	Op *y;
 }OpTranslate;
 
+typedef struct op_move_to
+{
+	Op super;
+	Op *x;
+	Op *y;
+}OpMoveTo;
+
 typedef struct op_canva_bloc
 {
 	OpBloc super;
@@ -100,6 +107,35 @@ typedef struct op_fill_preserve
 {
 	Op super;
 }OpFillPreserve;
+
+
+typedef struct op_font_selector
+{
+	Op super;
+	char *font;
+	char *slant;
+	char *weight;
+}OpFontSelector;
+
+typedef struct op_set_font_size
+{
+	Op super;
+	Op *size;
+}OpSetFontSize;
+
+
+typedef enum text_mode
+{
+	show,
+	path
+}TextMode;
+
+typedef struct op_draw_text
+{
+	Op super;
+	char *text;
+	TextMode mode;
+}OpDrawText;
 
 
 #include <OpCanva.proto.h>

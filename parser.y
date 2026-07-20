@@ -29,6 +29,7 @@ Op *root;
     double number;
     char *string;
     Op *node;
+    OpVariable *var;
 }
 
 %parse-param { Op **root }
@@ -36,6 +37,7 @@ Op *root;
 
 %token <number> NUMBER
 %token <string> IDENTIFIER
+%token <string> TEXTCONTENT
 
 %token RECTANGLE
 %token ARC
@@ -47,16 +49,37 @@ Op *root;
 %token FILLPRESERVE
 %token ROTATE
 %token TRANSLATE
+%token MOVETO
 %token IF
 %token ELSE
 %token IFX //Lower than else
 %token FORLOOP
+%token WHILETRUE
 %token EQ
 %token NEQ
 %token LEQ
 %token GEQ
+%token FONTSIZE
+%token FONT
+%token TEXT
+%token TEXTPATH
+%token PI
+%token RADIANS
+%token DEGREES
+%token COS
+%token ACOS
+%token SIN
+%token ASIN
+%token TAN
+%token ATAN
+%token FLOOR
+%token CEIL
+%token POWER
+%token SQRT
+%token MESSAGE
 
 %type <node> program block expression statements statement
+%type <var> number_list string_list
 
 %left EQ NEQ
 %left '<' '>' LEQ GEQ
@@ -146,6 +169,13 @@ statement:
     	OpForLoop_set_step(op, $10);
     	OpForLoop_set_loop(op, $13);
     	OpForLoop_set_variable_number(op, var_num);
+    }
+    | WHILETRUE '(' expression ')' block
+    {
+    	OpWhile *op = (OpWhile*)OpWhile_new();
+    	$$ = (Op*)op;
+    	OpWhile_set_condition(op, $3);
+    	OpWhile_set_bloc(op, $5);
     }
 
     | RECTANGLE '(' expression ','
@@ -254,6 +284,48 @@ statement:
         OpBloc_append_Op(op, (Op*)opt);
         OpBloc_append_Op(op, $7);
       }
+      	| MOVETO '(' expression ','
+      				   expression ')' ';'
+      {
+      	OpMoveTo *op = (OpMoveTo*)OpMoveTo_new();
+      	$$ = (Op*)op;
+		OpMoveTo_set_x(op, $3);
+		OpMoveTo_set_y(op, $5);
+	  }
+      	| FONTSIZE '(' expression ')' ';'
+      {
+      	OpSetFontSize *op = (OpSetFontSize*)OpSetFontSize_new();
+      	$$ = (Op*)op;
+		OpSetFontSize_set_size(op, $3);
+	  }
+      	| FONT '(' TEXTCONTENT ',' TEXTCONTENT ',' TEXTCONTENT ')' ';'
+      {
+		OpFontSelector *op = (OpFontSelector*)OpFontSelector_new();
+      	$$ = (Op*)op;
+		OpFontSelector_set_font_name(op, $3);
+		OpFontSelector_set_font_slant(op, $5);
+		OpFontSelector_set_font_weight(op, $7);
+	  }
+      	| TEXT '(' TEXTCONTENT ')' ';'
+      {
+		OpDrawText *op = (OpDrawText*)OpDrawText_new();
+      	$$ = (Op*)op;
+		OpDrawText_set_text(op, $3);
+	  }
+      	| TEXTPATH '(' TEXTCONTENT ')' ';'
+      {
+		OpDrawText *op = (OpDrawText*)OpDrawText_new();
+      	$$ = (Op*)op;
+		OpDrawText_set_text(op, $3);
+		OpDrawText_set_text_mode(op, path);
+	  }
+      	| MESSAGE '(' TEXTCONTENT ',' expression ')' ';'
+      {
+		OpMessage *op = (OpMessage*)OpMessage_new();
+      	$$ = (Op*)op;
+		OpMessage_set_message(op, $3);
+		OpMessage_set_value(op, $5);
+	  }
       
       | FILLPRESERVE '(' ')' ';'
       {
@@ -276,6 +348,32 @@ statement:
       }
 ;
 
+number_list:
+	NUMBER
+	{
+		OpVariable *var = OpVariable_new();
+		OpVariable_append_double(var, $1);
+      	$$ = var;
+	}
+	| number_list ',' NUMBER
+	{
+		OpVariable_append_double((OpVariable*)$$, $3);
+	}
+;
+
+string_list:
+	TEXTCONTENT
+	{
+		OpVariable *var = OpVariable_new();
+		OpVariable_append_string(var, $1);
+      	$$ = var;
+	}
+	| string_list ',' TEXTCONTENT
+	{
+		OpVariable_append_string((OpVariable*)$$, $3);
+	}
+;
+
 expression:
 
       NUMBER
@@ -284,6 +382,31 @@ expression:
       	$$ = (Op*)op;
       	OpGetValue_set_value(op, $1);
       }
+      
+      | TEXTCONTENT
+      {
+      	OpGetValue *op = (OpGetValue*)OpGetValue_new();
+      	$$ = (Op*)op;
+      	OpGetValue_set_value_string(op, $1);
+      }
+		| PI '('  ')'
+      {
+      	$$ = OpPi_new();
+      }
+      | '[' number_list ']'
+      {
+      	OpGetValue *op = (OpGetValue*)OpGetValue_new();
+      	$$ = (Op*)op;
+      	OpGetValue_copy_variable(op, $2);
+      	OpVariable_free($2);
+      }
+      | '[' string_list ']'
+      {
+      	OpGetValue *op = (OpGetValue*)OpGetValue_new();
+      	$$ = (Op*)op;
+      	OpGetValue_copy_variable(op, $2);
+      	OpVariable_free($2);
+      }
 
     | IDENTIFIER
       {
@@ -291,6 +414,19 @@ expression:
       	OpGetVariable *op = (OpGetVariable*)OpGetVariable_new();
       	$$ = (Op*)op;
       	OpGetVariable_set_variable_number(op, var_num);
+      }
+
+    | IDENTIFIER '[' expression ']'
+      {
+    	Op2 *op = (Op2*)OpCrochets_new();
+      	$$ = (Op*)op;
+      	Op2_set_operande2(op, $3);
+      	
+  		size_t var_num = OpContext_get_variable_number(Ctx, $1);
+      	OpGetVariable *opg = (OpGetVariable*)OpGetVariable_new();
+      	OpGetVariable_set_variable_number(opg, var_num);
+      	
+      	Op2_set_operande1(op, (Op*)opg);
       }
 
     | expression EQ expression
@@ -371,6 +507,14 @@ expression:
       	Op2_set_operande2(op, $3);
       }
 
+    | POWER '(' expression ',' expression ')'
+      {
+    	Op2 *op = (Op2*)OpPower_new();
+      	$$ = (Op*)op;
+      	Op2_set_operande1(op, $3);
+      	Op2_set_operande2(op, $5);
+      }
+
     | '(' expression ')'
       {
           $$ = $2;
@@ -378,16 +522,82 @@ expression:
 
     | '-' expression %prec UMINUS
       {
-      	OpNegValue *op = (OpNegValue*)OpNegValue_new();
+      	Op1 *op = (Op1*)OpNegValue_new();
       	$$ = (Op*)op;
-      	OpNegValue_set_value(op, $2);
+      	Op1_set_operande(op, $2);
       }
 
     | '!' expression
       {
-      	OpLogicalNegValue *op = (OpLogicalNegValue*)OpLogicalNegValue_new();
+      	Op1 *op = (Op1*)OpLogicalNegValue_new();
       	$$ = (Op*)op;
-      	OpLogicalNegValue_set_value(op, $2);
+      	Op1_set_operande(op, $2);
+      }
+		| RADIANS '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpRadians_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+      }
+		| DEGREES '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpDegrees_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+      }
+		| COS '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpCos_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+      }
+		| ACOS '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpAcos_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+      }
+		| SIN '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpSin_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+      }
+		| ASIN '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpAsin_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+      }
+		| TAN '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpTan_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+      }
+		| ATAN '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpAtan_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+      }
+		| FLOOR '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpFloor_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+      }
+		| CEIL '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpCeil_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+      }
+		| SQRT '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpSqrt_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
       }
 
 ;
