@@ -29,6 +29,7 @@ typedef struct op_circle
 	Op *r;
 	Op *a1;
 	Op *a2;
+	Op *params;
 
 }OpCircle;
 

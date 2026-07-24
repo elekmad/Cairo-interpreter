@@ -32,8 +32,9 @@ OpIsa OpCircle_isa = {
 		.size=sizeof(OpCircle),
 		.init = (void(*)(Op*))OpCircle_init,
 		.terminate = (void(*)(Op*))OpCircle_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpCircle_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpCircle_execute,
-		.check_args = NULL,
+		.check_args = (int(*)(Op*, OpContext*))OpCircle_check_args,
 };
 
 void OpCircle_init(OpCircle *self)
@@ -44,16 +45,25 @@ void OpCircle_init(OpCircle *self)
 	self->r = NULL;
 	self->a1 = NULL;
 	self->a2 = NULL;
+	self->params = NULL;
 }
 
 void OpCircle_terminate(OpCircle *self)
 {
 	Op_terminate(&self->super);
-	OpCircle_set_x(self, NULL);
-	OpCircle_set_y(self, NULL);
-	OpCircle_set_r(self, NULL);
-	OpCircle_set_a1(self, NULL);
-	OpCircle_set_a2(self, NULL);
+	_OpCircle_set_x(self, NULL);
+	_OpCircle_set_y(self, NULL);
+	_OpCircle_set_r(self, NULL);
+	_OpCircle_set_a1(self, NULL);
+	_OpCircle_set_a2(self, NULL);
+	_OpCircle_set_params(self, NULL);
+}
+
+int OpCircle_check_args(OpCircle *self, OpCanvaContext *canvactx)
+{
+	if(self->params != NULL || (self->x != NULL && self->y != NULL && self->r != NULL && self->a1 != NULL && self->a2 != NULL))
+		return 0;
+	return -1;
 }
 
 int OpCircle_execute(OpCircle *self, OpCanvaContext *canvactx)
@@ -61,73 +71,138 @@ int OpCircle_execute(OpCircle *self, OpCanvaContext *canvactx)
 	int ret = 0;
 	OpContext *ctx = (OpContext*)canvactx;
 	double x = NAN, y = NAN, r = NAN, a1 = NAN, a2 = NAN;
-	if(self->x != NULL)
+	if(self->params != NULL)
 	{
-		ret = Op_execute(self->x, ctx);
-		x = OpContext_get_current_value_double(ctx);
+		double *d;
+		size_t size;
+		ret = Op_execute_get_doubles(self->params, (Op*)self, ctx, &d, &size, 5);
+		if(ret == 0)
+		{
+			x=d[0];
+			y=d[1];
+			r=d[2];
+			a1=d[3];
+			a2=d[4];
+		}
+	}
+	else if(self->x != NULL)
+	{
+		ret = Op_execute_get_double(self->x, (Op*)self, ctx, &x);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->y, (Op*)self, ctx, &y);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->r, (Op*)self, ctx, &r);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->a1, (Op*)self, ctx, &a1);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->a2, (Op*)self, ctx, &a2);
 	}
 
-	if(ret == 0 && self->y != NULL)
+	if(ret == 0)
 	{
-		ret = Op_execute(self->y, ctx);
-		y = OpContext_get_current_value_double(ctx);
+		printf("Op Draw Circle %f %f %f %f %f\n", x, y, r, a1, a2);
+		CanvaCtx_draw_arc(canvactx->Canva, x, y, r, a1, a2);
 	}
-
-	if(ret == 0 && self->r != NULL)
-	{
-		ret = Op_execute(self->r, ctx);
-		r = OpContext_get_current_value_double(ctx);
-	}
-
-	if(ret == 0 && self->a1 != NULL)
-	{
-		ret = Op_execute(self->a1, ctx);
-		a1 = OpContext_get_current_value_double(ctx);
-	}
-
-	if(ret == 0 && self->a2 != NULL)
-	{
-		ret = Op_execute(self->a2, ctx);
-		a2 = OpContext_get_current_value_double(ctx);
-	}
-	printf("Op Draw Circle %f %f %f %f %f\n", x, y, r, a1, a2);
-	CanvaCtx_draw_arc(canvactx->Canva, x, y, r, a1, a2);
 	return ret;
 }
 
+void _OpCircle_set_x(OpCircle *self, Op *v)
+{
+	OP_SET_OPERANDE(self, x, v);
+}
+
+void _OpCircle_set_y(OpCircle *self, Op *v)
+{
+	OP_SET_OPERANDE(self, y, v);
+}
+
+void _OpCircle_set_r(OpCircle *self, Op *v)
+{
+	OP_SET_OPERANDE(self, r, v);
+}
+
+void _OpCircle_set_a1(OpCircle *self, Op *v)
+{
+	OP_SET_OPERANDE(self, a1, v);
+}
+
+void _OpCircle_set_a2(OpCircle *self, Op *v)
+{
+	OP_SET_OPERANDE(self, a2, v);
+}
+
+void _OpCircle_set_params(OpCircle *self, Op *v)
+{
+	OP_SET_OPERANDE(self, params, v);
+}
+
+#define OPCIRCLE_X 0
+#define OPCIRCLE_Y 1
+#define OPCIRCLE_R 2
+#define OPCIRCLE_A1 3
+#define OPCIRCLE_A2 4
+#define OPCIRCLE_PARAMS 5
+
 void OpCircle_set_x(OpCircle *self, Op *v)
 {
-	if(self->x != NULL)
-		Op_free(self->x);
-	self->x = v;
+	OP_ADD_OPERANDE(self, v, OPCIRCLE_X);
 }
 
 void OpCircle_set_y(OpCircle *self, Op *v)
 {
-	if(self->y != NULL)
-		Op_free(self->y);
-	self->y = v;
+	OP_ADD_OPERANDE(self, v, OPCIRCLE_Y);
 }
 
 void OpCircle_set_r(OpCircle *self, Op *v)
 {
-	if(self->r != NULL)
-		Op_free(self->r);
-	self->r = v;
+	OP_ADD_OPERANDE(self, v, OPCIRCLE_R);
 }
 
 void OpCircle_set_a1(OpCircle *self, Op *v)
 {
-	if(self->a1 != NULL)
-		Op_free(self->a1);
-	self->a1 = v;
+	OP_ADD_OPERANDE(self, v, OPCIRCLE_A1);
 }
 
 void OpCircle_set_a2(OpCircle *self, Op *v)
 {
-	if(self->a2 != NULL)
-		Op_free(self->a2);
-	self->a2 = v;
+	OP_ADD_OPERANDE(self, v, OPCIRCLE_A2);
+}
+
+void OpCircle_set_params(OpCircle *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPCIRCLE_PARAMS);
+}
+
+int OpCircle_fix_operandes(OpCircle *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 5)
+	{
+		Op *x, *y, *r, *a1, *a2, *params = NULL;
+		x = self->super.operandes[OPCIRCLE_X];
+		y = self->super.operandes[OPCIRCLE_Y];
+		r = self->super.operandes[OPCIRCLE_R];
+		a1 = self->super.operandes[OPCIRCLE_A1];
+		a2 = self->super.operandes[OPCIRCLE_A2];
+		if(self->super.nb_ops >= 6)
+			params = self->super.operandes[OPCIRCLE_PARAMS];
+
+		if(x != NULL && y != NULL && r != NULL && a1 != NULL && a2 != NULL)
+		{
+			ret = 0;
+			_OpCircle_set_x(self, x);
+			_OpCircle_set_y(self, y);
+			_OpCircle_set_r(self, r);
+			_OpCircle_set_a1(self, a1);
+			_OpCircle_set_a2(self, a2);
+		}
+		else if(params != NULL)
+		{
+			ret = 0;
+			_OpCircle_set_params(self, params);
+		}
+	}
+	return ret;
 }
 
 Op *OpCircle_new(void)
@@ -142,6 +217,7 @@ OpIsa OpRectangle_isa = {
 		.size=sizeof(OpRectangle),
 		.init = (void(*)(Op*))OpRectangle_init,
 		.terminate = (void(*)(Op*))OpRectangle_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpRectangle_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpRectangle_execute,
 		.check_args = (int(*)(Op*, OpContext*))OpRectangle_check_args,
 };
@@ -159,11 +235,11 @@ void OpRectangle_init(OpRectangle *self)
 void OpRectangle_terminate(OpRectangle *self)
 {
 	Op_terminate(&self->super);
-	OpRectangle_set_x(self, NULL);
-	OpRectangle_set_y(self, NULL);
-	OpRectangle_set_w(self, NULL);
-	OpRectangle_set_h(self, NULL);
-	OpRectangle_set_params(self, NULL);
+	_OpRectangle_set_x(self, NULL);
+	_OpRectangle_set_y(self, NULL);
+	_OpRectangle_set_w(self, NULL);
+	_OpRectangle_set_h(self, NULL);
+	_OpRectangle_set_params(self, NULL);
 }
 
 
@@ -192,7 +268,7 @@ int OpRectangle_execute(OpRectangle *self, OpCanvaContext *canvactx)
 			h=d[3];
 		}
 	}
-	if(self->x != NULL)
+	else if(self->x != NULL)
 	{
 		ret = Op_execute_get_double(self->x, (Op*)self, ctx, &x);
 		if(ret == 0)
@@ -211,39 +287,91 @@ int OpRectangle_execute(OpRectangle *self, OpCanvaContext *canvactx)
 	return ret;
 }
 
+void _OpRectangle_set_x(OpRectangle *self, Op *v)
+{
+	OP_SET_OPERANDE(self, x, v);
+}
+
+void _OpRectangle_set_y(OpRectangle *self, Op *v)
+{
+	OP_SET_OPERANDE(self, y, v);
+}
+
+void _OpRectangle_set_w(OpRectangle *self, Op *v)
+{
+	OP_SET_OPERANDE(self, w, v);
+}
+
+void _OpRectangle_set_h(OpRectangle *self, Op *v)
+{
+	OP_SET_OPERANDE(self, h, v);
+}
+
+void _OpRectangle_set_params(OpRectangle *self, Op *v)
+{
+	OP_SET_OPERANDE(self, params, v);
+}
+
+#define OPRECTANGLE_X 0
+#define OPRECTANGLE_Y 1
+#define OPRECTANGLE_W 2
+#define OPRECTANGLE_H 3
+#define OPRECTANGLE_PARAMS 4
+
+
 void OpRectangle_set_x(OpRectangle *self, Op *v)
 {
-	if(self->x != NULL)
-		Op_free(self->x);
-	self->x = v;
+	OP_ADD_OPERANDE(self, v, OPRECTANGLE_X);
 }
 
 void OpRectangle_set_y(OpRectangle *self, Op *v)
 {
-	if(self->y != NULL)
-		Op_free(self->y);
-	self->y = v;
+	OP_ADD_OPERANDE(self, v, OPRECTANGLE_Y);
 }
 
 void OpRectangle_set_w(OpRectangle *self, Op *v)
 {
-	if(self->w != NULL)
-		Op_free(self->w);
-	self->w = v;
+	OP_ADD_OPERANDE(self, v, OPRECTANGLE_W);
 }
 
 void OpRectangle_set_h(OpRectangle *self, Op *v)
 {
-	if(self->h != NULL)
-		Op_free(self->h);
-	self->h = v;
+	OP_ADD_OPERANDE(self, v, OPRECTANGLE_H);
 }
 
 void OpRectangle_set_params(OpRectangle *self, Op *v)
 {
-	if(self->params != NULL)
-		Op_free(self->params);
-	self->params = v;
+	OP_ADD_OPERANDE(self, v, OPRECTANGLE_PARAMS);
+}
+
+int OpRectangle_fix_operandes(OpRectangle *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 4)
+	{
+		Op *x, *y, *w, *h, *params = NULL;
+		x = self->super.operandes[OPRECTANGLE_X];
+		y = self->super.operandes[OPRECTANGLE_Y];
+		w = self->super.operandes[OPRECTANGLE_W];
+		h = self->super.operandes[OPRECTANGLE_H];
+		if(self->super.nb_ops >= 5)
+			params = self->super.operandes[OPRECTANGLE_PARAMS];
+
+		if(x != NULL && y != NULL && w != NULL && h != NULL)
+		{
+			ret = 0;
+			_OpRectangle_set_x(self, x);
+			_OpRectangle_set_y(self, y);
+			_OpRectangle_set_w(self, w);
+			_OpRectangle_set_h(self, h);
+		}
+		else if(params != NULL)
+		{
+			ret = 0;
+			_OpRectangle_set_params(self, params);
+		}
+	}
+	return ret;
 }
 
 Op *OpRectangle_new(void)
@@ -258,6 +386,7 @@ OpIsa OpColor_isa = {
 		.size=sizeof(OpColor),
 		.init = (void(*)(Op*))OpColor_init,
 		.terminate = (void(*)(Op*))OpColor_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpColor_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpColor_execute,
 		.check_args = (int(*)(Op*, OpContext*))OpColor_check_args,
 };
@@ -275,11 +404,11 @@ void OpColor_init(OpColor *self)
 void OpColor_terminate(OpColor *self)
 {
 	Op_terminate(&self->super);
-	OpColor_set_red(self, NULL);
-	OpColor_set_green(self, NULL);
-	OpColor_set_blue(self, NULL);
-	OpColor_set_alpha(self, NULL);
-	OpColor_set_params(self, NULL);
+	_OpColor_set_red(self, NULL);
+	_OpColor_set_green(self, NULL);
+	_OpColor_set_blue(self, NULL);
+	_OpColor_set_alpha(self, NULL);
+	_OpColor_set_params(self, NULL);
 }
 
 int OpColor_check_args(OpColor *self, OpCanvaContext *canvactx)
@@ -308,7 +437,7 @@ int OpColor_execute(OpColor *self, OpCanvaContext *canvactx)
 				a=d[3];
 		}
 	}
-	if(self->red != NULL)
+	else if(self->red != NULL)
 	{
 		ret = Op_execute_get_double(self->red, (Op*)self, ctx, &r);
 		if(ret == 0)
@@ -327,41 +456,94 @@ int OpColor_execute(OpColor *self, OpCanvaContext *canvactx)
 	return ret;
 }
 
+void _OpColor_set_red(OpColor *self, Op *r)
+{
+	OP_SET_OPERANDE(self, red, r);
+}
+
+void _OpColor_set_green(OpColor *self, Op *g)
+{
+	OP_SET_OPERANDE(self, green, g);
+}
+
+
+void _OpColor_set_blue(OpColor *self, Op *b)
+{
+	OP_SET_OPERANDE(self, blue, b);
+}
+
+
+void _OpColor_set_alpha(OpColor *self, Op *a)
+{
+	OP_SET_OPERANDE(self, alpha, a);
+}
+
+void _OpColor_set_params(OpColor *self, Op *p)
+{
+	OP_SET_OPERANDE(self, params, p);
+}
+
+#define OPCOLOR_RED 0
+#define OPCOLOR_GREEN 1
+#define OPCOLOR_BLUE 2
+#define OPCOLOR_ALPHA 3
+#define OPCOLOR_PARAMS 4
+
 void OpColor_set_red(OpColor *self, Op *r)
 {
-	if(self->red != NULL)
-		Op_free(self->red);
-	self->red = r;
+	OP_ADD_OPERANDE(self, r, OPCOLOR_RED);
 }
 
 void OpColor_set_green(OpColor *self, Op *g)
 {
-	if(self->green != NULL)
-		Op_free(self->green);
-	self->green = g;
+	OP_ADD_OPERANDE(self, g, OPCOLOR_GREEN);
 }
 
 
 void OpColor_set_blue(OpColor *self, Op *b)
 {
-	if(self->blue != NULL)
-		Op_free(self->blue);
-	self->blue = b;
+	OP_ADD_OPERANDE(self, b, OPCOLOR_BLUE);
 }
 
 
 void OpColor_set_alpha(OpColor *self, Op *a)
 {
-	if(self->alpha != NULL)
-		Op_free(self->alpha);
-	self->alpha = a;
+	OP_ADD_OPERANDE(self, a, OPCOLOR_ALPHA);
 }
 
 void OpColor_set_params(OpColor *self, Op *p)
 {
-	if(self->params != NULL)
-		Op_free(self->params);
-	self->params = p;
+	OP_ADD_OPERANDE(self, p, OPCOLOR_PARAMS);
+}
+
+int OpColor_fix_operandes(OpColor *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 4)
+	{
+		Op *r, *g, *b, *a, *params = NULL;
+		r = self->super.operandes[OPCOLOR_RED];
+		g = self->super.operandes[OPCOLOR_GREEN];
+		b = self->super.operandes[OPCOLOR_BLUE];
+		a = self->super.operandes[OPCOLOR_ALPHA];
+		if(self->super.nb_ops >= 5)
+			params = self->super.operandes[OPCOLOR_PARAMS];
+
+		if(r != NULL && g != NULL && b != NULL && a != NULL)
+		{
+			ret = 0;
+			_OpColor_set_red(self, r);
+			_OpColor_set_green(self, g);
+			_OpColor_set_blue(self, b);
+			_OpColor_set_alpha(self, a);
+		}
+		else if(params != NULL)
+		{
+			ret = 0;
+			_OpColor_set_params(self, params);
+		}
+	}
+	return ret;
 }
 
 Op *OpColor_new(void)
@@ -376,6 +558,7 @@ OpIsa OpStroke_isa = {
 		.size=sizeof(OpStroke),
 		.init = (void(*)(Op*))OpStroke_init,
 		.terminate = (void(*)(Op*))OpStroke_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpStroke_execute,
 		.check_args = NULL,
 };
@@ -406,6 +589,7 @@ OpIsa OpStrokePreserve_isa = {
 		.size=sizeof(OpStrokePreserve),
 		.init = (void(*)(Op*))OpStrokePreserve_init,
 		.terminate = (void(*)(Op*))OpStrokePreserve_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpStrokePreserve_execute,
 		.check_args = NULL,
 };
@@ -437,8 +621,9 @@ OpIsa OpSetLineWidth_isa = {
 		.size=sizeof(OpSetLineWidth),
 		.init = (void(*)(Op*))OpSetLineWidth_init,
 		.terminate = (void(*)(Op*))OpSetLineWidth_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpSetLineWidth_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpSetLineWidth_execute,
-		.check_args = NULL,
+		.check_args = (int(*)(Op*, OpContext*))OpSetLineWidth_check_args,
 };
 
 void OpSetLineWidth_init(OpSetLineWidth *self)
@@ -450,14 +635,37 @@ void OpSetLineWidth_init(OpSetLineWidth *self)
 void OpSetLineWidth_terminate(OpSetLineWidth *self)
 {
 	Op_terminate(&self->super);
-	OpSetLineWidth_set_width(self, NULL);
+	_OpSetLineWidth_set_width(self, NULL);
 }
+
+void _OpSetLineWidth_set_width(OpSetLineWidth *self, Op *v)
+{
+	OP_SET_OPERANDE(self, width, v);
+}
+
+#define OPSETLINEWIDTH_WIDTH 0
 
 void OpSetLineWidth_set_width(OpSetLineWidth *self, Op *v)
 {
+	OP_ADD_OPERANDE(self, v, OPSETLINEWIDTH_WIDTH);
+}
+
+int OpSetLineWidth_fix_operandes(OpSetLineWidth *self, OpCanvaContext *canvactx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_OpSetLineWidth_set_width(self, self->super.operandes[OPSETLINEWIDTH_WIDTH]);
+	}
+	return ret;
+}
+
+int OpSetLineWidth_check_args(OpSetLineWidth *self, OpCanvaContext *canvactx)
+{
 	if(self->width != NULL)
-		Op_free(self->width);
-	self->width = v;
+		return 0;
+	return -1;
 }
 
 int OpSetLineWidth_execute(OpSetLineWidth *self, OpCanvaContext *canvactx)
@@ -465,11 +673,7 @@ int OpSetLineWidth_execute(OpSetLineWidth *self, OpCanvaContext *canvactx)
 	int ret = 0;
 	OpContext *ctx = (OpContext*)canvactx;
 	double w = NAN;
-	if(self->width != NULL)
-	{
-		ret = Op_execute(self->width, ctx);
-		w = OpContext_get_current_value_double(ctx);
-	}
+	ret = Op_execute_get_double(self->width, (Op*)self, ctx, &w);
 
 	if(ret == 0)
 	{
@@ -490,8 +694,9 @@ OpIsa OpRotate_isa = {
 		.size=sizeof(OpRotate),
 		.init = (void(*)(Op*))OpRotate_init,
 		.terminate = (void(*)(Op*))OpRotate_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpRotate_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpRotate_execute,
-		.check_args = NULL,
+		.check_args = (int(*)(Op*, OpContext*))OpRotate_check_args,
 };
 
 void OpRotate_init(OpRotate *self)
@@ -503,14 +708,37 @@ void OpRotate_init(OpRotate *self)
 void OpRotate_terminate(OpRotate *self)
 {
 	Op_terminate(&self->super);
-	OpRotate_set_angle(self, NULL);
+	_OpRotate_set_angle(self, NULL);
 }
+
+#define OPROTATE_ANGLE 0
 
 void OpRotate_set_angle(OpRotate *self, Op *v)
 {
+	OP_ADD_OPERANDE(self, v, OPROTATE_ANGLE);
+}
+
+void _OpRotate_set_angle(OpRotate *self, Op *v)
+{
+	OP_SET_OPERANDE(self, angle, v);
+}
+
+int OpRotate_fix_operandes(OpRotate *self, OpCanvaContext *canvactx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_OpRotate_set_angle(self, self->super.operandes[OPROTATE_ANGLE]);
+	}
+	return ret;
+}
+
+int OpRotate_check_args(OpRotate *self, OpCanvaContext *canvactx)
+{
 	if(self->angle != NULL)
-		Op_free(self->angle);
-	self->angle = v;
+		return 0;
+	return -1;
 }
 
 int OpRotate_execute(OpRotate *self, OpCanvaContext *canvactx)
@@ -518,11 +746,7 @@ int OpRotate_execute(OpRotate *self, OpCanvaContext *canvactx)
 	int ret = 0;
 	OpContext *ctx = (OpContext*)canvactx;
 	double a = NAN;
-	if(self->angle != NULL)
-	{
-		ret = Op_execute(self->angle, ctx);
-		a = OpContext_get_current_value_double(ctx);
-	}
+	ret = Op_execute_get_double(self->angle, (Op*)self, ctx, &a);
 
 	if(ret == 0)
 	{
@@ -544,6 +768,7 @@ OpIsa OpTranslate_isa = {
 		.init = (void(*)(Op*))OpTranslate_init,
 		.terminate = (void(*)(Op*))OpTranslate_terminate,
 		.execute = (int(*)(Op*, OpContext*))OpTranslate_execute,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpTranslate_fix_operandes,
 		.check_args = (int(*)(Op*, OpContext*))OpTranslate_check_args,
 };
 
@@ -558,32 +783,71 @@ void OpTranslate_init(OpTranslate *self)
 void OpTranslate_terminate(OpTranslate *self)
 {
 	Op_terminate(&self->super);
-	OpTranslate_set_x(self, NULL);
-	OpTranslate_set_y(self, NULL);
-	OpTranslate_set_params(self, NULL);
+	_OpTranslate_set_x(self, NULL);
+	_OpTranslate_set_y(self, NULL);
+	_OpTranslate_set_params(self, NULL);
 }
+
+#define OPTRANSLATE_X 0
+#define OPTRANSLATE_Y 1
+#define OPTRANSLATE_PARAMS 2
 
 void OpTranslate_set_x(OpTranslate *self, Op *v)
 {
-	if(self->x != NULL)
-		Op_free(self->x);
-	self->x = v;
+	OP_ADD_OPERANDE(self, v, OPTRANSLATE_X);
 }
 
 void OpTranslate_set_y(OpTranslate *self, Op *v)
 {
-	if(self->y != NULL)
-		Op_free(self->y);
-	self->y = v;
+	OP_ADD_OPERANDE(self, v, OPTRANSLATE_Y);
 }
 
 void OpTranslate_set_params(OpTranslate *self, Op *v)
 {
-	if(self->params != NULL)
-		Op_free(self->params);
-	self->params = v;
+	OP_ADD_OPERANDE(self, v, OPTRANSLATE_PARAMS);
 }
 
+void _OpTranslate_set_x(OpTranslate *self, Op *v)
+{
+	OP_SET_OPERANDE(self, x, v);
+}
+
+void _OpTranslate_set_y(OpTranslate *self, Op *v)
+{
+	OP_SET_OPERANDE(self, y, v);
+}
+
+void _OpTranslate_set_params(OpTranslate *self, Op *v)
+{
+	OP_SET_OPERANDE(self, params, v);
+}
+
+
+int OpTranslate_fix_operandes(OpTranslate *self, OpCanvaContext *canvactx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >=2)
+	{
+		Op *x, *y, *params = NULL;
+		x = self->super.operandes[OPTRANSLATE_X];
+		y = self->super.operandes[OPTRANSLATE_Y];
+		if(self->super.nb_ops >= 3)
+			params = self->super.operandes[OPTRANSLATE_PARAMS];
+
+		if(x != NULL && y != NULL)
+		{
+			ret = 0;
+			_OpTranslate_set_x(self, x);
+			_OpTranslate_set_y(self, y);
+		}
+		else if(params != NULL)
+		{
+			ret = 0;
+			_OpTranslate_set_params(self, params);
+		}
+	}
+	return ret;
+}
 
 int OpTranslate_check_args(OpTranslate *self, OpCanvaContext *canvactx)
 {
@@ -608,7 +872,7 @@ int OpTranslate_execute(OpTranslate *self, OpCanvaContext *canvactx)
 			y=d[1];
 		}
 	}
-	if(self->x != NULL)
+	else if(self->x != NULL)
 	{
 		ret = Op_execute_get_double(self->x, (Op*)self, ctx, &x);
 		if(ret == 0)
@@ -635,6 +899,7 @@ OpIsa OpMoveTo_isa = {
 		.init = (void(*)(Op*))OpMoveTo_init,
 		.terminate = (void(*)(Op*))OpMoveTo_terminate,
 		.execute = (int(*)(Op*, OpContext*))OpMoveTo_execute,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpMoveTo_fix_operandes,
 		.check_args = (int(*)(Op*, OpContext*))OpMoveTo_check_args,
 };
 
@@ -649,30 +914,69 @@ void OpMoveTo_init(OpMoveTo *self)
 void OpMoveTo_terminate(OpMoveTo *self)
 {
 	Op_terminate(&self->super);
-	OpMoveTo_set_x(self, NULL);
-	OpMoveTo_set_y(self, NULL);
-	OpMoveTo_set_params(self, NULL);
+	_OpMoveTo_set_x(self, NULL);
+	_OpMoveTo_set_y(self, NULL);
+	_OpMoveTo_set_params(self, NULL);
 }
+
+#define OPMOVETO_X 0
+#define OPMOVETO_Y 1
+#define OPMOVETO_PARAMS 2
 
 void OpMoveTo_set_x(OpMoveTo *self, Op *v)
 {
-	if(self->x != NULL)
-		Op_free(self->x);
-	self->x = v;
+	OP_ADD_OPERANDE(self, v, OPMOVETO_X);
 }
 
 void OpMoveTo_set_y(OpMoveTo *self, Op *v)
 {
-	if(self->y != NULL)
-		Op_free(self->y);
-	self->y = v;
+	OP_ADD_OPERANDE(self, v, OPMOVETO_Y);
 }
 
 void OpMoveTo_set_params(OpMoveTo *self, Op *v)
 {
-	if(self->params != NULL)
-		Op_free(self->params);
-	self->params = v;
+	OP_ADD_OPERANDE(self, v, OPMOVETO_PARAMS);
+}
+
+void _OpMoveTo_set_x(OpMoveTo *self, Op *v)
+{
+	OP_SET_OPERANDE(self, x, v);
+}
+
+void _OpMoveTo_set_y(OpMoveTo *self, Op *v)
+{
+	OP_SET_OPERANDE(self, y, v);
+}
+
+void _OpMoveTo_set_params(OpMoveTo *self, Op *v)
+{
+	OP_SET_OPERANDE(self, params, v);
+}
+
+int OpMoveTo_fix_operandes(OpMoveTo *self, OpCanvaContext *canvactx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >=2)
+	{
+		Op *x, *y, *params = NULL;
+		x = self->super.operandes[OPMOVETO_X];
+		y = self->super.operandes[OPMOVETO_Y];
+		if(self->super.nb_ops >= 3)
+			params = self->super.operandes[OPMOVETO_PARAMS];
+
+		if(x != NULL && y != NULL)
+		{
+			ret = 0;
+			_OpMoveTo_set_x(self, x);
+			_OpMoveTo_set_y(self, y);
+		}
+		else if(params != NULL)
+		{
+			ret = 0;
+			_OpMoveTo_set_params(self, params);
+		}
+	}
+	return ret;
 }
 
 int OpMoveTo_check_args(OpMoveTo *self, OpCanvaContext *canvactx)
@@ -698,7 +1002,7 @@ int OpMoveTo_execute(OpMoveTo *self, OpCanvaContext *canvactx)
 			y=d[1];
 		}
 	}
-	if(self->x != NULL)
+	else if(self->x != NULL)
 	{
 		ret = Op_execute_get_double(self->x, (Op*)self, ctx, &x);
 		if(ret == 0)
@@ -724,6 +1028,7 @@ OpIsa OpFill_isa = {
 		.size=sizeof(OpFill),
 		.init = (void(*)(Op*))OpFill_init,
 		.terminate = (void(*)(Op*))OpFill_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpFill_execute,
 		.check_args = NULL,
 };
@@ -755,6 +1060,7 @@ OpIsa OpFillPreserve_isa = {
 		.size=sizeof(OpFillPreserve),
 		.init = (void(*)(Op*))OpFillPreserve_init,
 		.terminate = (void(*)(Op*))OpFillPreserve_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpFillPreserve_execute
 };
 
@@ -785,6 +1091,7 @@ OpIsa OpCanvaBloc_isa = {
 		.size=sizeof(OpCanvaBloc),
 		.init = (void(*)(Op*))OpCanvaBloc_init,
 		.terminate = (void(*)(Op*))OpCanvaBloc_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpBloc_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpCanvaBloc_execute,
 		.check_args = NULL,
 };
@@ -832,6 +1139,7 @@ OpIsa OpFontSelector_isa = {
 		.size=sizeof(OpFontSelector),
 		.init = (void(*)(Op*))OpFontSelector_init,
 		.terminate = (void(*)(Op*))OpFontSelector_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas d'op child
 		.execute = (int(*)(Op*, OpContext*))OpFontSelector_execute,
 		.check_args = NULL,
 };
@@ -899,6 +1207,7 @@ OpIsa OpDrawText_isa = {
 		.size=sizeof(OpDrawText),
 		.init = (void(*)(Op*))OpDrawText_init,
 		.terminate = (void(*)(Op*))OpDrawText_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpDrawText_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpDrawText_execute,
 		.check_args = (int(*)(Op*, OpContext*))OpDrawText_check_args,
 };
@@ -913,19 +1222,35 @@ void OpDrawText_init(OpDrawText *self)
 void OpDrawText_terminate(OpDrawText *self)
 {
 	Op_terminate(&self->super);
-	OpDrawText_set_text(self, NULL);
+	_OpDrawText_set_text(self, NULL);
 }
+
+void _OpDrawText_set_text(OpDrawText *self, Op *s)
+{
+	OP_SET_OPERANDE(self, text, s);
+}
+
+#define OPDRAWTEXT_TEXT 0
 
 void OpDrawText_set_text(OpDrawText *self, Op *s)
 {
-	if(self->text != NULL)
-		Op_free(self->text);
-	self->text = s;
+	OP_ADD_OPERANDE(self, s, OPDRAWTEXT_TEXT);
 }
 
 void OpDrawText_set_text_mode(OpDrawText *self, TextMode m)
 {
 	self->mode = m;
+}
+
+int OpDrawText_fix_operandes(OpDrawText *self, OpCanvaContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_OpDrawText_set_text(self, self->super.operandes[OPDRAWTEXT_TEXT]);
+	}
+	return ret;
 }
 
 int OpDrawText_check_args(OpDrawText *self, OpCanvaContext *ctx)
@@ -935,38 +1260,22 @@ int OpDrawText_check_args(OpDrawText *self, OpCanvaContext *ctx)
 	return -1;
 }
 
-int OpDrawText_execute(OpDrawText *self, OpCanvaContext *ctx)
+int OpDrawText_execute(OpDrawText *self, OpCanvaContext *canvactx)
 {
 	int ret = 0;
 	OpVariable *c;
+	OpContext *ctx = (OpContext*)canvactx;
 	const char *text = NULL;
 
-	ret = Op_execute(self->text, (OpContext*)ctx);
-	if(ret == 0)
-	{
-		c = OpContext_get_current_value((OpContext*)ctx);
-		if(OpVariable_get_type(c) == STRING)
-			text = OpVariable_get_string(c);
-		else if(OpVariable_get_type(c) == STRINGS && OpVariable_get_number_elements(c) == 1)
-			text = OpVariable_get_strings(c)[0];
-		else
-		{
-			String m;
-			String_init(&m);
-			String_append_printf(&m, "Op %p GetTextExtents bad operande type", self);
-			OpContext_set_running_state((OpContext*)ctx, (Op*)self, Error, String_get_char_string(&m));
-			String_finalize(&m);
-			ret = -1;
-		}
-	}
+	ret = Op_execute_get_string(self->text, (Op*)self, ctx, &text);
 
-	if(ret == 0 && text != NULL)
+	if(ret == 0)
 	{
 		switch(self->mode)
 		{
-		case show : CanvaCtx_draw_text(ctx->Canva, text);
+		case show : CanvaCtx_draw_text(canvactx->Canva, text);
 					break;
-		case path : CanvaCtx_draw_text_path(ctx->Canva, text);
+		case path : CanvaCtx_draw_text_path(canvactx->Canva, text);
 					break;
 		}
 	}
@@ -984,8 +1293,9 @@ OpIsa OpSetFontSize_isa = {
 		.size=sizeof(OpSetFontSize),
 		.init = (void(*)(Op*))OpSetFontSize_init,
 		.terminate = (void(*)(Op*))OpSetFontSize_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpSetFontSize_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpSetFontSize_execute,
-		.check_args = NULL,
+		.check_args = (int(*)(Op*, OpContext*))OpSetFontSize_check_args,
 };
 
 void OpSetFontSize_init(OpSetFontSize *self)
@@ -997,28 +1307,52 @@ void OpSetFontSize_init(OpSetFontSize *self)
 void OpSetFontSize_terminate(OpSetFontSize *self)
 {
 	Op_terminate(&self->super);
-	OpSetFontSize_set_size(self, NULL);
+	_OpSetFontSize_set_size(self, NULL);
 }
+
+void _OpSetFontSize_set_size(OpSetFontSize *self, Op *s)
+{
+	OP_SET_OPERANDE(self, size, s);
+}
+
+#define OPSETFONTSIZE_SIZE 0
 
 void OpSetFontSize_set_size(OpSetFontSize *self, Op *s)
 {
-	if(self->size != NULL)
-		Op_free(self->size);
-	self->size = s;
+	OP_ADD_OPERANDE(self, s, OPSETFONTSIZE_SIZE);
 }
 
-int OpSetFontSize_execute(OpSetFontSize *self, OpCanvaContext *ctx)
+int OpSetFontSize_fix_operandes(OpSetFontSize *self, OpCanvaContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_OpSetFontSize_set_size(self, self->super.operandes[OPSETFONTSIZE_SIZE]);
+	}
+	return ret;
+}
+
+int OpSetFontSize_check_args(OpSetFontSize *self, OpCanvaContext *ctx)
+{
+	if(self->size != NULL)
+		return 0;
+	return -1;
+}
+
+int OpSetFontSize_execute(OpSetFontSize *self, OpCanvaContext *canvactx)
 {
 	int ret = 0;
 	double s = NAN;
-	if(self->size != NULL)
+	OpContext *ctx = (OpContext*)canvactx;
+
+	ret = Op_execute_get_double(self->size, (Op*)self, ctx, &s);
+
+	if(ret == 0)
 	{
-		ret = Op_execute(self->size, (OpContext*)ctx);
-		s = OpContext_get_current_value_double((OpContext*)ctx);
+		CanvaCtx_set_font_size(canvactx->Canva, s);
 		printf("Op Set Font Size %f\n", s);
 	}
-	if(ret == 0)
-		CanvaCtx_set_font_size(ctx->Canva, s);
 	return ret;
 }
 
@@ -1034,6 +1368,7 @@ OpIsa OpGetTextExtents_isa = {
 		.size=sizeof(OpGetTextExtents),
 		.init = (void(*)(Op*))OpGetTextExtents_init,
 		.terminate = (void(*)(Op*))OpGetTextExtents_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpGetTextExtents_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpGetTextExtents_execute,
 		.check_args = (int(*)(Op*, OpContext*))OpGetTextExtents_check_args,
 };
@@ -1047,14 +1382,33 @@ void OpGetTextExtents_init(OpGetTextExtents *self)
 void OpGetTextExtents_terminate(OpGetTextExtents *self)
 {
 	Op_terminate(&self->super);
-	OpGetTextExtents_set_text(self, NULL);
+	_OpGetTextExtents_set_text(self, NULL);
 }
 
-void OpGetTextExtents_set_text(OpGetTextExtents *self, Op *s)
+void _OpGetTextExtents_set_text(OpGetTextExtents *self, Op *s)
 {
 	if(self->text != NULL)
 		Op_free(self->text);
 	self->text = s;
+}
+
+#define OPGETTEXTEXTENTS_TEXT 0
+
+void OpGetTextExtents_set_text(OpGetTextExtents *self, Op *s)
+{
+	Op_set_nb_ops(&self->super, OPGETTEXTEXTENTS_TEXT + 1);
+	self->super.operandes[OPGETTEXTEXTENTS_TEXT] = s;
+}
+
+int OpGetTextExtents_fix_operandes(OpGetTextExtents *self, OpCanvaContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_OpGetTextExtents_set_text(self, self->super.operandes[OPGETTEXTEXTENTS_TEXT]);
+	}
+	return ret;
 }
 
 int OpGetTextExtents_check_args(OpGetTextExtents *self, OpCanvaContext *ctx)
@@ -1064,19 +1418,18 @@ int OpGetTextExtents_check_args(OpGetTextExtents *self, OpCanvaContext *ctx)
 	return -1;
 }
 
-int OpGetTextExtents_execute(OpGetTextExtents *self, OpCanvaContext *ctx)
+int OpGetTextExtents_execute(OpGetTextExtents *self, OpCanvaContext *canvactx)
 {
 	int ret = 0;
 	OpVariable *c;
+	OpContext *ctx = (OpContext*)canvactx;
+	const char *text;
 
-	ret = Op_execute(self->text, (OpContext*)ctx);
+	ret = Op_execute_get_string(self->text, (Op*)self, ctx, &text);
 	if(ret == 0)
 	{
-		c = OpContext_get_current_value((OpContext*)ctx);
-		if(OpVariable_get_type(c) == STRING)
-		{
 			CanvaCtxTextExtent e;
-			CanvaCtx_get_text_extents(ctx->Canva, OpVariable_get_string(c), &e);
+			CanvaCtx_get_text_extents(canvactx->Canva, text, &e);
 			OpVariable v;
 			OpVariable_init(&v);
 			OpVariable_append_double(&v, e.x_bearing);
@@ -1085,7 +1438,7 @@ int OpGetTextExtents_execute(OpGetTextExtents *self, OpCanvaContext *ctx)
 			OpVariable_append_double(&v, e.height);
 			OpVariable_append_double(&v, e.x_advance);
 			OpVariable_append_double(&v, e.y_advance);
-			OpContext_copy_variable_to_current_value((OpContext*)ctx, &v);
+			OpContext_copy_variable_to_current_value(ctx, &v);
 
 			String s;
 			String_init(&s);
@@ -1093,37 +1446,6 @@ int OpGetTextExtents_execute(OpGetTextExtents *self, OpCanvaContext *ctx)
 			printf("Get Text Extents : %s\n", String_get_char_string(&s));
 			String_finalize(&s);
 			OpVariable_terminate(&v);
-		}
-		else if(OpVariable_get_type(c) == STRINGS && OpVariable_get_number_elements(c) == 1)
-		{
-			CanvaCtxTextExtent e;
-			CanvaCtx_get_text_extents(ctx->Canva, OpVariable_get_strings(c)[0], &e);
-			OpVariable v;
-			OpVariable_init(&v);
-			OpVariable_append_double(&v, e.x_bearing);
-			OpVariable_append_double(&v, e.y_bearing);
-			OpVariable_append_double(&v, e.width);
-			OpVariable_append_double(&v, e.height);
-			OpVariable_append_double(&v, e.x_advance);
-			OpVariable_append_double(&v, e.y_advance);
-			OpContext_copy_variable_to_current_value((OpContext*)ctx, &v);
-
-			String s;
-			String_init(&s);
-			OpVariable_to_string(&v, &s);
-			printf("Get Text Extents : %s\n", String_get_char_string(&s));
-			String_finalize(&s);
-			OpVariable_terminate(&v);
-		}
-		else
-		{
-			String m;
-			String_init(&m);
-			String_append_printf(&m, "Op %p GetTextExtents bad operande type", self);
-			OpContext_set_running_state((OpContext*)ctx, (Op*)self, Error, String_get_char_string(&m));
-			ret = -1;
-			String_finalize(&m);
-		}
 	}
 	return ret;
 }
@@ -1140,6 +1462,7 @@ OpIsa OpGetFontExtents_isa = {
 		.size=sizeof(OpGetFontExtents),
 		.init = (void(*)(Op*))OpGetFontExtents_init,
 		.terminate = (void(*)(Op*))OpGetFontExtents_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpGetFontExtents_execute,
 		.check_args = NULL,
 };

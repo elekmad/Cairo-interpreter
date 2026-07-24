@@ -508,6 +508,44 @@ double OpContext_get_variable_value(OpContext *self, size_t variable_number)
 
 void Op_init(Op *self)
 {
+	self->for_prerunning = false;
+	self->operandes = NULL;
+	self->nb_ops = 0;
+}
+
+void Op_set_nb_ops(Op *self, size_t nb)
+{
+	if(nb > self->nb_ops)
+	{
+		self->operandes = realloc(self->operandes, sizeof(Op*) * nb);
+		while(self->nb_ops < nb)
+		{
+			self->operandes[self->nb_ops] = NULL;
+			self->nb_ops++;
+		}
+	}
+}
+
+int Op_fix_operandes(Op *self, OpContext *ctx)
+{
+	int ret = 0;
+	if(self->isa->fix_operandes != NULL)
+		ret = self->isa->fix_operandes(self, ctx);
+	if(ret == 0)
+	{
+		size_t cmpt;
+		for(cmpt = 0; cmpt < self->nb_ops; cmpt++)
+		{
+			Op *o = self->operandes[cmpt];
+			if(o != NULL)
+			{
+				ret = Op_fix_operandes(o, ctx);
+				if(ret != 0)
+					break;
+			}
+		}
+	}
+	return ret;
 }
 
 const char *Op_get_name(Op *self)
@@ -532,6 +570,14 @@ Op *Op_new(OpIsa *isa)
 	return self;
 }
 
+void Op_set_for_prerunning(Op *self)
+{
+	size_t cmpt;
+	self->for_prerunning = true;
+	for(cmpt = 0; cmpt < self->nb_ops; cmpt++)
+		Op_set_for_prerunning(self->operandes[cmpt]);
+}
+
 void Op_set_source_pos(Op *self, int fl, int fc, int ll, int lc)
 {
 	self->pos.first_line = fl;
@@ -549,11 +595,33 @@ void Op_free(Op *self)
 	}
 }
 
-int Op_launch(Op *self, OpContext *ctx)
+int Op_prerun(Op *self, OpContext *ctx)
 {
 	int ret = -1;
 	OpRunningState state = OpContext_get_running_state(ctx);
 	if(state != Init)
+	{
+		printf("Prerun Op %p Ctx %p failed : Ctx bad state : %d\n", self, ctx, state);
+		return ret;
+	}
+	String m;
+	String_init(&m);
+	String_append_printf(&m, "Prerunning Op %p", self);
+	OpContext_set_running_state(ctx, self, PreRun, String_get_char_string(&m));
+
+	ret = Op_execute(self, ctx);
+	String_empty(&m);
+	String_append_printf(&m, "Prerunning completed Op %p return %d", self, ret);
+	OpContext_set_running_state(ctx, self, Ready, String_get_char_string(&m));
+	String_finalize(&m);
+	return ret;
+}
+
+int Op_launch(Op *self, OpContext *ctx)
+{
+	int ret = -1;
+	OpRunningState state = OpContext_get_running_state(ctx);
+	if(state != Ready)
 	{
 		printf("Launching Op %p Ctx %p failed : Ctx bad state : %d\n", self, ctx, state);
 		return ret;
@@ -583,12 +651,26 @@ int Op_execute_get_double(Op *self, Op *sender, OpContext *ctx, double *d)
 		c = OpContext_get_current_value(ctx);
 		t = OpVariable_get_type(c);
 		if(t == DOUBLE)
-			*d = OpContext_get_current_value_double(ctx);
+			*d = OpVariable_get_double(c);
+		else if(t == DOUBLES)
+		{
+			if(OpVariable_get_number_elements(c) > 0)
+				*d = OpVariable_get_doubles(c)[0];
+			else
+			{
+				String m;
+				String_init(&m);
+				String_append_printf(&m, "%s not enough objects in list", sender->isa->name);
+				OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
+				String_finalize(&m);
+				ret = -1;
+			}
+		}
 		else
 		{
 			String m;
 			String_init(&m);
-			String_append_printf(&m, "%s bad operandes", sender->isa->name);
+			String_append_printf(&m, "%s bad operande type", sender->isa->name);
 			OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
 			String_finalize(&m);
 			ret = -1;
@@ -617,7 +699,86 @@ int Op_execute_get_doubles(Op *self, Op *sender, OpContext *ctx, double **d, siz
 			{
 				String m;
 				String_init(&m);
-				String_append_printf(&m, "Not enough operandes for %s : %zu < %zu", sender->isa->name, *nb, expect);
+				String_append_printf(&m, "Not enough objects for %s : %zu < %zu", sender->isa->name, *nb, expect);
+				OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
+				String_finalize(&m);
+				ret = -1;
+			}
+		}
+		else
+		{
+			String m;
+			String_init(&m);
+			String_append_printf(&m, "%s bad operandes", sender->isa->name);
+			OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
+			String_finalize(&m);
+			ret = -1;
+		}
+	}
+	return ret;
+}
+
+int Op_execute_get_string(Op *self, Op *sender, OpContext *ctx, const char **s)
+{
+	int ret;
+	OpVariable *c;
+	OpVarType t;
+
+	ret = Op_execute(self, ctx);
+	if(ret == 0)
+	{
+		c = OpContext_get_current_value(ctx);
+		t = OpVariable_get_type(c);
+		if(t == STRING)
+			*s = OpVariable_get_string(c);
+		else if(t == DOUBLES)
+		{
+			if(OpVariable_get_number_elements(c) > 0)
+				*s = OpVariable_get_strings(c)[0];
+			else
+			{
+				String m;
+				String_init(&m);
+				String_append_printf(&m, "%s not enough objects in list", sender->isa->name);
+				OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
+				String_finalize(&m);
+				ret = -1;
+			}
+		}
+		else
+		{
+			String m;
+			String_init(&m);
+			String_append_printf(&m, "%s bad operande type", sender->isa->name);
+			OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
+			String_finalize(&m);
+			ret = -1;
+		}
+	}
+	return ret;
+}
+
+int Op_execute_get_strings(Op *self, Op *sender, OpContext *ctx, const char * const **s, size_t *nb, size_t expect)
+{
+	int ret;
+	OpVariable *c;
+	OpVarType t;
+
+	ret = Op_execute(self, ctx);
+	if(ret == 0)
+	{
+		c = OpContext_get_current_value(ctx);
+		t = OpVariable_get_type(c);
+		if(t == STRINGS)
+		{
+			*nb = OpVariable_get_number_elements(c);
+			if(*nb >= expect)
+				*s = OpVariable_get_strings(c);
+			else
+			{
+				String m;
+				String_init(&m);
+				String_append_printf(&m, "Not enough objects for %s : %zu < %zu", sender->isa->name, *nb, expect);
 				OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
 				String_finalize(&m);
 				ret = -1;
@@ -653,6 +814,16 @@ int Op_execute(Op *self, OpContext *ctx)
 			if(ret == 0)
 				ret = self->isa->execute(self, ctx);
 		}
+		else if(state == PreRun && self->for_prerunning == true)
+		{
+			if(self->isa->check_args != NULL)
+			{
+				ret = self->isa->check_args(self, ctx);
+				printf("Checking Args of %p %p : %d\n", self, ctx, ret);
+			}
+			if(ret == 0)
+				ret = self->isa->execute(self, ctx);
+		}
 		else
 			printf("Op %p Not executed because Ctx state %d\n", self, state);
 		printf("Fin Op %p : %s\n", self, self->isa->name);
@@ -665,6 +836,7 @@ OpIsa OpBloc_isa = {
 		.size=sizeof(OpBloc),
 		.init = (void(*)(Op*))OpBloc_init,
 		.terminate = (void(*)(Op*))OpBloc_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpBloc_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpBloc_execute,
 		.check_args = NULL
 };
@@ -677,7 +849,23 @@ void OpBloc_init(OpBloc *self)
 
 void OpBloc_append_Op(OpBloc *self, Op *op)
 {
-	LinkedList_append(&self->ops, op);
+	Op *s = (Op*)self;
+	size_t n = s->nb_ops;
+	Op_set_nb_ops(s, n + 1);
+	s->operandes[n] = op;
+
+}
+
+int OpBloc_fix_operandes(OpBloc *self, OpContext *ctx)
+{
+	int ret = 0;
+	size_t cmpt;
+	for(cmpt = 0; cmpt < ((Op*)self)->nb_ops; cmpt++)
+	{
+		Op *op = ((Op*)self)->operandes[cmpt];
+		LinkedList_append(&self->ops, op);
+	}
+	return ret;
 }
 
 int OpBloc_execute(OpBloc *self, OpContext *ctx)
@@ -708,6 +896,7 @@ OpIsa OpMessage_isa = {
 		.size=sizeof(OpMessage),
 		.init = (void(*)(Op*))OpMessage_init,
 		.terminate = (void(*)(Op*))OpMessage_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpMessage_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpMessage_execute,
 		.check_args = NULL
 };
@@ -719,11 +908,24 @@ void OpMessage_init(OpMessage *self)
 	self->value = NULL;
 }
 
+#define OPMESSAGE_VAUE 0
+
 void OpMessage_set_value(OpMessage *self, Op *op)
 {
-	if(self->value != NULL)
-		Op_free(self->value);
-	self->value = op;
+	OP_ADD_OPERANDE(self, op, OPMESSAGE_VAUE);
+}
+
+void _OpMessage_set_value(OpMessage *self, Op *op)
+{
+	OP_SET_OPERANDE(self, value, op);
+}
+
+int OpMessage_fix_operandes(OpMessage *self, OpContext *ctx)
+{
+	int ret = 0;
+	Op *v = ((Op*)self)->operandes[OPMESSAGE_VAUE];
+	_OpMessage_set_value(self, v);
+	return ret;
 }
 
 void OpMessage_set_message(OpMessage *self, const char *m)
@@ -763,7 +965,7 @@ int OpMessage_execute(OpMessage *self, OpContext *ctx)
 void OpMessage_terminate(OpMessage *self)
 {
 	Op_terminate(&self->super);
-	OpMessage_set_value(self, NULL);
+	_OpMessage_set_value(self, NULL);
 	OpMessage_set_message(self, NULL);
 }
 
@@ -777,6 +979,7 @@ OpIsa OpGetValue_isa = {
 		.name="GetValue",
 		.size=sizeof(OpGetValue),
 		.init = (void(*)(Op*))OpGetValue_init,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,
 		.terminate = (void(*)(Op*))OpGetValue_terminate,
 		.execute = (int(*)(Op*, OpContext*))OpGetValue_execute,
 		.check_args = NULL
@@ -826,6 +1029,7 @@ OpIsa OpPi_isa = {
 		.size=sizeof(OpPi),
 		.init = (void(*)(Op*))OpPi_init,
 		.terminate = (void(*)(Op*))OpPi_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,
 		.execute = (int(*)(Op*, OpContext*))OpPi_execute,
 		.check_args = NULL
 };
@@ -856,6 +1060,7 @@ OpIsa OpIf_isa = {
 		.size=sizeof(OpIf),
 		.init = (void(*)(Op*))OpIf_init,
 		.terminate = (void(*)(Op*))OpIf_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpIf_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpIf_execute,
 		.check_args = NULL
 };
@@ -871,30 +1076,56 @@ void OpIf_init(OpIf *self)
 void OpIf_terminate(OpIf *self)
 {
 	Op_terminate(&self->super);
-	OpIf_set_condition(self, NULL);
-	OpIf_set_true_branch(self, NULL);
-	OpIf_set_false_branch(self, NULL);
+	_OpIf_set_condition(self, NULL);
+	_OpIf_set_true_branch(self, NULL);
+	_OpIf_set_false_branch(self, NULL);
 }
+
+#define OPIF_CONDITION 0
+#define OP_IF_TRUE_BRANCH 1
+#define OP_IF_FALSE_BRANCH 2
 
 void OpIf_set_condition(OpIf *self, Op *op)
 {
-	if(self->condition != NULL)
-		Op_free(self->condition);
-	self->condition = op;
+	OP_ADD_OPERANDE(self, op, OPIF_CONDITION);
 }
 
 void OpIf_set_true_branch(OpIf *self, Op *op)
 {
-	if(self->true_branch != NULL)
-		Op_free(self->true_branch);
-	self->true_branch = op;
+	OP_ADD_OPERANDE(self, op, OP_IF_TRUE_BRANCH);
 }
 
 void OpIf_set_false_branch(OpIf *self, Op *op)
 {
-	if(self->false_branch != NULL)
-		Op_free(self->false_branch);
-	self->false_branch = op;
+	OP_ADD_OPERANDE(self, op, OP_IF_FALSE_BRANCH);
+}
+
+void _OpIf_set_condition(OpIf *self, Op *op)
+{
+	OP_SET_OPERANDE(self, condition, op);
+}
+
+void _OpIf_set_true_branch(OpIf *self, Op *op)
+{
+	OP_SET_OPERANDE(self, true_branch, op);
+}
+
+void _OpIf_set_false_branch(OpIf *self, Op *op)
+{
+	OP_SET_OPERANDE(self, false_branch, op);
+}
+
+int OpIf_fix_operandes(OpIf *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >=3)
+	{
+		ret = 0;
+		_OpIf_set_condition(self, self->super.operandes[OPIF_CONDITION]);
+		_OpIf_set_true_branch(self, self->super.operandes[OP_IF_TRUE_BRANCH]);
+		_OpIf_set_false_branch(self, self->super.operandes[OP_IF_FALSE_BRANCH]);
+	}
+	return ret;
 }
 
 int OpIf_execute(OpIf *self, OpContext *ctx)
@@ -938,6 +1169,7 @@ OpIsa OpWhile_isa = {
 		.size=sizeof(OpWhile),
 		.init = (void(*)(Op*))OpWhile_init,
 		.terminate = (void(*)(Op*))OpWhile_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpWhile_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpWhile_execute,
 		.check_args = NULL
 };
@@ -952,22 +1184,44 @@ void OpWhile_init(OpWhile *self)
 void OpWhile_terminate(OpWhile *self)
 {
 	Op_terminate(&self->super);
-	OpWhile_set_condition(self, NULL);
-	OpWhile_set_bloc(self, NULL);
+	_OpWhile_set_condition(self, NULL);
+	_OpWhile_set_bloc(self, NULL);
 }
+
+#define OPWHILE_CONDITION 0
+#define OPWHILE_BLOC 1
 
 void OpWhile_set_condition(OpWhile *self, Op *op)
 {
-	if(self->condition != NULL)
-		Op_free(self->condition);
-	self->condition = op;
+	OP_ADD_OPERANDE(self, op, OPWHILE_CONDITION);
 }
 
 void OpWhile_set_bloc(OpWhile *self, Op *op)
 {
-	if(self->bloc != NULL)
-		Op_free(self->bloc);
-	self->bloc = op;
+	OP_ADD_OPERANDE(self, op, OPWHILE_BLOC);
+}
+
+void _OpWhile_set_condition(OpWhile *self, Op *op)
+{
+	OP_SET_OPERANDE(self, condition, op);
+}
+
+void _OpWhile_set_bloc(OpWhile *self, Op *op)
+{
+	OP_SET_OPERANDE(self, bloc, op);
+}
+
+int OpWhile_fix_operandes(OpWhile *self, OpContext *ctx)
+{
+	int ret = -1;
+
+	if(self->super.nb_ops >= 2)
+	{
+		ret = 0;
+		_OpWhile_set_condition(self, self->super.operandes[OPWHILE_CONDITION]);
+		_OpWhile_set_bloc(self, self->super.operandes[OPWHILE_BLOC]);
+	}
+	return ret;
 }
 
 int OpWhile_execute(OpWhile *self, OpContext *ctx)
@@ -1004,6 +1258,7 @@ OpIsa OpForLoop_isa = {
 		.size=sizeof(OpForLoop),
 		.init = (void(*)(Op*))OpForLoop_init,
 		.terminate = (void(*)(Op*))OpForLoop_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpForLoop_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpForLoop_execute,
 		.check_args = NULL
 };
@@ -1016,6 +1271,7 @@ void OpForLoop_init(OpForLoop *self)
 	self->step = NAN;
 	self->loop = NULL;
 	self->variable_number = 0;
+	Op_set_nb_ops(&self->super, 1);
 }
 
 void OpForLoop_terminate(OpForLoop *self)
@@ -1023,6 +1279,8 @@ void OpForLoop_terminate(OpForLoop *self)
 	Op_terminate(&self->super);
 	OpForLoop_set_loop(self, NULL);
 }
+
+#define FORLOOP_LOOP 0
 
 
 void OpForLoop_set_variable_number(OpForLoop *self, size_t v)
@@ -1047,9 +1305,24 @@ void OpForLoop_set_step(OpForLoop *self, double v)
 
 void OpForLoop_set_loop(OpForLoop *self, Op *op)
 {
-	if(self->loop != NULL)
-		Op_free(self->loop);
-	self->loop = op;
+	OP_ADD_OPERANDE(self, op, FORLOOP_LOOP);
+}
+
+void _OpForLoop_set_loop(OpForLoop *self, Op *op)
+{
+	OP_SET_OPERANDE(self, loop, op);
+}
+
+int OpForLoop_fix_operandes(OpForLoop *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= FORLOOP_LOOP)
+	{
+		ret = 0;
+		Op *l = self->super.operandes[FORLOOP_LOOP];
+		_OpForLoop_set_loop(self, l);
+	}
+	return ret;
 }
 
 int OpForLoop_execute(OpForLoop *self, OpContext *ctx)
@@ -1097,6 +1370,7 @@ OpIsa OpGetVariable_isa = {
 		.size=sizeof(OpGetVariable),
 		.init = (void(*)(Op*))OpGetVariable_init,
 		.terminate = (void(*)(Op*))OpGetVariable_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,
 		.execute = (int(*)(Op*, OpContext*))OpGetVariable_execute,
 		.check_args = NULL
 };
@@ -1136,6 +1410,7 @@ OpIsa OpSetVariable_isa = {
 		.size=sizeof(OpSetVariable),
 		.init = (void(*)(Op*))OpSetVariable_init,
 		.terminate = (void(*)(Op*))OpSetVariable_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpSetVariable_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpSetVariable_execute,
 		.check_args = NULL
 };
@@ -1149,7 +1424,7 @@ void OpSetVariable_init(OpSetVariable *self)
 void OpSetVariable_terminate(OpSetVariable *self)
 {
 	Op_terminate(&self->super);
-	OpSetVariable_set_value(self, NULL);
+	_OpSetVariable_set_value(self, NULL);
 }
 
 void OpSetVariable_set_variable_number(OpSetVariable *self, size_t n)
@@ -1157,11 +1432,27 @@ void OpSetVariable_set_variable_number(OpSetVariable *self, size_t n)
 	self->variable_number = n;
 }
 
+#define OPSETVAR_VALUE 0
+
 void OpSetVariable_set_value(OpSetVariable *self, Op *op)
 {
-	if(self->value != NULL)
-		Op_free(self->value);
-	self->value = op;
+	OP_ADD_OPERANDE(self, op, OPSETVAR_VALUE);
+}
+
+void _OpSetVariable_set_value(OpSetVariable *self, Op *op)
+{
+	OP_SET_OPERANDE(self, value, op);
+}
+
+int OpSetVariable_fix_operandes(OpSetVariable *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_OpSetVariable_set_value(self, self->super.operandes[OPSETVAR_VALUE]);
+	}
+	return ret;
 }
 
 int OpSetVariable_execute(OpSetVariable *self, OpContext *ctx)
@@ -1184,6 +1475,7 @@ OpIsaTwoOp Op2_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute
 };
 
@@ -1197,22 +1489,45 @@ void Op2_init(Op2 *self)
 void Op2_terminate(Op2 *self)
 {
 	Op_terminate(&self->super);
-	Op2_set_operande1(self, NULL);
-	Op2_set_operande2(self, NULL);
+	_Op2_set_operande1(self, NULL);
+	_Op2_set_operande2(self, NULL);
 }
+
+#define OP2_OP1 0
+#define OP2_OP2 1
+
+
 
 void Op2_set_operande1(Op2 *self, Op *o)
 {
-	if(self->operande1 != NULL)
-		free(self->operande1);
-	self->operande1 = o;
+	OP_ADD_OPERANDE(self, o, OP2_OP1);
 }
 
 void Op2_set_operande2(Op2 *self, Op *o)
 {
-	if(self->operande2 != NULL)
-		free(self->operande2);
-	self->operande2 = o;
+	OP_ADD_OPERANDE(self, o, OP2_OP2);
+}
+
+void _Op2_set_operande1(Op2 *self, Op *o)
+{
+	OP_SET_OPERANDE(self, operande1, o);
+}
+
+void _Op2_set_operande2(Op2 *self, Op *o)
+{
+	OP_SET_OPERANDE(self, operande2, o);
+}
+
+int Op2_fix_operandes(Op2 *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 2)
+	{
+		ret = 0;
+		_Op2_set_operande1(self, self->super.operandes[OP2_OP1]);
+		_Op2_set_operande2(self, self->super.operandes[OP2_OP2]);
+	}
+	return ret;
 }
 
 int Op2_check_args(Op2 *self, OpContext *ctx)
@@ -1397,6 +1712,7 @@ OpIsaTwoOp OpAdd_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
 		.check_args = check_args_add,
@@ -1506,6 +1822,7 @@ OpIsaTwoOp OpDel_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
 		.check_args = check_args_del,
@@ -1615,6 +1932,7 @@ OpIsaTwoOp OpMult_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
 		.check_args = check_args_mult,
@@ -1631,6 +1949,7 @@ OpIsaTwoOp OpDiv_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
 		.check_args = check_args_div,
@@ -1779,6 +2098,7 @@ OpIsaTwoOp OpEqu_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
 		.check_args = check_args_equ,
@@ -1846,6 +2166,7 @@ OpIsaTwoOp OpNotEqu_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
 		.check_args = check_args_notequ,
@@ -1894,6 +2215,7 @@ OpIsaTwoOp OpInf_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
 		.check_args = check_args_inf,
@@ -1942,6 +2264,7 @@ OpIsaTwoOp OpInfEqu_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
 		.check_args = check_args_infequ,
@@ -1990,6 +2313,7 @@ OpIsaTwoOp OpSup_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
 		.check_args = check_args_sup,
@@ -2038,6 +2362,7 @@ OpIsaTwoOp OpSupEqu_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
 		.check_args = check_args_supequ,
@@ -2082,6 +2407,7 @@ OpIsaTwoOp OpPower_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
 		.check_args = check_args_power,
@@ -2173,6 +2499,7 @@ OpIsaTwoOp OpCrochets_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
 		.check_args = check_args_crochets,
@@ -2276,6 +2603,7 @@ OpIsaTwoOp OpConcat_isa = {
 		.super.size=sizeof(Op2),
 		.super.init = (void(*)(Op*))Op2_init,
 		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
 		.check_args = check_args_concat,
@@ -2292,6 +2620,7 @@ OpIsaOneOp Op1_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute
 };
 
@@ -2304,14 +2633,19 @@ void Op1_init(Op1 *self)
 void Op1_terminate(Op1 *self)
 {
 	Op_terminate(&self->super);
-	Op1_set_operande(self, NULL);
+	_Op1_set_operande(self, NULL);
 }
+
+void _Op1_set_operande(Op1 *self, Op *o)
+{
+	OP_SET_OPERANDE(self, operande, o);
+}
+
+#define OP1_OP 0
 
 void Op1_set_operande(Op1 *self, Op *o)
 {
-	if(self->operande != NULL)
-		free(self->operande);
-	self->operande = o;
+	OP_ADD_OPERANDE(self, o, OP1_OP);
 }
 
 int Op1_check_args(Op1 *self, OpContext *ctx)
@@ -2320,6 +2654,17 @@ int Op1_check_args(Op1 *self, OpContext *ctx)
 	if(self->operande)
 		return 0;
 
+	return ret;
+}
+
+int Op1_fix_operandes(Op1 *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_Op1_set_operande(self, self->super.operandes[OP1_OP]);
+	}
 	return ret;
 }
 
@@ -2405,6 +2750,7 @@ OpIsaOneOp OpRadians_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
 		.check_arg = check_args_radians,
@@ -2453,6 +2799,7 @@ OpIsaOneOp OpDegrees_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
 		.check_arg = check_args_degrees,
@@ -2501,6 +2848,7 @@ OpIsaOneOp OpNegValue_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
 		.check_arg = check_args_neg,
@@ -2549,6 +2897,7 @@ OpIsaOneOp OpLogicalNegValue_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
 		.check_arg = check_args_logical_neg,
@@ -2597,6 +2946,7 @@ OpIsaOneOp OpFloor_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
 		.check_arg = check_args_floor,
@@ -2645,6 +2995,7 @@ OpIsaOneOp OpCeil_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
 		.check_arg = check_args_ceil,
@@ -2693,6 +3044,7 @@ OpIsaOneOp OpCos_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
 		.check_arg = check_args_cos,
@@ -2741,6 +3093,7 @@ OpIsaOneOp OpAcos_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
 		.check_arg = check_args_acos,
@@ -2789,6 +3142,7 @@ OpIsaOneOp OpSin_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
 		.check_arg = check_args_sin,
@@ -2837,6 +3191,7 @@ OpIsaOneOp OpAsin_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
 		.check_arg = check_args_asin,
@@ -2885,6 +3240,7 @@ OpIsaOneOp OpTan_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
 		.check_arg = check_args_tan,
@@ -2933,6 +3289,7 @@ OpIsaOneOp OpAtan_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
 		.check_arg = check_args_atan,
@@ -2981,6 +3338,7 @@ OpIsaOneOp OpSqrt_isa = {
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
 		.check_arg = check_args_sqrt,

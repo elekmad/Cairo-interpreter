@@ -39,6 +39,8 @@ typedef struct op_variable
 typedef enum op_running_state
 {
 	Init,
+	PreRun,
+	Ready,
 	Run,
 	Finished,
 	Error
@@ -59,6 +61,7 @@ typedef struct op_isa
 	size_t size;
 	void(*init)(Op*);
 	void(*terminate)(Op*);
+	int (*fix_operandes)(Op*, OpContext*);
 	int (*execute)(Op*, OpContext *);
 	int (*check_args)(Op*, OpContext*);
 }OpIsa;
@@ -75,7 +78,28 @@ typedef struct op
 {
 	OpIsa *isa;
 	SourcePos pos;
+	bool for_prerunning;//To execute during pre-runing
+	Op **operandes;
+	size_t nb_ops;
 } Op;
+
+#define OP_SET_OPERANDE(self, var, op)\
+{\
+	typeof(self) _self = (self);\
+	typeof(op) _op = (op);\
+	if(_self->var != NULL)\
+		Op_free(_self->var);\
+	_self->var = _op;\
+}
+
+#define OP_ADD_OPERANDE(self, op, num)\
+{\
+	typeof(self) _self = (self);\
+	typeof(op) _op = (op);\
+	typeof(num) _num = (num);\
+	Op_set_nb_ops(&_self->super, _num + 1);\
+	_self->super.operandes[_num] = _op;\
+}
 
 typedef struct op_isa_2_operandes
 {

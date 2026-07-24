@@ -118,109 +118,6 @@ int main( int argc, char *argv[ ] )
     CanvaCtx_set_texture(&Canva, texture);
     // Main loop
 
-/*
-    Op *op = OpBloc_new();
-    Op *op_arc, *c;
-
-
-    /////////////////////// Circle
-    op_arc = OpCircle_new();
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 160);
-    OpCircle_set_x((OpCircle*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 160);
-    OpCircle_set_y((OpCircle*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 30);
-    OpCircle_set_r((OpCircle*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 0);
-    OpCircle_set_a1((OpCircle*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 2*M_PI);
-    OpCircle_set_a2((OpCircle*)op_arc, c);
-
-    OpBloc_append_Op((OpBloc*)op, op_arc);
-    //////////////////////////////////////////// Fin Circle
-    arc(160, 160, 30, 0, 6.28)
-
-    op_arc = OpStroke_new();
-    OpBloc_append_Op((OpBloc*)op, op_arc);
-
-    /////////////////////////////// Circle
-    op_arc = OpCircle_new();
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 500);
-    OpCircle_set_x((OpCircle*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 500);
-    OpCircle_set_y((OpCircle*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 30);
-    OpCircle_set_r((OpCircle*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 0);
-    OpCircle_set_a1((OpCircle*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 2*M_PI);
-    OpCircle_set_a2((OpCircle*)op_arc, c);
-
-    OpBloc_append_Op((OpBloc*)op, op_arc);
-    ///////////////////////////////// Fin Circle
-
-    op_arc = OpColor_new();
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 255);
-    OpColor_set_red((OpColor*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 102);
-    OpColor_set_geen((OpColor*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 70);
-    OpColor_set_blue((OpColor*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 255);
-    OpColor_set_alpha((OpColor*)op_arc, c);
-    OpBloc_append_Op((OpBloc*)op, op_arc);
-
-///////////////////////////   Rectangle
-    op_arc = OpRectangle_new();
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 10);
-    OpRectangle_set_x((OpRectangle*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 10);
-    OpRectangle_set_y((OpRectangle*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 400);
-    OpRectangle_set_w((OpRectangle*)op_arc, c);
-
-    c = OpGetValue_new();
-    OpGetValue_set_value((OpGetValue*)c, 400);
-    OpRectangle_set_h((OpRectangle*)op_arc, c);
-
-    OpBloc_append_Op((OpBloc*)op, op_arc);
-    //////////////////////Fin Rectangle
-    */
-
 
     extern FILE *yyin;
     yyin = fopen(argv[1], "r");
@@ -246,8 +143,13 @@ int main( int argc, char *argv[ ] )
 
 		OpCanvaContext_set_Canva(&Ctx, &Canva);
 
+		Op_fix_operandes(root, (OpContext*)&Ctx);
+
+		Op_prerun(root, (OpContext*)&Ctx);
+
 		Op_launch(root, (OpContext*)&Ctx);
 		Op_free(root);
+
 		while (one_iter() == 0)
 		{
 			// Delay to keep frame rate constant (using SDL)
