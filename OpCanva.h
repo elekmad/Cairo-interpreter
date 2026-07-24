@@ -40,6 +40,7 @@ typedef struct op_rectangle
 	Op *y;
 	Op *w;
 	Op *h;
+	Op *params;
 
 }OpRectangle;
 
@@ -51,6 +52,7 @@ typedef struct op_color
 	Op *blue;
 	Op *green;
 	Op *alpha;
+	Op *params;
 
 }OpColor;
 
@@ -71,6 +73,7 @@ typedef struct op_translate
 	Op super;
 	Op *x;
 	Op *y;
+	Op *params;
 }OpTranslate;
 
 typedef struct op_move_to
@@ -78,6 +81,7 @@ typedef struct op_move_to
 	Op super;
 	Op *x;
 	Op *y;
+	Op *params;
 }OpMoveTo;
 
 typedef struct op_canva_bloc
@@ -133,9 +137,20 @@ typedef enum text_mode
 typedef struct op_draw_text
 {
 	Op super;
-	char *text;
+	Op *text;
 	TextMode mode;
 }OpDrawText;
+
+typedef struct op_get_text_extent
+{
+	Op super;
+	Op *text;
+}OpGetTextExtents;
+
+typedef struct op_get_font_extent
+{
+	Op super;
+}OpGetFontExtents;
 
 
 #include <OpCanva.proto.h>

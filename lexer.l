@@ -1,11 +1,25 @@
+%option yylineno
 %{
 #include "parser.tab.h"
 #include <stdlib.h>
 #include <string.h>
+
+int yycolumn = 1;
+
+#define YY_USER_ACTION                     \
+    yylloc.first_line = yylineno;         \
+    yylloc.last_line  = yylineno;         \
+    yylloc.first_column = yycolumn;       \
+    yylloc.last_column  = yycolumn + yyleng - 1; \
+    yycolumn += yyleng;
 %}
-%option yylineno
+
 %option debug
 %%
+ 
+\n {
+    yycolumn = 1;
+}
 
 [ \t\r\n]+          ;
 
@@ -28,6 +42,9 @@
 (?i:"font")			{ return FONT; }
 (?i:"text")			{ return TEXT; }
 (?i:"textpath")		{ return TEXTPATH; }
+(?i:"textextents")	{ return TEXTEXTENTS; }
+(?i:"fontextents")	{ return FONTEXTENTS; }
+(?i:"concat")		{ return CONCAT; }
 (?i:"pi")			{ return PI; }
 (?i:"radians")		{ return RADIANS; }
 (?i:"degrees")		{ return DEGREES; }

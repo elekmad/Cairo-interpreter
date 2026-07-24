@@ -63,6 +63,8 @@ Op *root;
 %token FONT
 %token TEXT
 %token TEXTPATH
+%token TEXTEXTENTS
+%token FONTEXTENTS
 %token PI
 %token RADIANS
 %token DEGREES
@@ -70,6 +72,7 @@ Op *root;
 %token ACOS
 %token SIN
 %token ASIN
+%token CONCAT
 %token TAN
 %token ATAN
 %token FLOOR
@@ -142,6 +145,7 @@ statement:
       		$$ = (Op*)op;
       		OpSetVariable_set_variable_number(op, var_num);
       		OpSetVariable_set_value(op, (Op*)$3);
+      		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
     | IF '(' expression ')' block %prec IFX
     {
@@ -149,6 +153,7 @@ statement:
     	$$ = (Op*)op;
     	OpIf_set_condition(op, $3);
     	OpIf_set_true_branch(op, $5);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
     }
       
     | IF '(' expression ')' block ELSE block
@@ -158,6 +163,7 @@ statement:
     	OpIf_set_condition(op, $3);
     	OpIf_set_true_branch(op, $5);
     	OpIf_set_false_branch(op, $7);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
     }
     | FORLOOP '(' IDENTIFIER '=' '[' NUMBER ':' NUMBER ':' NUMBER ']' ')' block
     {
@@ -169,6 +175,7 @@ statement:
     	OpForLoop_set_step(op, $10);
     	OpForLoop_set_loop(op, $13);
     	OpForLoop_set_variable_number(op, var_num);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
     }
     | WHILETRUE '(' expression ')' block
     {
@@ -176,6 +183,7 @@ statement:
     	$$ = (Op*)op;
     	OpWhile_set_condition(op, $3);
     	OpWhile_set_bloc(op, $5);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
     }
 
     | RECTANGLE '(' expression ','
@@ -189,6 +197,15 @@ statement:
       	OpRectangle_set_y(op, $5);
       	OpRectangle_set_w(op, $7);
       	OpRectangle_set_h(op, $9);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+
+    | RECTANGLE '(' expression ')' ';'
+      {
+      	OpRectangle *op = (OpRectangle*)OpRectangle_new();
+      	$$ = (Op*)op;
+      	OpRectangle_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 
     | ARC '(' expression ','
@@ -204,6 +221,7 @@ statement:
       	OpCircle_set_r(op, $7);
       	OpCircle_set_a1(op, $9);
       	OpCircle_set_a2(op, $11);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       
       | COLOR '(' expression ','
@@ -217,6 +235,15 @@ statement:
       	OpColor_set_green(op, $5);
       	OpColor_set_blue(op, $7);
       	OpColor_set_alpha(op, $9);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | COLOR '(' expression ')' ';'
+      {
+      	OpColor *op = (OpColor*)OpColor_new();
+      	$$ = (Op*)op;
+		OpColor_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       
     	| COLOR '(' expression ','
@@ -234,12 +261,28 @@ statement:
         OpBloc_append_Op(op, (Op*)opc);
         OpBloc_append_Op(op, $11);
         OpCanvaBloc_set_auto_stroke((OpCanvaBloc*)op);
+  		Op_set_source_pos($$, @11.first_line, @11.first_column, @11.last_line, @11.last_column);
+  		Op_set_source_pos((Op*)opc, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+    	| COLOR '(' expression ')' block
+      {
+      	OpBloc *op = (OpBloc*)OpCanvaBloc_new();
+      	$$ = (Op*)op;
+      	OpColor *opc = (OpColor*)OpColor_new();
+		OpColor_set_params(opc, $3);
+        OpBloc_append_Op(op, (Op*)opc);
+        OpBloc_append_Op(op, $5);
+        OpCanvaBloc_set_auto_stroke((OpCanvaBloc*)op);
+  		Op_set_source_pos($$, @5.first_line, @5.first_column, @5.last_line, @5.last_column);
+  		Op_set_source_pos((Op*)opc, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 		| LINEWIDTH '(' expression ')' ';'
       {
       	OpSetLineWidth *op = (OpSetLineWidth*)OpSetLineWidth_new();
       	$$ = (Op*)op;
 		OpSetLineWidth_set_width(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
     	| LINEWIDTH '(' expression ')' block
       {
@@ -249,12 +292,15 @@ statement:
 		OpSetLineWidth_set_width(opl, $3);
         OpBloc_append_Op(op, (Op*)opl);
         OpBloc_append_Op(op, $5);
+  		Op_set_source_pos((Op*)opl, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		Op_set_source_pos($$, @5.first_line, @5.first_column, @5.last_line, @5.last_column);
       }
       	| ROTATE '(' expression ')' ';'
       {
       	OpRotate *op = (OpRotate*)OpRotate_new();
       	$$ = (Op*)op;
 		OpRotate_set_angle(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
     	| ROTATE '(' expression ')' block
       {
@@ -264,6 +310,8 @@ statement:
 		OpRotate_set_angle(opr, $3);
         OpBloc_append_Op(op, (Op*)opr);
         OpBloc_append_Op(op, $5);
+  		Op_set_source_pos((Op*)opr, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		Op_set_source_pos($$, @5.first_line, @5.first_column, @5.last_line, @5.last_column);
       }
       	| TRANSLATE '(' expression ','
       				   expression ')' ';'
@@ -272,6 +320,7 @@ statement:
       	$$ = (Op*)op;
 		OpTranslate_set_x(op, $3);
 		OpTranslate_set_y(op, $5);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
     	| TRANSLATE '(' expression ','
       				    expression ')' block
@@ -283,6 +332,26 @@ statement:
 		OpTranslate_set_y(opt, $5);
         OpBloc_append_Op(op, (Op*)opt);
         OpBloc_append_Op(op, $7);
+  		Op_set_source_pos((Op*)opt, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		Op_set_source_pos($$, @7.first_line, @7.first_column, @7.last_line, @7.last_column);
+      }
+      	| TRANSLATE '(' expression ')' ';'
+      {
+      	OpTranslate *op = (OpTranslate*)OpTranslate_new();
+      	$$ = (Op*)op;
+		OpTranslate_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+    	| TRANSLATE '(' expression ')' block
+      {
+      	OpBloc *op = (OpBloc*)OpCanvaBloc_new();
+      	$$ = (Op*)op;
+      	OpTranslate *opt = (OpTranslate*)OpTranslate_new();
+		OpTranslate_set_params(opt, $3);
+        OpBloc_append_Op(op, (Op*)opt);
+        OpBloc_append_Op(op, $5);
+  		Op_set_source_pos((Op*)opt, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		Op_set_source_pos($$, @5.first_line, @5.first_column, @5.last_line, @5.last_column);
       }
       	| MOVETO '(' expression ','
       				   expression ')' ';'
@@ -291,12 +360,21 @@ statement:
       	$$ = (Op*)op;
 		OpMoveTo_set_x(op, $3);
 		OpMoveTo_set_y(op, $5);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| MOVETO '(' expression ')' ';'
+      {
+      	OpMoveTo *op = (OpMoveTo*)OpMoveTo_new();
+      	$$ = (Op*)op;
+		OpMoveTo_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
       	| FONTSIZE '(' expression ')' ';'
       {
       	OpSetFontSize *op = (OpSetFontSize*)OpSetFontSize_new();
       	$$ = (Op*)op;
 		OpSetFontSize_set_size(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
       	| FONT '(' TEXTCONTENT ',' TEXTCONTENT ',' TEXTCONTENT ')' ';'
       {
@@ -305,19 +383,22 @@ statement:
 		OpFontSelector_set_font_name(op, $3);
 		OpFontSelector_set_font_slant(op, $5);
 		OpFontSelector_set_font_weight(op, $7);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
-      	| TEXT '(' TEXTCONTENT ')' ';'
+      	| TEXT '(' expression ')' ';'
       {
 		OpDrawText *op = (OpDrawText*)OpDrawText_new();
       	$$ = (Op*)op;
 		OpDrawText_set_text(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
-      	| TEXTPATH '(' TEXTCONTENT ')' ';'
+      	| TEXTPATH '(' expression ')' ';'
       {
 		OpDrawText *op = (OpDrawText*)OpDrawText_new();
       	$$ = (Op*)op;
 		OpDrawText_set_text(op, $3);
 		OpDrawText_set_text_mode(op, path);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
       	| MESSAGE '(' TEXTCONTENT ',' expression ')' ';'
       {
@@ -325,26 +406,31 @@ statement:
       	$$ = (Op*)op;
 		OpMessage_set_message(op, $3);
 		OpMessage_set_value(op, $5);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
-      
+
       | FILLPRESERVE '(' ')' ';'
       {
       	$$ = OpFillPreserve_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       
       | STROKEPRESERVE '(' ')' ';'
       {
       	$$ = OpStrokePreserve_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       
       | FILL '(' ')' ';'
       {
       	$$ = OpFill_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       
       | STROKE '(' ')' ';'
       {
       	$$ = OpStroke_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 ;
 
@@ -355,9 +441,21 @@ number_list:
 		OpVariable_append_double(var, $1);
       	$$ = var;
 	}
+	| '-' NUMBER
+	{
+		OpVariable *var = OpVariable_new();
+		OpVariable_append_double(var, -1 * $2);
+      	$$ = var;
+	}
+	
 	| number_list ',' NUMBER
 	{
 		OpVariable_append_double((OpVariable*)$$, $3);
+	}
+	
+	| number_list ',' '-' NUMBER
+	{
+		OpVariable_append_double((OpVariable*)$$, -1 * $4);
 	}
 ;
 
@@ -381,6 +479,7 @@ expression:
       	OpGetValue *op = (OpGetValue*)OpGetValue_new();
       	$$ = (Op*)op;
       	OpGetValue_set_value(op, $1);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       
       | TEXTCONTENT
@@ -388,10 +487,25 @@ expression:
       	OpGetValue *op = (OpGetValue*)OpGetValue_new();
       	$$ = (Op*)op;
       	OpGetValue_set_value_string(op, $1);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
+      	| TEXTEXTENTS '(' expression ')'
+      {
+		OpGetTextExtents *op = (OpGetTextExtents*)OpGetTextExtents_new();
+      	$$ = (Op*)op;
+		OpGetTextExtents_set_text(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| FONTEXTENTS '('  ')'
+      {
+		OpGetFontExtents *op = (OpGetFontExtents*)OpGetFontExtents_new();
+      	$$ = (Op*)op;
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
 		| PI '('  ')'
       {
       	$$ = OpPi_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       | '[' number_list ']'
       {
@@ -399,6 +513,7 @@ expression:
       	$$ = (Op*)op;
       	OpGetValue_copy_variable(op, $2);
       	OpVariable_free($2);
+  		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
       }
       | '[' string_list ']'
       {
@@ -406,7 +521,17 @@ expression:
       	$$ = (Op*)op;
       	OpGetValue_copy_variable(op, $2);
       	OpVariable_free($2);
+  		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
       }
+      
+    | CONCAT '(' expression ',' expression ')'
+    {
+    	Op2 *op = (Op2*)OpConcat_new();
+      	$$ = (Op*)op;
+      	Op2_set_operande1(op, $3);
+      	Op2_set_operande2(op, $5);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+    }
 
     | IDENTIFIER
       {
@@ -414,6 +539,7 @@ expression:
       	OpGetVariable *op = (OpGetVariable*)OpGetVariable_new();
       	$$ = (Op*)op;
       	OpGetVariable_set_variable_number(op, var_num);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 
     | IDENTIFIER '[' expression ']'
@@ -427,6 +553,7 @@ expression:
       	OpGetVariable_set_variable_number(opg, var_num);
       	
       	Op2_set_operande1(op, (Op*)opg);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 
     | expression EQ expression
@@ -435,6 +562,7 @@ expression:
       	$$ = (Op*)op;
       	Op2_set_operande1(op, $1);
       	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
       }
 
     | expression NEQ expression
@@ -443,6 +571,7 @@ expression:
       	$$ = (Op*)op;
       	Op2_set_operande1(op, $1);
       	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
       }
 
     | expression '<' expression
@@ -451,6 +580,7 @@ expression:
       	$$ = (Op*)op;
       	Op2_set_operande1(op, $1);
       	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
       }
     | expression LEQ expression
       {
@@ -458,6 +588,7 @@ expression:
       	$$ = (Op*)op;
       	Op2_set_operande1(op, $1);
       	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
       }
 
     | expression '>' expression
@@ -466,6 +597,7 @@ expression:
       	$$ = (Op*)op;
       	Op2_set_operande1(op, $1);
       	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
       }
     | expression GEQ expression
       {
@@ -473,6 +605,7 @@ expression:
       	$$ = (Op*)op;
       	Op2_set_operande1(op, $1);
       	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
       }
 
     | expression '+' expression
@@ -481,6 +614,7 @@ expression:
       	$$ = (Op*)op;
       	Op2_set_operande1(op, $1);
       	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
       }
 
     | expression '-' expression
@@ -489,6 +623,7 @@ expression:
       	$$ = (Op*)op;
       	Op2_set_operande1(op, $1);
       	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
       }
 
     | expression '*' expression
@@ -497,6 +632,7 @@ expression:
       	$$ = (Op*)op;
       	Op2_set_operande1(op, $1);
       	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
       }
 
     | expression '/' expression
@@ -505,6 +641,7 @@ expression:
       	$$ = (Op*)op;
       	Op2_set_operande1(op, $1);
       	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
       }
 
     | POWER '(' expression ',' expression ')'
@@ -513,11 +650,13 @@ expression:
       	$$ = (Op*)op;
       	Op2_set_operande1(op, $3);
       	Op2_set_operande2(op, $5);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 
     | '(' expression ')'
       {
           $$ = $2;
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @3.last_line, @3.last_column);
       }
 
     | '-' expression %prec UMINUS
@@ -525,6 +664,7 @@ expression:
       	Op1 *op = (Op1*)OpNegValue_new();
       	$$ = (Op*)op;
       	Op1_set_operande(op, $2);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @2.last_line, @2.last_column);
       }
 
     | '!' expression
@@ -532,72 +672,84 @@ expression:
       	Op1 *op = (Op1*)OpLogicalNegValue_new();
       	$$ = (Op*)op;
       	Op1_set_operande(op, $2);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @2.last_line, @2.last_column);
       }
 		| RADIANS '(' expression ')'
       {
       	Op1 *op = (Op1*)OpRadians_new();
       	$$ = (Op*)op;
 		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 		| DEGREES '(' expression ')'
       {
       	Op1 *op = (Op1*)OpDegrees_new();
       	$$ = (Op*)op;
 		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 		| COS '(' expression ')'
       {
       	Op1 *op = (Op1*)OpCos_new();
       	$$ = (Op*)op;
 		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 		| ACOS '(' expression ')'
       {
       	Op1 *op = (Op1*)OpAcos_new();
       	$$ = (Op*)op;
 		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 		| SIN '(' expression ')'
       {
       	Op1 *op = (Op1*)OpSin_new();
       	$$ = (Op*)op;
 		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 		| ASIN '(' expression ')'
       {
       	Op1 *op = (Op1*)OpAsin_new();
       	$$ = (Op*)op;
 		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 		| TAN '(' expression ')'
       {
       	Op1 *op = (Op1*)OpTan_new();
       	$$ = (Op*)op;
 		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 		| ATAN '(' expression ')'
       {
       	Op1 *op = (Op1*)OpAtan_new();
       	$$ = (Op*)op;
 		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 		| FLOOR '(' expression ')'
       {
       	Op1 *op = (Op1*)OpFloor_new();
       	$$ = (Op*)op;
 		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 		| CEIL '(' expression ')'
       {
       	Op1 *op = (Op1*)OpCeil_new();
       	$$ = (Op*)op;
 		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 		| SQRT '(' expression ')'
       {
       	Op1 *op = (Op1*)OpSqrt_new();
       	$$ = (Op*)op;
 		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 
 ;

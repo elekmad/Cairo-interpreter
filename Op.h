@@ -11,6 +11,7 @@
 #include <LinkedList.h>
 #include <stddef.h>
 #include <String.h>
+#include <stdbool.h>
 
 typedef enum op_variable_type
 {
@@ -62,9 +63,18 @@ typedef struct op_isa
 	int (*check_args)(Op*, OpContext*);
 }OpIsa;
 
+typedef struct source_pos
+{
+    int first_line;
+    int first_column;
+    int last_line;
+    int last_column;
+} SourcePos;
+
 typedef struct op
 {
 	OpIsa *isa;
+	SourcePos pos;
 } Op;
 
 typedef struct op_isa_2_operandes

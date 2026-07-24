@@ -21,6 +21,25 @@ typedef enum canva_ctx_stroke_mode
 	StrokeFill
 } CanvaCtxStrokeMode;
 
+typedef struct canva_ctx_text_extent
+{
+    double x_bearing;
+    double y_bearing;
+    double width;
+    double height;
+    double x_advance;
+    double y_advance;
+}CanvaCtxTextExtent;
+
+typedef struct canva_ctx_font_extent
+{
+    double ascent;
+    double descent;
+    double height;
+    double max_x_advance;
+    double max_y_advance;
+} CanvaCtxFontExtent;
+
 typedef struct {
     int width;
     int height;

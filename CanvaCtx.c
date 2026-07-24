@@ -176,6 +176,29 @@ void CanvaCtx_set_font(CanvaCtx *self, const char *name, const char *slant, cons
 	cairo_select_font_face (self->cr, name, s, w);
 }
 
+void CanvaCtx_get_text_extents(CanvaCtx *self, const char *text, CanvaCtxTextExtent *e)
+{
+	cairo_text_extents_t ex;
+	cairo_text_extents (self->cr, text, &ex);
+	e->x_advance = ex.x_advance;
+	e->y_advance = ex.y_advance;
+	e->width = ex.width;
+	e->height = ex.height;
+	e->x_bearing = ex.x_bearing;
+	e->y_bearing = ex.y_bearing;
+}
+
+void CanvaCtx_get_font_extents(CanvaCtx *self, CanvaCtxFontExtent *e)
+{
+	cairo_font_extents_t ex;
+	cairo_font_extents (self->cr, &ex);
+	e->ascent = ex.ascent;
+	e->descent = ex.descent;
+	e->height = ex.height;
+	e->max_x_advance = ex.max_x_advance;
+	e->max_y_advance = ex.max_y_advance;
+}
+
 void CanvaCtx_set_font_size(CanvaCtx *self, double size)
 {
 	printf("Cairo %p font size %f\n", self->cr, size);

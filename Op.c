@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-#include <stdbool.h>
 
 void OpVariable_init(OpVariable *self)
 {
@@ -334,8 +333,9 @@ void OpContext_terminate(OpContext *self)
 	}
 }
 
-void OpContext_set_running_state(OpContext *self, OpRunningState state)
+void OpContext_set_running_state(OpContext *self, Op *sender, OpRunningState state, const char *message)
 {
+	printf("Context %p setting state %d '%s' @%d:%d\n", self, state, message, sender->pos.first_line, sender->pos.first_column);
 	self->state = state;
 }
 
@@ -532,6 +532,14 @@ Op *Op_new(OpIsa *isa)
 	return self;
 }
 
+void Op_set_source_pos(Op *self, int fl, int fc, int ll, int lc)
+{
+	self->pos.first_line = fl;
+	self->pos.first_column = fc;
+	self->pos.last_line = ll;
+	self->pos.last_column = lc;
+}
+
 void Op_free(Op *self)
 {
 	if(self != NULL)
@@ -550,10 +558,81 @@ int Op_launch(Op *self, OpContext *ctx)
 		printf("Launching Op %p Ctx %p failed : Ctx bad state : %d\n", self, ctx, state);
 		return ret;
 	}
-	OpContext_set_running_state(ctx, Run);
-	printf("Launching Op %p Ctx %p\n", self, ctx);
+	String m;
+	String_init(&m);
+	String_append_printf(&m, "Launching Op %p", self);
+	OpContext_set_running_state(ctx, self, Run, String_get_char_string(&m));
+
 	ret = Op_execute(self, ctx);
-	printf("Launched Op %p Ctx %p return %d\n", self, ctx, ret);
+	String_empty(&m);
+	String_append_printf(&m, "Execution completed Op %p return %d", self, ret);
+	OpContext_set_running_state(ctx, self, Finished, String_get_char_string(&m));
+	String_finalize(&m);
+	return ret;
+}
+
+int Op_execute_get_double(Op *self, Op *sender, OpContext *ctx, double *d)
+{
+	int ret;
+	OpVariable *c;
+	OpVarType t;
+
+	ret = Op_execute(self, ctx);
+	if(ret == 0)
+	{
+		c = OpContext_get_current_value(ctx);
+		t = OpVariable_get_type(c);
+		if(t == DOUBLE)
+			*d = OpContext_get_current_value_double(ctx);
+		else
+		{
+			String m;
+			String_init(&m);
+			String_append_printf(&m, "%s bad operandes", sender->isa->name);
+			OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
+			String_finalize(&m);
+			ret = -1;
+		}
+	}
+	return ret;
+}
+
+int Op_execute_get_doubles(Op *self, Op *sender, OpContext *ctx, double **d, size_t *nb, size_t expect)
+{
+	int ret;
+	OpVariable *c;
+	OpVarType t;
+
+	ret = Op_execute(self, ctx);
+	if(ret == 0)
+	{
+		c = OpContext_get_current_value(ctx);
+		t = OpVariable_get_type(c);
+		if(t == DOUBLES)
+		{
+			*nb = OpVariable_get_number_elements(c);
+			if(*nb >= expect)
+				*d = OpVariable_get_doubles(c);
+			else
+			{
+				String m;
+				String_init(&m);
+				String_append_printf(&m, "Not enough operandes for %s : %zu < %zu", sender->isa->name, *nb, expect);
+				OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
+				String_finalize(&m);
+				ret = -1;
+			}
+		}
+		else
+		{
+			String m;
+			String_init(&m);
+			String_append_printf(&m, "%s bad operandes", sender->isa->name);
+			OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
+			String_finalize(&m);
+			ret = -1;
+		}
+	}
 	return ret;
 }
 
@@ -615,6 +694,7 @@ int OpBloc_execute(OpBloc *self, OpContext *ctx)
 void OpBloc_terminate(OpBloc *self)
 {
 	Op_terminate(&self->super);
+	LinkedList_do_to_all(&self->ops, (void(*)(void*, void*))Op_free, NULL);
 	LinkedList_finalize(&self->ops);
 }
 
@@ -1183,8 +1263,11 @@ int Op2_execute(Op2 *self, OpContext *ctx)
 		}
 		else
 		{
-			printf("Error '%s' %p operandes types\n", ((Op*)self)->isa->name, self);
-			OpContext_set_running_state(ctx, Error);
+			String m;
+			String_init(&m);
+			String_append_printf(&m, "Error '%s' %p operandes types", ((Op*)self)->isa->name, self);
+			OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
+			String_finalize(&m);
 		}
 	}
 
@@ -2101,6 +2184,109 @@ Op *OpCrochets_new(void)
 	return Op_new(&OpCrochets_isa.super);
 }
 
+int compute_concat(OpVariable *res, OpVariable *v1, OpVariable *v2)
+{
+	int ret = 0;
+	size_t cmpt, nb;
+	switch(OpVariable_get_type(v1))
+	{
+	case NONE :		break;
+	case DOUBLE: 	{
+						double d = OpVariable_get_double(v1);
+						OpVariable_append_double(res, d);
+						break;
+					}
+	case DOUBLES :	{
+						double *d = OpVariable_get_doubles(v1);
+						nb = OpVariable_get_number_elements(v1);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, d[cmpt]);
+						break;
+					}
+	case STRING :	{
+						const char *s = OpVariable_get_string(v1);
+						OpVariable_append_string(res, s);
+						break;
+					}
+	case STRINGS :	{
+						const char * const *s = OpVariable_get_strings(v1);
+						nb = OpVariable_get_number_elements(v1);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_string(res, s[cmpt]);
+						break;
+					}
+	}
+	switch(OpVariable_get_type(v2))
+	{
+	case NONE :		break;
+	case DOUBLE: 	{
+						double d = OpVariable_get_double(v2);
+						OpVariable_append_double(res, d);
+						break;
+					}
+	case DOUBLES :	{
+						double *d = OpVariable_get_doubles(v2);
+						nb = OpVariable_get_number_elements(v2);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, d[cmpt]);
+						break;
+					}
+	case STRING :	{
+						const char *s = OpVariable_get_string(v2);
+						OpVariable_append_string(res, s);
+						break;
+					}
+	case STRINGS :	{
+						const char * const *s = OpVariable_get_strings(v2);
+						nb = OpVariable_get_number_elements(v2);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_string(res, s[cmpt]);
+						break;
+					}
+	}
+	return ret;
+}
+
+int check_args_concat(OpVariable *v1, OpVariable *v2)
+{
+	int ret = 0;
+	OpVarType t1 = OpVariable_get_type(v1), t2 = OpVariable_get_type(v2);
+	switch(t1)
+	{
+	case NONE :		return -1;
+					break;
+	case DOUBLE :	if(t2 != DOUBLE && t2 != DOUBLES)
+						return -1;
+					break;
+	case DOUBLES :	if(t2 != DOUBLE && t2 != DOUBLES)
+						return -1;
+					break;
+	case STRING :	if(t2 != STRING && t2 != STRINGS)
+						return -1;
+					break;
+	case STRINGS :	if(t2 != STRING && t2 != STRINGS)
+						return -1;
+					break;
+	}
+	return ret;
+}
+
+OpIsaTwoOp OpConcat_isa = {
+		.super.name="Concat",
+		.super.size=sizeof(Op2),
+		.super.init = (void(*)(Op*))Op2_init,
+		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
+		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
+		.check_args = check_args_concat,
+		.compute = compute_concat
+};
+
+Op *OpConcat_new(void)
+{
+	return Op_new(&OpConcat_isa.super);
+}
+
 OpIsaOneOp Op1_isa = {
 		.super.name="Op1",
 		.super.size=sizeof(Op1),
@@ -2168,8 +2354,11 @@ int Op1_execute(Op1 *self, OpContext *ctx)
 		}
 		else
 		{
-			printf("Error '%s' %p operande type\n", ((Op*)self)->isa->name, self);
-			OpContext_set_running_state(ctx, Error);
+			String m;
+			String_init(&m);
+			String_append_printf(&m, "Error '%s' %p operande type", ((Op*)self)->isa->name, self);
+			OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
+			String_finalize(&m);
 		}
 	}
 
