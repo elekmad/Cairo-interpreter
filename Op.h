@@ -150,6 +150,12 @@ typedef struct op_pi
 
 }OpPi;
 
+typedef struct op_phi
+{
+	Op super;
+
+}OpPhi;
+
 
 typedef struct op_if
 {

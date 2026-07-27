@@ -82,42 +82,8 @@ int one_iter(void)
 }
 
 
-
 int main( int argc, char *argv[ ] )
 {
-    if( SDL_Init( SDL_INIT_VIDEO ) == -1 )
-    {
-        printf( "Can't init SDL:  %s\n", SDL_GetError( ) );
-        return EXIT_FAILURE;
-    }
-
-    atexit( SDL_Quit );
-    window = SDL_CreateWindow("Ma fenêtre de jeu", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, 0 );
-
-    renderer =
-        SDL_CreateRenderer(window, -1,
-            SDL_RENDERER_ACCELERATED);
-
-    SDL_Surface *sdl_surface = SDL_GetWindowSurface(window);
-
-    if( sdl_surface == NULL )
-    {
-        printf( "Can't set video mode: %s\n", SDL_GetError( ) );
-        return EXIT_FAILURE;
-    }
-    texture = SDL_CreateTexture(renderer,
-    	    SDL_PIXELFORMAT_ARGB8888,
-    	    SDL_TEXTUREACCESS_STREAMING,
-    	    width,
-    	    height
-			);
-    CanvaCtx_init(&Canva,
-    		sdl_surface->w,
-	        sdl_surface->h,
-	        sdl_surface->pitch);
-    CanvaCtx_set_texture(&Canva, texture);
-    // Main loop
-
 
     extern FILE *yyin;
     yyin = fopen(argv[1], "r");
@@ -130,37 +96,111 @@ int main( int argc, char *argv[ ] )
 
     if(yyparse(&root, (OpContext*)&Ctx) == 0 && root != NULL)
     {
-		Op *op_arc = OpStroke_new();
-		OpBloc_append_Op((OpBloc*)root, op_arc);
-
-
-		CanvaCtx_set_color(&Canva, 255, 255, 255, 255);
-		CanvaCtx_draw_rectangle(&Canva, 0, 0, Canva.width, Canva.height);
-		CanvaCtx_fill(&Canva);
-
-		CanvaCtx_set_line_width (&Canva, 10.0);
-		CanvaCtx_set_color(&Canva, 0, 0, 0, 255);
-
-		OpCanvaContext_set_Canva(&Ctx, &Canva);
+    	int w, h;
 
 		Op_fix_operandes(root, (OpContext*)&Ctx);
 
 		Op_prerun(root, (OpContext*)&Ctx);
 
-		Op_launch(root, (OpContext*)&Ctx);
-		Op_free(root);
 
-		while (one_iter() == 0)
+		w = OpCanvaContext_get_width(&Ctx);
+		h = OpCanvaContext_get_height(&Ctx);
+		width = w != 0 ? w : width;
+		height = h != 0 ? h : height;
+
+		CanvaCtxOutputMode output_mode = OpCanvaContext_get_output_mode(&Ctx);
+
+		if(output_mode == SDL)
 		{
-			// Delay to keep frame rate constant (using SDL)
-			SDL_Delay(25);
+			if( SDL_Init( SDL_INIT_VIDEO ) == -1 )
+			{
+				printf( "Can't init SDL:  %s\n", SDL_GetError( ) );
+				return EXIT_FAILURE;
+			}
+
+			atexit( SDL_Quit );
+			window = SDL_CreateWindow("Ma fenêtre de jeu", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, 0 );
+
+			renderer =
+				SDL_CreateRenderer(window, -1,
+					SDL_RENDERER_ACCELERATED);
+
+			SDL_Surface *sdl_surface = SDL_GetWindowSurface(window);
+
+			if( sdl_surface == NULL )
+			{
+				printf( "Can't set video mode: %s\n", SDL_GetError( ) );
+				return EXIT_FAILURE;
+			}
+			texture = SDL_CreateTexture(renderer,
+					SDL_PIXELFORMAT_ARGB8888,
+					SDL_TEXTUREACCESS_STREAMING,
+					width,
+					height
+					);
+			CanvaCtx_init(&Canva,
+					sdl_surface->w,
+					sdl_surface->h,
+					sdl_surface->pitch);
+			CanvaCtx_set_texture(&Canva, texture);
+
+
+
+			CanvaCtx_set_line_width (&Canva, 10.0);
+			CanvaCtx_set_color(&Canva, 0, 0, 0, 255);
+
+			OpCanvaContext_set_Canva(&Ctx, &Canva);
+
+			Op_launch(root, (OpContext*)&Ctx);
+			// Main loop
+
+
+			while (one_iter() == 0)
+			{
+				// Delay to keep frame rate constant (using SDL)
+				SDL_Delay(25);
+			}
+
+			CanvaCtx_terminate(&Canva);
+
+			SDL_Quit();
 		}
-    }
+
+		if(output_mode == PNG)
+		{
+			CanvaCtx_init_for_png(&Canva, width, height, OpCanvaContext_get_output_name(&Ctx));
+
+			CanvaCtx_set_line_width (&Canva, 10.0);
+			CanvaCtx_set_color(&Canva, 0, 0, 0, 255);
+
+			OpCanvaContext_set_Canva(&Ctx, &Canva);
+
+			Op_launch(root, (OpContext*)&Ctx);
+
+			CanvaCtx_write_to_png(&Canva);
+
+			CanvaCtx_terminate(&Canva);
+		}
+
+		if(output_mode == SVG)
+		{
+			CanvaCtx_init_for_svg(&Canva, width, height, OpCanvaContext_get_output_name(&Ctx));
+
+			CanvaCtx_set_line_width (&Canva, 10.0);
+			CanvaCtx_set_color(&Canva, 0, 0, 0, 255);
+
+			OpCanvaContext_set_Canva(&Ctx, &Canva);
+
+			Op_launch(root, (OpContext*)&Ctx);
+
+			CanvaCtx_finish(&Canva);
+
+			CanvaCtx_terminate(&Canva);
+		}
+	}
+
     OpCanvaContext_terminate(&Ctx);
-
-    SDL_Quit();
-
-    CanvaCtx_terminate(&Canva);
+	Op_free(root);
 
     return EXIT_SUCCESS;
 }

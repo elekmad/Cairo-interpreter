@@ -21,6 +21,13 @@ typedef enum canva_ctx_stroke_mode
 	StrokeFill
 } CanvaCtxStrokeMode;
 
+typedef enum canva_ctx_output_mode
+{
+	SDL,
+	PNG,
+	SVG
+}CanvaCtxOutputMode;
+
 typedef struct canva_ctx_text_extent
 {
     double x_bearing;
@@ -45,6 +52,10 @@ typedef struct {
     int height;
     int pitch;
     uint32_t *pixels;
+    SDL_Texture *texture;
+    char *output_file;
+
+    CanvaCtxOutputMode output_mode;
 
     cairo_surface_t *surface;
     cairo_t *cr;
@@ -52,7 +63,6 @@ typedef struct {
     double default_color[4];
     CanvaCtxStrokeMode default_stroke_mode;
 
-    SDL_Texture *texture;
 } CanvaCtx;
 
 #include <CanvaCtx.proto.h>

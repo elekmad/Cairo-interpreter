@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <cairo-svg.h>
 
 void CanvaCtx_init(CanvaCtx *self, int width, int height, int pitch)
 {
@@ -17,8 +18,10 @@ void CanvaCtx_init(CanvaCtx *self, int width, int height, int pitch)
 	self->height = height;
 	self->pitch = pitch;
 	self->default_stroke_mode = Fill;
+	self->output_mode = SDL;
 
 	self->pixels = malloc(width * height * 4);
+	self->output_file = NULL;
 
 	self->surface =
 	    cairo_image_surface_create_for_data(
@@ -31,6 +34,48 @@ void CanvaCtx_init(CanvaCtx *self, int width, int height, int pitch)
 	self->cr = cairo_create (self->surface);
 }
 
+void CanvaCtx_init_for_svg(CanvaCtx *self, int width, int height, const char *name)
+{
+	memset(self, sizeof(self), 0);
+	self->width = width;
+	self->height = height;
+	self->default_stroke_mode = Fill;
+
+	self->output_mode = SVG;
+	self->output_file = strdup(name);
+
+	self->pixels = NULL;
+
+	self->surface =
+	    cairo_svg_surface_create(
+	        name,
+	        self->width,
+	        self->height
+	    );
+	self->cr = cairo_create (self->surface);
+}
+
+void CanvaCtx_init_for_png(CanvaCtx *self, int width, int height, const char *name)
+{
+	memset(self, sizeof(self), 0);
+	self->width = width;
+	self->height = height;
+	self->default_stroke_mode = Fill;
+
+	self->output_mode = SVG;
+	self->output_file = strdup(name);
+
+	self->pixels = NULL;
+
+	self->surface =
+	    cairo_image_surface_create(
+	        CAIRO_FORMAT_ARGB32,
+	        self->width,
+	        self->height
+	    );
+	self->cr = cairo_create (self->surface);
+}
+
 CanvaCtx *CanvaCtx_new(int width, int height, int pitch)
 {
 	CanvaCtx *self = malloc(sizeof(CanvaCtx));
@@ -39,14 +84,24 @@ CanvaCtx *CanvaCtx_new(int width, int height, int pitch)
 	return self;
 }
 
+CanvaCtx *CanvaCtx_new_for_png(int width, int height, const char *name)
+{
+	CanvaCtx *self = malloc(sizeof(CanvaCtx));
+	if(self != NULL)
+		CanvaCtx_init_for_png(self, width, height, name);
+	return self;
+}
+
 void CanvaCtx_terminate(CanvaCtx *self)
 {
     if(self->pixels != NULL)
     	free(self->pixels);
-    if(self->cr != NULL)
-    	cairo_destroy(self->cr);
+    if(self->output_file != NULL)
+    	free(self->output_file);
     if(self->surface != NULL)
     	cairo_surface_destroy(self->surface);
+    if(self->cr != NULL)
+    	cairo_destroy(self->cr);
 }
 
 void CanvaCtx_set_default_color(CanvaCtx *self, unsigned char red, unsigned char green, unsigned char blue, unsigned char alpha)
@@ -286,6 +341,16 @@ void CanvaCtx_update_display(CanvaCtx *self)
         self->pixels,
         self->width * 4
     );
+}
+
+void CanvaCtx_write_to_png(CanvaCtx *self)
+{
+	cairo_surface_write_to_png(self->surface, self->output_file);
+}
+
+void CanvaCtx_finish(CanvaCtx *self)
+{
+	cairo_surface_finish(self->surface);
 }
 
 void CanvaCtx_set_texture(CanvaCtx *self, SDL_Texture *t)

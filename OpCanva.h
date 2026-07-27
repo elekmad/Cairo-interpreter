@@ -18,6 +18,10 @@ typedef struct op_canva_context
 {
 	OpContext super;
 	CanvaCtx *Canva;
+	int width;
+	int height;
+	char *output_name;
+	CanvaCtxOutputMode output_mode;
 }OpCanvaContext;
 
 
@@ -62,6 +66,13 @@ typedef struct op_set_line_width
 	Op super;
 	Op *width;
 }OpSetLineWidth;
+
+typedef struct op_set_out_size
+{
+	Op super;
+	Op *width;
+	Op *height;
+}OpSetOutputSize;
 
 typedef struct op_rotate
 {
@@ -152,6 +163,39 @@ typedef struct op_get_font_extent
 {
 	Op super;
 }OpGetFontExtents;
+
+typedef struct op_get_red_color
+{
+	Op super;
+}OpGetRedColor;
+
+typedef struct op_get_green_color
+{
+	Op super;
+}OpGetGreenColor;
+
+typedef struct op_get_blue_color
+{
+	Op super;
+}OpGetBlueColor;
+
+
+typedef struct op_get_output_size
+{
+	Op super;
+}OpGetOutputSize;
+
+typedef struct op_set_output_png
+{
+	Op super;
+	char *filename;
+}OpSetOutputPNG;
+
+typedef struct op_set_output_svg
+{
+	Op super;
+	char *filename;
+}OpSetOutputSVG;
 
 
 #include <OpCanva.proto.h>

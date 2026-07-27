@@ -16,6 +16,8 @@ int yycolumn = 1;
 
 %option debug
 %%
+
+\/\/[^\n]*				;
  
 \n {
     yycolumn = 1;
@@ -44,8 +46,13 @@ int yycolumn = 1;
 (?i:"textpath")		{ return TEXTPATH; }
 (?i:"textextents")	{ return TEXTEXTENTS; }
 (?i:"fontextents")	{ return FONTEXTENTS; }
+(?i:"outputsize")	{ return GETOUTPUTSIZE; }
 (?i:"concat")		{ return CONCAT; }
 (?i:"pi")			{ return PI; }
+(?i:"phi")			{ return PHI; }
+(?i:"red")			{ return RED; }
+(?i:"green")		{ return GREEN; }
+(?i:"blue")			{ return BLUE; }
 (?i:"radians")		{ return RADIANS; }
 (?i:"degrees")		{ return DEGREES; }
 (?i:"cos")			{ return COS; }
@@ -59,6 +66,10 @@ int yycolumn = 1;
 (?i:"power")		{ return POWER; }
 (?i:"sqrt")			{ return SQRT; }
 (?i:"message")		{ return MESSAGE; } 
+(?i:"#initmessage")	{ return PREMESSAGE; }
+(?i:"#setoutputsize")	{ return SETOUTPUTSIZE; } 
+(?i:"#setpngoutput")	{ return SETPNGOUTPUT; }
+(?i:"#setsvgoutput")	{ return SETSVGOUTPUT; } 
 
 [0-9]+(\.[0-9]+)? {
     yylval.number = atof(yytext);

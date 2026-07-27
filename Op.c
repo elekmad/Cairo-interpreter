@@ -874,7 +874,7 @@ int OpBloc_execute(OpBloc *self, OpContext *ctx)
 
 	//Remplacer par un iterateur à construire, c'est plus propre !
 	LinkedList_do_to_all(&self->ops, (void(*)(void*, void*))Op_execute, ctx);
-	if(OpContext_get_running_state(ctx) != Run)
+	if(OpContext_get_running_state(ctx) == Error)
 		ret = -1;
 	return ret;
 }
@@ -1053,6 +1053,37 @@ int OpPi_execute(OpPi *self, OpContext *ctx)
 Op *OpPi_new(void)
 {
 	return Op_new(&OpPi_isa);
+}
+
+OpIsa OpPhi_isa = {
+		.name="Phi",
+		.size=sizeof(OpPhi),
+		.init = (void(*)(Op*))OpPhi_init,
+		.terminate = (void(*)(Op*))OpPhi_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,
+		.execute = (int(*)(Op*, OpContext*))OpPhi_execute,
+		.check_args = NULL
+};
+
+void OpPhi_init(OpPhi *self)
+{
+	Op_init(&self->super);
+}
+
+void OpPhi_terminate(OpPhi *self)
+{
+	Op_terminate(&self->super);
+}
+
+int OpPhi_execute(OpPhi *self, OpContext *ctx)
+{
+	OpContext_set_current_value_double(ctx, (1+sqrt(5))/2);
+	return 0;
+}
+
+Op *OpPhi_new(void)
+{
+	return Op_new(&OpPhi_isa);
 }
 
 OpIsa OpIf_isa = {

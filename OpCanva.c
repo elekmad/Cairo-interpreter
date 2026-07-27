@@ -15,6 +15,10 @@ void OpCanvaContext_init(OpCanvaContext *self)
 {
 	OpContext_init(&self->super);
 	self->Canva = NULL;
+	self->width = 0;
+	self->height = 0;
+	self->output_mode = SDL;
+	self->output_name = NULL;
 }
 
 void OpCanvaContext_set_Canva(OpCanvaContext *self, CanvaCtx *c)
@@ -22,9 +26,53 @@ void OpCanvaContext_set_Canva(OpCanvaContext *self, CanvaCtx *c)
 	self->Canva = c;
 }
 
+void OpCanvaContext_set_width(OpCanvaContext *self, int width)
+{
+	self->width = width;
+}
+
+int OpCanvaContext_get_width(OpCanvaContext *self)
+{
+	return self->width;
+}
+
+int OpCanvaContext_get_height(OpCanvaContext *self)
+{
+	return self->height;
+}
+
+void OpCanvaContext_set_height(OpCanvaContext *self, int height)
+{
+	self->height = height;
+}
+
+void OpCanvaContext_set_output_png(OpCanvaContext *self, const char *name)
+{
+	self->output_mode = PNG;
+	self->output_name = strdup(name);
+}
+
+void OpCanvaContext_set_output_svg(OpCanvaContext *self, const char *name)
+{
+	self->output_mode = SVG;
+	self->output_name = strdup(name);
+}
+
+CanvaCtxOutputMode OpCanvaContext_get_output_mode(OpCanvaContext *self)
+{
+	return self->output_mode;
+}
+
+const char *OpCanvaContext_get_output_name(OpCanvaContext *self)
+{
+	return self->output_name;
+}
+
 void OpCanvaContext_terminate(OpCanvaContext *self)
 {
 	OpContext_terminate(&self->super);
+	if(self->output_name != NULL)
+		free(self->output_name);
 }
 
 OpIsa OpCircle_isa = {
@@ -613,6 +661,95 @@ int OpStrokePreserve_execute(OpStrokePreserve *self, OpCanvaContext *ctx)
 Op *OpStrokePreserve_new(void)
 {
 	return Op_new(&OpStrokePreserve_isa);
+}
+
+
+OpIsa OpSetOutputSize_isa = {
+		.name="SetOutputSize",
+		.size=sizeof(OpSetOutputSize),
+		.init = (void(*)(Op*))OpSetOutputSize_init,
+		.terminate = (void(*)(Op*))OpSetOutputSize_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpSetOutputSize_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpSetOutputSize_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpSetOutputSize_check_args,
+};
+
+void OpSetOutputSize_init(OpSetOutputSize *self)
+{
+	Op_init(&self->super);
+	self->width = NULL;
+	self->height = NULL;
+}
+
+void OpSetOutputSize_terminate(OpSetOutputSize *self)
+{
+	Op_terminate(&self->super);
+	_OpSetOutputSize_set_width(self, NULL);
+	_OpSetOutputSize_set_height(self, NULL);
+}
+
+void _OpSetOutputSize_set_width(OpSetOutputSize *self, Op *v)
+{
+	OP_SET_OPERANDE(self, width, v);
+}
+
+void _OpSetOutputSize_set_height(OpSetOutputSize *self, Op *v)
+{
+	OP_SET_OPERANDE(self, height, v);
+}
+
+#define OPSETOUTPUTSIZE_WIDTH 0
+#define OPSETOUTPUTSIZE_HEIGHT 1
+
+void OpSetOutputSize_set_width(OpSetOutputSize *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPSETOUTPUTSIZE_WIDTH);
+}
+
+void OpSetOutputSize_set_height(OpSetOutputSize *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPSETOUTPUTSIZE_HEIGHT);
+}
+
+int OpSetOutputSize_fix_operandes(OpSetOutputSize *self, OpCanvaContext *canvactx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 2)
+	{
+		ret = 0;
+		_OpSetOutputSize_set_width(self, self->super.operandes[OPSETOUTPUTSIZE_WIDTH]);
+		_OpSetOutputSize_set_height(self, self->super.operandes[OPSETOUTPUTSIZE_HEIGHT]);
+	}
+	return ret;
+}
+
+int OpSetOutputSize_check_args(OpSetOutputSize *self, OpCanvaContext *canvactx)
+{
+	if(self->width != NULL && self->height != NULL)
+		return 0;
+	return -1;
+}
+
+int OpSetOutputSize_execute(OpSetOutputSize *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double w = NAN, h = NAN;
+	ret = Op_execute_get_double(self->width, (Op*)self, ctx, &w);
+	ret = Op_execute_get_double(self->height, (Op*)self, ctx, &h);
+
+	if(ret == 0)
+	{
+		printf("Op Set Output Size Width Height %f %f\n", w, h);
+		OpCanvaContext_set_width(canvactx, (int)w);
+		OpCanvaContext_set_height(canvactx, (int)h);
+	}
+	return ret;
+}
+
+Op *OpSetOutputSize_new(void)
+{
+	return Op_new(&OpSetOutputSize_isa);
 }
 
 
@@ -1503,4 +1640,260 @@ int OpGetFontExtents_execute(OpGetFontExtents *self, OpCanvaContext *ctx)
 Op *OpGetFontExtents_new(void)
 {
 	return Op_new(&OpGetFontExtents_isa);
+}
+
+
+OpIsa OpGetOutputSize_isa = {
+		.name="GetOutputSize",
+		.size=sizeof(OpGetOutputSize),
+		.init = (void(*)(Op*))OpGetOutputSize_init,
+		.terminate = (void(*)(Op*))OpGetOutputSize_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpGetOutputSize_execute,
+		.check_args = NULL,
+};
+
+void OpGetOutputSize_init(OpGetOutputSize *self)
+{
+	Op_init(&self->super);
+}
+
+void OpGetOutputSize_terminate(OpGetOutputSize *self)
+{
+	Op_terminate(&self->super);
+}
+
+int OpGetOutputSize_execute(OpGetOutputSize *self, OpCanvaContext *ctx)
+{
+	int w, h;
+	w = OpCanvaContext_get_width(ctx);
+	h = OpCanvaContext_get_height(ctx);
+	OpVariable v;
+	OpVariable_init(&v);
+	OpVariable_append_double(&v, w);
+	OpVariable_append_double(&v, h);
+
+	OpContext_copy_variable_to_current_value((OpContext*)ctx, &v);
+
+	String s;
+	String_init(&s);
+	OpVariable_to_string(&v, &s);
+	printf("Get Output Size : %s\n", String_get_char_string(&s));
+	String_finalize(&s);
+	OpVariable_terminate(&v);
+
+	return 0;
+}
+
+Op *OpGetOutputSize_new(void)
+{
+	return Op_new(&OpGetOutputSize_isa);
+}
+
+
+OpIsa OpGetRedColor_isa = {
+		.name="GetRedColor",
+		.size=sizeof(OpGetRedColor),
+		.init = (void(*)(Op*))OpGetRedColor_init,
+		.terminate = (void(*)(Op*))OpGetRedColor_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpGetRedColor_execute,
+		.check_args = NULL,
+};
+
+void OpGetRedColor_init(OpGetRedColor *self)
+{
+	Op_init(&self->super);
+}
+
+void OpGetRedColor_terminate(OpGetRedColor *self)
+{
+	Op_terminate(&self->super);
+}
+
+int OpGetRedColor_execute(OpGetRedColor *self, OpCanvaContext *ctx)
+{
+	OpVariable v;
+	OpVariable_init(&v);
+	OpVariable_append_double(&v, 255.0);
+	OpVariable_append_double(&v, 0);
+	OpVariable_append_double(&v, 0);
+
+	OpContext_copy_variable_to_current_value((OpContext*)ctx, &v);
+
+	String s;
+	String_init(&s);
+	OpVariable_to_string(&v, &s);
+	printf("Get Output Size : %s\n", String_get_char_string(&s));
+	String_finalize(&s);
+	OpVariable_terminate(&v);
+
+	return 0;
+}
+
+Op *OpGetRedColor_new(void)
+{
+	return Op_new(&OpGetRedColor_isa);
+}
+
+OpIsa OpGetGreenColor_isa = {
+		.name="GetGreenColor",
+		.size=sizeof(OpGetGreenColor),
+		.init = (void(*)(Op*))OpGetGreenColor_init,
+		.terminate = (void(*)(Op*))OpGetGreenColor_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpGetGreenColor_execute,
+		.check_args = NULL,
+};
+
+void OpGetGreenColor_init(OpGetGreenColor *self)
+{
+	Op_init(&self->super);
+}
+
+void OpGetGreenColor_terminate(OpGetGreenColor *self)
+{
+	Op_terminate(&self->super);
+}
+
+int OpGetGreenColor_execute(OpGetGreenColor *self, OpCanvaContext *ctx)
+{
+	OpVariable v;
+	OpVariable_init(&v);
+	OpVariable_append_double(&v, 0);
+	OpVariable_append_double(&v, 255.0);
+	OpVariable_append_double(&v, 0);
+
+	OpContext_copy_variable_to_current_value((OpContext*)ctx, &v);
+
+	String s;
+	String_init(&s);
+	OpVariable_to_string(&v, &s);
+	printf("Get Output Size : %s\n", String_get_char_string(&s));
+	String_finalize(&s);
+	OpVariable_terminate(&v);
+
+	return 0;
+}
+
+Op *OpGetGreenColor_new(void)
+{
+	return Op_new(&OpGetGreenColor_isa);
+}
+
+OpIsa OpGetBlueColor_isa = {
+		.name="GetBlueColor",
+		.size=sizeof(OpGetBlueColor),
+		.init = (void(*)(Op*))OpGetBlueColor_init,
+		.terminate = (void(*)(Op*))OpGetBlueColor_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpGetBlueColor_execute,
+		.check_args = NULL,
+};
+
+void OpGetBlueColor_init(OpGetBlueColor *self)
+{
+	Op_init(&self->super);
+}
+
+void OpGetBlueColor_terminate(OpGetBlueColor *self)
+{
+	Op_terminate(&self->super);
+}
+
+int OpGetBlueColor_execute(OpGetBlueColor *self, OpCanvaContext *ctx)
+{
+	OpVariable v;
+	OpVariable_init(&v);
+	OpVariable_append_double(&v, 0);
+	OpVariable_append_double(&v, 0);
+	OpVariable_append_double(&v, 255.0);
+
+	OpContext_copy_variable_to_current_value((OpContext*)ctx, &v);
+
+	String s;
+	String_init(&s);
+	OpVariable_to_string(&v, &s);
+	printf("Get Output Size : %s\n", String_get_char_string(&s));
+	String_finalize(&s);
+	OpVariable_terminate(&v);
+
+	return 0;
+}
+
+Op *OpGetBlueColor_new(void)
+{
+	return Op_new(&OpGetBlueColor_isa);
+}
+
+OpIsa OpSetOutputPNG_isa = {
+		.name="SetOutputPNG",
+		.size=sizeof(OpSetOutputPNG),
+		.init = (void(*)(Op*))OpSetOutputPNG_init,
+		.terminate = (void(*)(Op*))OpSetOutputPNG_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,
+		.execute = (int(*)(Op*, OpContext*))OpSetOutputPNG_execute,
+		.check_args = NULL
+};
+
+void OpSetOutputPNG_init(OpSetOutputPNG *self)
+{
+	Op_init(&self->super);
+}
+
+void OpSetOutputPNG_set_filename(OpSetOutputPNG *self, const char *name)
+{
+	self->filename = strdup(name);
+}
+
+void OpSetOutputPNG_terminate(OpSetOutputPNG *self)
+{
+	Op_terminate(&self->super);
+}
+
+int OpSetOutputPNG_execute(OpSetOutputPNG *self, OpCanvaContext *ctx)
+{
+	OpCanvaContext_set_output_png(ctx, self->filename);
+	return 0;
+}
+
+Op *OpSetOutputPNG_new(void)
+{
+	return Op_new(&OpSetOutputPNG_isa);
+}
+
+OpIsa OpSetOutputSVG_isa = {
+		.name="SetOutputSVG",
+		.size=sizeof(OpSetOutputSVG),
+		.init = (void(*)(Op*))OpSetOutputSVG_init,
+		.terminate = (void(*)(Op*))OpSetOutputSVG_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,
+		.execute = (int(*)(Op*, OpContext*))OpSetOutputSVG_execute,
+		.check_args = NULL
+};
+
+void OpSetOutputSVG_init(OpSetOutputSVG *self)
+{
+	Op_init(&self->super);
+}
+
+void OpSetOutputSVG_set_filename(OpSetOutputSVG *self, const char *name)
+{
+	self->filename = strdup(name);
+}
+
+void OpSetOutputSVG_terminate(OpSetOutputSVG *self)
+{
+	Op_terminate(&self->super);
+}
+
+int OpSetOutputSVG_execute(OpSetOutputSVG *self, OpCanvaContext *ctx)
+{
+	OpCanvaContext_set_output_svg(ctx, self->filename);
+	return 0;
+}
+
+Op *OpSetOutputSVG_new(void)
+{
+	return Op_new(&OpSetOutputSVG_isa);
 }

@@ -66,6 +66,10 @@ Op *root;
 %token TEXTEXTENTS
 %token FONTEXTENTS
 %token PI
+%token PHI
+%token RED
+%token GREEN
+%token BLUE
 %token RADIANS
 %token DEGREES
 %token COS
@@ -80,6 +84,11 @@ Op *root;
 %token POWER
 %token SQRT
 %token MESSAGE
+%token PREMESSAGE
+%token SETOUTPUTSIZE
+%token GETOUTPUTSIZE
+%token SETPNGOUTPUT
+%token SETSVGOUTPUT
 
 %type <node> program block expression statements statement
 %type <var> number_list string_list
@@ -100,6 +109,7 @@ program:
 		{
 			OpBloc *op = (OpBloc*)OpBloc_new();
           *root = (Op*)op;
+          Op_set_for_prerunning(*root);//Must be done before append because is recursive
           $$ = (Op*)op;
           OpBloc_append_Op(op, $1);
 		}
@@ -147,6 +157,31 @@ statement:
       		OpSetVariable_set_value(op, (Op*)$3);
       		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
+      	| SETOUTPUTSIZE '(' expression ',' expression ')' ';'
+      {
+		OpSetOutputSize *op = (OpSetOutputSize *)OpSetOutputSize_new();
+      	$$ = (Op*)op;
+		OpSetOutputSize_set_width(op, $3);
+		OpSetOutputSize_set_height(op, $5);
+      	Op_set_for_prerunning($$);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| SETPNGOUTPUT '(' TEXTCONTENT ')' ';'
+      {
+		OpSetOutputPNG *op = (OpSetOutputPNG *)OpSetOutputPNG_new();
+      	$$ = (Op*)op;
+		OpSetOutputPNG_set_filename(op, $3);
+      	Op_set_for_prerunning($$);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| SETSVGOUTPUT '(' TEXTCONTENT ')' ';'
+      {
+		OpSetOutputSVG *op = (OpSetOutputSVG *)OpSetOutputSVG_new();
+      	$$ = (Op*)op;
+		OpSetOutputSVG_set_filename(op, $3);
+      	Op_set_for_prerunning($$);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
     | IF '(' expression ')' block %prec IFX
     {
     	OpIf *op = (OpIf*)OpIf_new();
@@ -408,7 +443,16 @@ statement:
 		OpMessage_set_value(op, $5);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
-
+      	| PREMESSAGE '(' TEXTCONTENT ',' expression ')' ';'
+      {
+		OpMessage *op = (OpMessage*)OpMessage_new();
+      	$$ = (Op*)op;
+		OpMessage_set_message(op, $3);
+		OpMessage_set_value(op, $5);
+      	Op_set_for_prerunning($$);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      
       | FILLPRESERVE '(' ')' ';'
       {
       	$$ = OpFillPreserve_new();
@@ -507,6 +551,26 @@ expression:
       	$$ = OpPi_new();
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
+		| PHI '('  ')'
+      {
+      	$$ = OpPhi_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+		| RED '('  ')'
+      {
+      	$$ = OpGetRedColor_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+		| GREEN '('  ')'
+      {
+      	$$ = OpGetGreenColor_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+		| BLUE '('  ')'
+      {
+      	$$ = OpGetBlueColor_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
       | '[' number_list ']'
       {
       	OpGetValue *op = (OpGetValue*)OpGetValue_new();
@@ -532,6 +596,12 @@ expression:
       	Op2_set_operande2(op, $5);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
     }
+      	| GETOUTPUTSIZE '(' ')'
+      {
+		OpGetOutputSize *op = (OpGetOutputSize *)OpGetOutputSize_new();
+      	$$ = (Op*)op;
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
 
     | IDENTIFIER
       {
