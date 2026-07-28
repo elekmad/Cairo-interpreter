@@ -601,6 +601,183 @@ Op *OpColor_new(void)
 
 
 
+OpIsa OpSetBGColor_isa = {
+		.name="SetBGColor",
+		.size=sizeof(OpSetBGColor),
+		.init = (void(*)(Op*))OpSetBGColor_init,
+		.terminate = (void(*)(Op*))OpSetBGColor_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpSetBGColor_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpSetBGColor_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpSetBGColor_check_args,
+};
+
+void OpSetBGColor_init(OpSetBGColor *self)
+{
+	Op_init(&self->super);
+	self->red = NULL;
+	self->blue = NULL;
+	self->green = NULL;
+	self->alpha = NULL;
+	self->params = NULL;
+}
+
+void OpSetBGColor_terminate(OpSetBGColor *self)
+{
+	Op_terminate(&self->super);
+	_OpSetBGColor_set_red(self, NULL);
+	_OpSetBGColor_set_green(self, NULL);
+	_OpSetBGColor_set_blue(self, NULL);
+	_OpSetBGColor_set_alpha(self, NULL);
+	_OpSetBGColor_set_params(self, NULL);
+}
+
+int OpSetBGColor_check_args(OpSetBGColor *self, OpCanvaContext *canvactx)
+{
+	if(self->params != NULL || (self->red != NULL && self->blue != NULL && self->green != NULL && self->alpha != NULL))
+		return 0;
+	return -1;
+}
+
+int OpSetBGColor_execute(OpSetBGColor *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double r = NAN, g = NAN, b = NAN, a = 255;
+	if(self->params != NULL)
+	{
+		double *d;
+		size_t size;
+		ret = Op_execute_get_doubles(self->params, (Op*)self, ctx, &d, &size, 3);
+		if(ret == 0)
+		{
+			r=d[0];
+			g=d[1];
+			b=d[2];
+			if(size > 3)
+				a=d[3];
+		}
+	}
+	else if(self->red != NULL)
+	{
+		ret = Op_execute_get_double(self->red, (Op*)self, ctx, &r);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->green, (Op*)self, ctx, &g);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->blue, (Op*)self, ctx, &b);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->alpha, (Op*)self, ctx, &a);
+
+	}
+	if(ret == 0)
+	{
+		int w, h;
+		w = OpCanvaContext_get_width(canvactx);
+		h = OpCanvaContext_get_height(canvactx);
+		printf("Op Set BG Color %f %f %f %f\n", r, g, b, a);
+		CanvaCtx_set_color(canvactx->Canva, r, g, b, a);
+		CanvaCtx_draw_rectangle(canvactx->Canva, 0, 0, w, h);
+		CanvaCtx_fill(canvactx->Canva);
+	}
+	return ret;
+}
+
+void _OpSetBGColor_set_red(OpSetBGColor *self, Op *r)
+{
+	OP_SET_OPERANDE(self, red, r);
+}
+
+void _OpSetBGColor_set_green(OpSetBGColor *self, Op *g)
+{
+	OP_SET_OPERANDE(self, green, g);
+}
+
+
+void _OpSetBGColor_set_blue(OpSetBGColor *self, Op *b)
+{
+	OP_SET_OPERANDE(self, blue, b);
+}
+
+
+void _OpSetBGColor_set_alpha(OpSetBGColor *self, Op *a)
+{
+	OP_SET_OPERANDE(self, alpha, a);
+}
+
+void _OpSetBGColor_set_params(OpSetBGColor *self, Op *p)
+{
+	OP_SET_OPERANDE(self, params, p);
+}
+
+#define OPSETBGCOLOR_RED 0
+#define OPSETBGCOLOR_GREEN 1
+#define OPSETBGCOLOR_BLUE 2
+#define OPSETBGCOLOR_ALPHA 3
+#define OPSETBGCOLOR_PARAMS 4
+
+void OpSetBGColor_set_red(OpSetBGColor *self, Op *r)
+{
+	OP_ADD_OPERANDE(self, r, OPSETBGCOLOR_RED);
+}
+
+void OpSetBGColor_set_green(OpSetBGColor *self, Op *g)
+{
+	OP_ADD_OPERANDE(self, g, OPSETBGCOLOR_GREEN);
+}
+
+
+void OpSetBGColor_set_blue(OpSetBGColor *self, Op *b)
+{
+	OP_ADD_OPERANDE(self, b, OPSETBGCOLOR_BLUE);
+}
+
+
+void OpSetBGColor_set_alpha(OpSetBGColor *self, Op *a)
+{
+	OP_ADD_OPERANDE(self, a, OPSETBGCOLOR_ALPHA);
+}
+
+void OpSetBGColor_set_params(OpSetBGColor *self, Op *p)
+{
+	OP_ADD_OPERANDE(self, p, OPSETBGCOLOR_PARAMS);
+}
+
+int OpSetBGColor_fix_operandes(OpSetBGColor *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 4)
+	{
+		Op *r, *g, *b, *a, *params = NULL;
+		r = self->super.operandes[OPSETBGCOLOR_RED];
+		g = self->super.operandes[OPSETBGCOLOR_GREEN];
+		b = self->super.operandes[OPSETBGCOLOR_BLUE];
+		a = self->super.operandes[OPSETBGCOLOR_ALPHA];
+		if(self->super.nb_ops >= 5)
+			params = self->super.operandes[OPSETBGCOLOR_PARAMS];
+
+		if(r != NULL && g != NULL && b != NULL && a != NULL)
+		{
+			ret = 0;
+			_OpSetBGColor_set_red(self, r);
+			_OpSetBGColor_set_green(self, g);
+			_OpSetBGColor_set_blue(self, b);
+			_OpSetBGColor_set_alpha(self, a);
+		}
+		else if(params != NULL)
+		{
+			ret = 0;
+			_OpSetBGColor_set_params(self, params);
+		}
+	}
+	return ret;
+}
+
+Op *OpSetBGColor_new(void)
+{
+	return Op_new(&OpSetBGColor_isa);
+}
+
+
+
 OpIsa OpStroke_isa = {
 		.name="Stroke",
 		.size=sizeof(OpStroke),
@@ -1824,6 +2001,96 @@ int OpGetBlueColor_execute(OpGetBlueColor *self, OpCanvaContext *ctx)
 Op *OpGetBlueColor_new(void)
 {
 	return Op_new(&OpGetBlueColor_isa);
+}
+
+OpIsa OpGetBlackColor_isa = {
+		.name="GetBlackColor",
+		.size=sizeof(OpGetBlackColor),
+		.init = (void(*)(Op*))OpGetBlackColor_init,
+		.terminate = (void(*)(Op*))OpGetBlackColor_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpGetBlackColor_execute,
+		.check_args = NULL,
+};
+
+void OpGetBlackColor_init(OpGetBlackColor *self)
+{
+	Op_init(&self->super);
+}
+
+void OpGetBlackColor_terminate(OpGetBlackColor *self)
+{
+	Op_terminate(&self->super);
+}
+
+int OpGetBlackColor_execute(OpGetBlackColor *self, OpCanvaContext *ctx)
+{
+	OpVariable v;
+	OpVariable_init(&v);
+	OpVariable_append_double(&v, 0);
+	OpVariable_append_double(&v, 0);
+	OpVariable_append_double(&v, 0);
+
+	OpContext_copy_variable_to_current_value((OpContext*)ctx, &v);
+
+	String s;
+	String_init(&s);
+	OpVariable_to_string(&v, &s);
+	printf("Get Output Size : %s\n", String_get_char_string(&s));
+	String_finalize(&s);
+	OpVariable_terminate(&v);
+
+	return 0;
+}
+
+Op *OpGetBlackColor_new(void)
+{
+	return Op_new(&OpGetBlackColor_isa);
+}
+
+OpIsa OpGetWhiteColor_isa = {
+		.name="GetWhiteColor",
+		.size=sizeof(OpGetWhiteColor),
+		.init = (void(*)(Op*))OpGetWhiteColor_init,
+		.terminate = (void(*)(Op*))OpGetWhiteColor_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpGetWhiteColor_execute,
+		.check_args = NULL,
+};
+
+void OpGetWhiteColor_init(OpGetWhiteColor *self)
+{
+	Op_init(&self->super);
+}
+
+void OpGetWhiteColor_terminate(OpGetWhiteColor *self)
+{
+	Op_terminate(&self->super);
+}
+
+int OpGetWhiteColor_execute(OpGetWhiteColor *self, OpCanvaContext *ctx)
+{
+	OpVariable v;
+	OpVariable_init(&v);
+	OpVariable_append_double(&v, 255.0);
+	OpVariable_append_double(&v, 255.0);
+	OpVariable_append_double(&v, 255.0);
+
+	OpContext_copy_variable_to_current_value((OpContext*)ctx, &v);
+
+	String s;
+	String_init(&s);
+	OpVariable_to_string(&v, &s);
+	printf("Get Output Size : %s\n", String_get_char_string(&s));
+	String_finalize(&s);
+	OpVariable_terminate(&v);
+
+	return 0;
+}
+
+Op *OpGetWhiteColor_new(void)
+{
+	return Op_new(&OpGetWhiteColor_isa);
 }
 
 OpIsa OpSetOutputPNG_isa = {

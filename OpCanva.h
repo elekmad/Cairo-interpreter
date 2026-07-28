@@ -61,6 +61,18 @@ typedef struct op_color
 
 }OpColor;
 
+
+typedef struct op_set_background_color
+{
+	Op super;
+	Op *red;
+	Op *blue;
+	Op *green;
+	Op *alpha;
+	Op *params;
+
+}OpSetBGColor;
+
 typedef struct op_set_line_width
 {
 	Op super;
@@ -178,6 +190,16 @@ typedef struct op_get_blue_color
 {
 	Op super;
 }OpGetBlueColor;
+
+typedef struct op_get_black_color
+{
+	Op super;
+}OpGetBlackColor;
+
+typedef struct op_get_white_color
+{
+	Op super;
+}OpGetWhiteColor;
 
 
 typedef struct op_get_output_size

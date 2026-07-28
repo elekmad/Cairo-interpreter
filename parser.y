@@ -40,6 +40,7 @@ Op *root;
 %token <string> TEXTCONTENT
 
 %token RECTANGLE
+%token SETBGCOLOR
 %token ARC
 %token STROKE
 %token STROKEPRESERVE
@@ -70,6 +71,8 @@ Op *root;
 %token RED
 %token GREEN
 %token BLUE
+%token BLACK
+%token WHITE
 %token RADIANS
 %token DEGREES
 %token COS
@@ -311,6 +314,28 @@ statement:
         OpCanvaBloc_set_auto_stroke((OpCanvaBloc*)op);
   		Op_set_source_pos($$, @5.first_line, @5.first_column, @5.last_line, @5.last_column);
   		Op_set_source_pos((Op*)opc, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | SETBGCOLOR '(' expression ','
+                 expression ','
+                 expression ','
+                 expression ')' ';'
+      {
+      	OpSetBGColor *op = (OpSetBGColor*)OpSetBGColor_new();
+      	$$ = (Op*)op;
+		OpSetBGColor_set_red(op, $3);
+      	OpSetBGColor_set_green(op, $5);
+      	OpSetBGColor_set_blue(op, $7);
+      	OpSetBGColor_set_alpha(op, $9);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | SETBGCOLOR '(' expression ')' ';'
+      {
+      	OpSetBGColor *op = (OpSetBGColor*)OpSetBGColor_new();
+      	$$ = (Op*)op;
+		OpSetBGColor_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 		| LINEWIDTH '(' expression ')' ';'
       {
@@ -569,6 +594,16 @@ expression:
 		| BLUE '('  ')'
       {
       	$$ = OpGetBlueColor_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+		| BLACK '('  ')'
+      {
+      	$$ = OpGetBlackColor_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+		| WHITE '('  ')'
+      {
+      	$$ = OpGetWhiteColor_new();
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       | '[' number_list ']'

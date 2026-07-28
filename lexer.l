@@ -25,8 +25,9 @@ int yycolumn = 1;
 
 [ \t\r\n]+          ;
 
-(?i:"rectangle")         { return RECTANGLE; }
-(?i:"arc")            { return ARC; }
+(?i:"rectangle")	{ return RECTANGLE; }
+(?i:"setbgcolor")	{ return SETBGCOLOR; }
+(?i:"arc")			{ return ARC; }
 (?i:"stroke")		{ return STROKE; }
 (?i:"strokepreserve")		{ return STROKEPRESERVE; }
 (?i:"color")		{ return COLOR; }
@@ -53,6 +54,8 @@ int yycolumn = 1;
 (?i:"red")			{ return RED; }
 (?i:"green")		{ return GREEN; }
 (?i:"blue")			{ return BLUE; }
+(?i:"black")		{ return BLACK; }
+(?i:"white")		{ return WHITE; }
 (?i:"radians")		{ return RADIANS; }
 (?i:"degrees")		{ return DEGREES; }
 (?i:"cos")			{ return COS; }
@@ -66,10 +69,10 @@ int yycolumn = 1;
 (?i:"power")		{ return POWER; }
 (?i:"sqrt")			{ return SQRT; }
 (?i:"message")		{ return MESSAGE; } 
-(?i:"#initmessage")	{ return PREMESSAGE; }
-(?i:"#setoutputsize")	{ return SETOUTPUTSIZE; } 
-(?i:"#setpngoutput")	{ return SETPNGOUTPUT; }
-(?i:"#setsvgoutput")	{ return SETSVGOUTPUT; } 
+^(?i:"#initmessage")	{ return PREMESSAGE; }
+^(?i:"#setoutputsize")	{ return SETOUTPUTSIZE; } 
+^(?i:"#setpngoutput")	{ return SETPNGOUTPUT; }
+^(?i:"#setsvgoutput")	{ return SETSVGOUTPUT; } 
 
 [0-9]+(\.[0-9]+)? {
     yylval.number = atof(yytext);
