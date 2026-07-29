@@ -1003,6 +1003,43 @@ Op *OpSetLineWidth_new(void)
 }
 
 
+OpIsa OpGetLineWidth_isa = {
+		.name="GetLineWidth",
+		.size=sizeof(OpGetLineWidth),
+		.init = (void(*)(Op*))OpGetLineWidth_init,
+		.terminate = (void(*)(Op*))OpGetLineWidth_terminate,
+		.fix_operandes = NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpGetLineWidth_execute,
+		.check_args = NULL,//Pas de child
+};
+
+void OpGetLineWidth_init(OpGetLineWidth *self)
+{
+	Op_init(&self->super);
+}
+
+void OpGetLineWidth_terminate(OpGetLineWidth *self)
+{
+	Op_terminate(&self->super);
+}
+
+int OpGetLineWidth_execute(OpGetLineWidth *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double w  = CanvaCtx_get_line_width(canvactx->Canva);
+	printf("Op Get Line Width : %f\n", w);
+
+	OpContext_set_current_value_double(ctx, w);
+	return ret;
+}
+
+Op *OpGetLineWidth_new(void)
+{
+	return Op_new(&OpGetLineWidth_isa);
+}
+
+
 OpIsa OpRotate_isa = {
 		.name="Rotate",
 		.size=sizeof(OpRotate),
@@ -1334,6 +1371,137 @@ int OpMoveTo_execute(OpMoveTo *self, OpCanvaContext *canvactx)
 Op *OpMoveTo_new(void)
 {
 	return Op_new(&OpMoveTo_isa);
+}
+
+
+
+OpIsa OpDrawLineTo_isa = {
+		.name="DrawLineTo",
+		.size=sizeof(OpDrawLineTo),
+		.init = (void(*)(Op*))OpDrawLineTo_init,
+		.terminate = (void(*)(Op*))OpDrawLineTo_terminate,
+		.execute = (int(*)(Op*, OpContext*))OpDrawLineTo_execute,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpDrawLineTo_fix_operandes,
+		.check_args = (int(*)(Op*, OpContext*))OpDrawLineTo_check_args,
+};
+
+void OpDrawLineTo_init(OpDrawLineTo *self)
+{
+	Op_init(&self->super);
+	self->x = NULL;
+	self->y= NULL;
+	self->params = NULL;
+}
+
+void OpDrawLineTo_terminate(OpDrawLineTo *self)
+{
+	Op_terminate(&self->super);
+	_OpDrawLineTo_set_x(self, NULL);
+	_OpDrawLineTo_set_y(self, NULL);
+	_OpDrawLineTo_set_params(self, NULL);
+}
+
+#define OPDAWLINETO_X 0
+#define OPDAWLINETO_Y 1
+#define OPDAWLINETO_PARAMS 2
+
+void OpDrawLineTo_set_x(OpDrawLineTo *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPDAWLINETO_X);
+}
+
+void OpDrawLineTo_set_y(OpDrawLineTo *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPDAWLINETO_Y);
+}
+
+void OpDrawLineTo_set_params(OpDrawLineTo *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPDAWLINETO_PARAMS);
+}
+
+void _OpDrawLineTo_set_x(OpDrawLineTo *self, Op *v)
+{
+	OP_SET_OPERANDE(self, x, v);
+}
+
+void _OpDrawLineTo_set_y(OpDrawLineTo *self, Op *v)
+{
+	OP_SET_OPERANDE(self, y, v);
+}
+
+void _OpDrawLineTo_set_params(OpDrawLineTo *self, Op *v)
+{
+	OP_SET_OPERANDE(self, params, v);
+}
+
+int OpDrawLineTo_fix_operandes(OpDrawLineTo *self, OpCanvaContext *canvactx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >=2)
+	{
+		Op *x, *y, *params = NULL;
+		x = self->super.operandes[OPDAWLINETO_X];
+		y = self->super.operandes[OPDAWLINETO_Y];
+		if(self->super.nb_ops >= 3)
+			params = self->super.operandes[OPDAWLINETO_PARAMS];
+
+		if(x != NULL && y != NULL)
+		{
+			ret = 0;
+			_OpDrawLineTo_set_x(self, x);
+			_OpDrawLineTo_set_y(self, y);
+		}
+		else if(params != NULL)
+		{
+			ret = 0;
+			_OpDrawLineTo_set_params(self, params);
+		}
+	}
+	return ret;
+}
+
+int OpDrawLineTo_check_args(OpDrawLineTo *self, OpCanvaContext *canvactx)
+{
+	if(self->params != NULL || (self->x != NULL && self->y != NULL))
+		return 0;
+	return -1;
+}
+
+int OpDrawLineTo_execute(OpDrawLineTo *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double x = NAN, y = NAN;
+	if(self->params != NULL)
+	{
+		double *d;
+		size_t size;
+		ret = Op_execute_get_doubles(self->params, (Op*)self, ctx, &d, &size, 2);
+		if(ret == 0)
+		{
+			x=d[0];
+			y=d[1];
+		}
+	}
+	else if(self->x != NULL)
+	{
+		ret = Op_execute_get_double(self->x, (Op*)self, ctx, &x);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->y, (Op*)self, ctx, &y);
+
+	}
+	if(ret == 0)
+	{
+		printf("Op Draw Line To %f %f\n", x, y);
+		CanvaCtx_draw_line_to(canvactx->Canva, x, y);
+	}
+	return ret;
+}
+
+Op *OpDrawLineTo_new(void)
+{
+	return Op_new(&OpDrawLineTo_isa);
 }
 
 

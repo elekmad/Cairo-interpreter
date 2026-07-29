@@ -31,12 +31,14 @@ int yycolumn = 1;
 (?i:"stroke")		{ return STROKE; }
 (?i:"strokepreserve")		{ return STROKEPRESERVE; }
 (?i:"color")		{ return COLOR; }
-(?i:"linewidth")	{ return LINEWIDTH; }
+(?i:"setlinewidth")	{ return SETLINEWIDTH; }
+(?i:"getlinewidth")	{ return GETLINEWIDTH; }
 (?i:"fill")			{ return FILL; }
 (?i:"fillpreserve")	{ return FILLPRESERVE; }
 (?i:"rotate")		{ return ROTATE; }
 (?i:"translate")	{ return TRANSLATE; }
 (?i:"moveto")		{ return MOVETO; }
+(?i:"lineto")		{ return LINETO; }
 (?i:"if")			{ return IF; }
 (?i:"else")			{ return ELSE; }
 (?i:"for")			{ return FORLOOP; }

@@ -79,6 +79,11 @@ typedef struct op_set_line_width
 	Op *width;
 }OpSetLineWidth;
 
+typedef struct op_get_line_width
+{
+	Op super;
+}OpGetLineWidth;
+
 typedef struct op_set_out_size
 {
 	Op super;
@@ -107,6 +112,14 @@ typedef struct op_move_to
 	Op *y;
 	Op *params;
 }OpMoveTo;
+
+typedef struct op_draw_line_to
+{
+	Op super;
+	Op *x;
+	Op *y;
+	Op *params;
+}OpDrawLineTo;
 
 typedef struct op_canva_bloc
 {

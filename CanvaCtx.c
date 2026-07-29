@@ -137,6 +137,12 @@ void CanvaCtx_draw_arc(CanvaCtx *self, double x, double y, double r, double a1, 
 	cairo_arc(self->cr, x, y, r, a1, a2);
 }
 
+void CanvaCtx_draw_line_to(CanvaCtx *self, double x, double y)
+{
+	printf("Cairo %p draw line to %f %f\n", self->cr, x, y);
+	cairo_line_to(self->cr, x, y);
+}
+
 void CanvaCtx_send_defaults(CanvaCtx *self)
 {
 	printf("Cairo %p rgba %f %f %f %f\n", self->cr, self->default_color[0], self->default_color[1], self->default_color[2], self->default_color[3]);
@@ -210,8 +216,15 @@ void CanvaCtx_auto_stroke(CanvaCtx *self)
 
 void CanvaCtx_set_line_width(CanvaCtx *self, double w)
 {
-	printf("Cairo %p line width %f\n", self->cr, w);
+	printf("Cairo %p set line width %f\n", self->cr, w);
 	cairo_set_line_width (self->cr, w);
+}
+
+double CanvaCtx_get_line_width(CanvaCtx *self)
+{
+	double w = cairo_get_line_width (self->cr);
+	printf("Cairo %p get line width %f\n", self->cr, w);
+	return w;
 }
 
 void CanvaCtx_set_font(CanvaCtx *self, const char *name, const char *slant, const char *weight)

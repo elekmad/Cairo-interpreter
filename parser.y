@@ -45,12 +45,14 @@ Op *root;
 %token STROKE
 %token STROKEPRESERVE
 %token COLOR
-%token LINEWIDTH
+%token SETLINEWIDTH
+%token GETLINEWIDTH
 %token FILL
 %token FILLPRESERVE
 %token ROTATE
 %token TRANSLATE
 %token MOVETO
+%token LINETO
 %token IF
 %token ELSE
 %token IFX //Lower than else
@@ -337,14 +339,14 @@ statement:
 		OpSetBGColor_set_params(op, $3);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
-		| LINEWIDTH '(' expression ')' ';'
+		| SETLINEWIDTH '(' expression ')' ';'
       {
       	OpSetLineWidth *op = (OpSetLineWidth*)OpSetLineWidth_new();
       	$$ = (Op*)op;
 		OpSetLineWidth_set_width(op, $3);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
-    	| LINEWIDTH '(' expression ')' block
+    	| SETLINEWIDTH '(' expression ')' block
       {
       	OpBloc *op = (OpBloc*)OpCanvaBloc_new();
       	$$ = (Op*)op;
@@ -427,6 +429,22 @@ statement:
       	OpMoveTo *op = (OpMoveTo*)OpMoveTo_new();
       	$$ = (Op*)op;
 		OpMoveTo_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| LINETO '(' expression ','
+      				   expression ')' ';'
+      {
+      	OpDrawLineTo *op = (OpDrawLineTo*)OpDrawLineTo_new();
+      	$$ = (Op*)op;
+		OpDrawLineTo_set_x(op, $3);
+		OpDrawLineTo_set_y(op, $5);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| LINETO '(' expression ')' ';'
+      {
+      	OpDrawLineTo *op = (OpDrawLineTo*)OpDrawLineTo_new();
+      	$$ = (Op*)op;
+		OpDrawLineTo_set_params(op, $3);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
       	| FONTSIZE '(' expression ')' ';'
@@ -571,6 +589,11 @@ expression:
       	$$ = (Op*)op;
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
+		| GETLINEWIDTH '(' ')'
+      {
+      	$$ = OpGetLineWidth_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
 		| PI '('  ')'
       {
       	$$ = OpPi_new();
