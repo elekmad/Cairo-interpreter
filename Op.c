@@ -2598,7 +2598,7 @@ int compute_crochets(OpVariable *res, OpVariable *v1, OpVariable *v2)
 					{
 						double *d1 = OpVariable_get_doubles(v1), d2 = OpVariable_get_double(v2), dres = NAN;
 						size_t nb = OpVariable_get_number_elements(v1), pos = (size_t)d2;
-						if(nb >= pos)
+						if(nb > pos)
 							dres = d1[pos];
 						ret = OpVariable_set_double(res, dres);
 					}
@@ -2611,7 +2611,7 @@ int compute_crochets(OpVariable *res, OpVariable *v1, OpVariable *v2)
 						const char *s = OpVariable_get_string(v1);
 						char cres[2];
 						size_t nb = OpVariable_get_number_elements(v1), pos = (size_t)d2;
-						if(nb >= pos)
+						if(nb > pos)
 							cres[0] = s[pos];
 						else
 							cres[0] = '\0';
@@ -2627,7 +2627,7 @@ int compute_crochets(OpVariable *res, OpVariable *v1, OpVariable *v2)
 						const char * const *s = OpVariable_get_strings(v1);
 						const char *empty = "", *cres;
 						size_t nb = OpVariable_get_number_elements(v1), pos = (size_t)d2;
-						if(nb >= pos)
+						if(nb > pos)
 							cres = s[pos];
 						else
 							cres = empty;

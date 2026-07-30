@@ -1363,7 +1363,7 @@ int OpMoveTo_execute(OpMoveTo *self, OpCanvaContext *canvactx)
 	if(ret == 0)
 	{
 		printf("Op Move To %f %f\n", x, y);
-		CanvaCtx_translate(canvactx->Canva, x, y);
+		CanvaCtx_move_to(canvactx->Canva, x, y);
 	}
 	return ret;
 }

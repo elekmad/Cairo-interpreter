@@ -153,21 +153,25 @@ void CanvaCtx_send_defaults(CanvaCtx *self)
 
 void CanvaCtx_fill(CanvaCtx *self)
 {
+	printf("Cairo fill %p\n", self->cr);
 	cairo_fill(self->cr);
 }
 
 void CanvaCtx_fill_preserve(CanvaCtx *self)
 {
+	printf("Cairo fill preserve %p\n", self->cr);
 	cairo_fill_preserve(self->cr);
 }
 
 void CanvaCtx_rotate(CanvaCtx *self, double a)
 {
+	printf("Cairo rotate %p %f\n", self->cr, a);
 	cairo_rotate(self->cr, a);
 }
 
 void CanvaCtx_translate(CanvaCtx *self, double x, double y)
 {
+	printf("Cairo translate %p %f:%f\n", self->cr, x, y);
 	cairo_translate(self->cr, x, y);
 }
 
