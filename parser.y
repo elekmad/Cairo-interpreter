@@ -68,6 +68,8 @@ Op *root;
 %token TEXTPATH
 %token TEXTEXTENTS
 %token FONTEXTENTS
+%token GETFIRST
+%token GETLAST
 %token PI
 %token PHI
 %token RED
@@ -644,6 +646,37 @@ expression:
       	OpGetValue_copy_variable(op, $2);
       	OpVariable_free($2);
   		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
+      }
+      | GETFIRST '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpGetFirst_new();
+      	$$ = (Op*)op;
+      	Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @4.last_line, @4.last_column);
+      }
+      | GETLAST '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpGetLast_new();
+      	$$ = (Op*)op;
+      	Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @4.last_line, @4.last_column);
+      }
+      | '[' expression ':' expression ':' expression ']'
+      {
+      	OpIntervalGen *op = (OpIntervalGen*)OpIntervalGen_new();
+      	$$ = (Op*)op;
+      	OpIntervalGen_set_min(op, $2);
+      	OpIntervalGen_set_max(op, $4);
+      	OpIntervalGen_set_step(op, $6);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @7.last_line, @7.last_column);
+      }
+      | '[' expression ':' expression ']'
+      {
+      	OpIntervalGen *op = (OpIntervalGen*)OpIntervalGen_new();
+      	$$ = (Op*)op;
+      	OpIntervalGen_set_min(op, $2);
+      	OpIntervalGen_set_max(op, $4);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @5.last_line, @5.last_column);
       }
       
     | CONCAT '(' expression ',' expression ')'

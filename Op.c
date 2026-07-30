@@ -1396,6 +1396,143 @@ Op *OpForLoop_new(void)
 	return Op_new(&OpForLoop_isa);
 }
 
+OpIsa OpIntervalGen_isa = {
+		.name="IntervalGen",
+		.size=sizeof(OpIntervalGen),
+		.init = (void(*)(Op*))OpIntervalGen_init,
+		.terminate = (void(*)(Op*))OpIntervalGen_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpIntervalGen_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpIntervalGen_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpIntervalGen_check_args,
+};
+
+void OpIntervalGen_init(OpIntervalGen *self)
+{
+	Op_init(&self->super);
+	self->min = NULL;
+	self->max = NULL;
+	self->step = NULL;
+}
+
+void OpIntervalGen_terminate(OpIntervalGen *self)
+{
+	Op_terminate(&self->super);
+	_OpIntervalGen_set_min(self, NULL);
+	_OpIntervalGen_set_max(self, NULL);
+	_OpIntervalGen_set_step(self, NULL);
+}
+
+#define OPINTERVALGEN_MIN 0
+#define OPINTERVALGEN_MAX 1
+#define OPINTERVALGEN_STEP 2
+
+void OpIntervalGen_set_min(OpIntervalGen *self, Op *op)
+{
+	OP_ADD_OPERANDE(self, op, OPINTERVALGEN_MIN);
+}
+
+void OpIntervalGen_set_max(OpIntervalGen *self, Op *op)
+{
+	OP_ADD_OPERANDE(self, op, OPINTERVALGEN_MAX);
+}
+
+void OpIntervalGen_set_step(OpIntervalGen *self, Op *op)
+{
+	OP_ADD_OPERANDE(self, op, OPINTERVALGEN_STEP);
+}
+
+void _OpIntervalGen_set_min(OpIntervalGen *self, Op *op)
+{
+	OP_SET_OPERANDE(self, min, op);
+}
+
+void _OpIntervalGen_set_max(OpIntervalGen *self, Op *op)
+{
+	OP_SET_OPERANDE(self, max, op);
+}
+
+void _OpIntervalGen_set_step(OpIntervalGen *self, Op *op)
+{
+	OP_SET_OPERANDE(self, step, op);
+}
+
+int OpIntervalGen_fix_operandes(OpIntervalGen *self, OpContext *ctx)
+{
+	int ret = -1;
+
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_OpIntervalGen_set_min(self, self->super.operandes[OPINTERVALGEN_MIN]);
+		if(self->super.nb_ops >= 2)
+		{
+			_OpIntervalGen_set_max(self, self->super.operandes[OPINTERVALGEN_MAX]);
+			if(self->super.nb_ops >= 3)
+				_OpIntervalGen_set_step(self, self->super.operandes[OPINTERVALGEN_STEP]);
+		}
+	}
+	return ret;
+}
+
+
+int OpIntervalGen_check_args(OpIntervalGen *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->min != NULL && self->max != NULL)//[min : max] or [min : max : step]
+		return 0;
+	return ret;
+}
+
+int OpIntervalGen_execute(OpIntervalGen *self, OpContext *ctx)
+{
+	int ret = 0;
+	double min, max = NAN, step = NAN;
+	ret = Op_execute_get_double(self->min, (Op*)self, ctx, &min);
+	if(ret == 0)
+	{
+		double max;
+		ret = Op_execute_get_double(self->max, (Op*)self, ctx, &max);
+		if(ret == 0)
+		{
+			if(self->step != NULL)
+			{
+				double step;
+				ret = Op_execute_get_double(self->step, (Op*)self, ctx, &step);
+				if(ret == 0)
+				{
+					OpVariable v;
+					OpVariable_init(&v);
+					while(min <= max)
+					{
+						OpVariable_append_double(&v, min);
+						min += step;
+					}
+					OpContext_copy_variable_to_current_value(ctx, &v);
+					OpVariable_terminate(&v);
+				}
+			}
+			else
+			{
+				OpVariable v;
+				OpVariable_init(&v);
+				while(min <= max)
+				{
+					OpVariable_append_double(&v, min);
+					min += 1.0;
+				}
+				OpContext_copy_variable_to_current_value(ctx, &v);
+				OpVariable_terminate(&v);
+			}
+		}
+	}
+	return ret;
+}
+
+Op *OpIntervalGen_new(void)
+{
+	return Op_new(&OpIntervalGen_isa);
+}
+
 OpIsa OpGetVariable_isa = {
 		.name="GetVariable",
 		.size=sizeof(OpGetVariable),
@@ -3379,4 +3516,162 @@ OpIsaOneOp OpSqrt_isa = {
 Op *OpSqrt_new(void)
 {
 	return Op_new(&OpSqrt_isa.super);
+}
+
+int compute_get_first(OpVariable *res, OpVariable *v)
+{
+	int ret = -1;
+	switch(OpVariable_get_type(v))
+	{
+	case NONE :		break;
+	case DOUBLE: 	break;
+	case DOUBLES :	{
+						double *d1 = OpVariable_get_doubles(v), dres = NAN;
+						size_t nb = OpVariable_get_number_elements(v), pos = 0;
+						if(nb >= pos)
+							dres = d1[pos];
+						ret = OpVariable_set_double(res, dres);
+					}
+					break;
+	case STRING :	{
+						const char *s = OpVariable_get_string(v);
+						char cres[2];
+						size_t nb = OpVariable_get_number_elements(v), pos = 0;
+						if(nb >= pos)
+							cres[0] = s[pos];
+						else
+							cres[0] = '\0';
+						cres[1] = '\0';
+						ret = OpVariable_set_string(res, cres);
+					}
+					break;
+	case STRINGS :	{
+						const char * const *s = OpVariable_get_strings(v);
+						const char *empty = "", *cres;
+						size_t nb = OpVariable_get_number_elements(v), pos = 0;
+						if(nb >= pos)
+							cres = s[pos];
+						else
+							cres = empty;
+						ret = OpVariable_set_string(res, cres);
+					}
+					break;
+	}
+	return ret;
+}
+
+int check_args_get_first(OpVariable *v)
+{
+	int ret = 0;
+	OpVarType t = OpVariable_get_type(v);
+	switch(t)
+	{
+	case NONE :		return -1;
+					break;
+	case DOUBLE :	return -1;
+					break;
+	case DOUBLES :
+					break;
+	case STRING :
+					break;
+	case STRINGS :
+					break;
+	}
+	return ret;
+}
+
+OpIsaOneOp OpGetFirst_isa = {
+		.super.name="GetFirst",
+		.super.size=sizeof(Op1),
+		.super.init = (void(*)(Op*))Op1_init,
+		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
+		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
+		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
+		.check_arg = check_args_get_first,
+		.compute = compute_get_first
+};
+
+Op *OpGetFirst_new(void)
+{
+	return Op_new(&OpGetFirst_isa.super);
+}
+
+int compute_get_last(OpVariable *res, OpVariable *v)
+{
+	int ret = -1;
+	switch(OpVariable_get_type(v))
+	{
+	case NONE :		break;
+	case DOUBLE: 	break;
+	case DOUBLES :	{
+						double *d1 = OpVariable_get_doubles(v), dres = NAN;
+						size_t nb = OpVariable_get_number_elements(v);
+						if(nb > 0)
+							dres = d1[nb - 1];
+						ret = OpVariable_set_double(res, dres);
+					}
+					break;
+	case STRING :	{
+						const char *s = OpVariable_get_string(v);
+						char cres[2];
+						size_t nb = OpVariable_get_number_elements(v);
+						if(nb > 1) // size pas len
+							cres[0] = s[nb - 2];
+						else
+							cres[0] = '\0';
+						cres[1] = '\0';
+						ret = OpVariable_set_string(res, cres);
+					}
+					break;
+	case STRINGS :	{
+						const char * const *s = OpVariable_get_strings(v);
+						const char *empty = "", *cres;
+						size_t nb = OpVariable_get_number_elements(v);
+						if(nb > 0)
+							cres = s[nb - 1];
+						else
+							cres = empty;
+						ret = OpVariable_set_string(res, cres);
+					}
+					break;
+	}
+	return ret;
+}
+
+int check_args_get_last(OpVariable *v)
+{
+	int ret = 0;
+	OpVarType t = OpVariable_get_type(v);
+	switch(t)
+	{
+	case NONE :		return -1;
+					break;
+	case DOUBLE :	return -1;
+					break;
+	case DOUBLES :
+					break;
+	case STRING :
+					break;
+	case STRINGS :
+					break;
+	}
+	return ret;
+}
+
+OpIsaOneOp OpGetLast_isa = {
+		.super.name="GetLast",
+		.super.size=sizeof(Op1),
+		.super.init = (void(*)(Op*))Op1_init,
+		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
+		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
+		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
+		.check_arg = check_args_get_last,
+		.compute = compute_get_last
+};
+
+Op *OpGetLast_new(void)
+{
+	return Op_new(&OpGetLast_isa.super);
 }

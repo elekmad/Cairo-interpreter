@@ -185,6 +185,15 @@ typedef struct op_for_loop
 
 }OpForLoop;
 
+typedef struct op_interval_gen
+{
+	Op super;
+	Op *min;
+	Op *max;
+	Op *step;
+
+}OpIntervalGen;
+
 
 typedef struct op_get_variable
 {
