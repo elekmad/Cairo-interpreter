@@ -93,6 +93,7 @@ int yycolumn = 1;
     return TEXTCONTENT;
 }
 
+"<<"    return APPEND;
 "<="    return LEQ;
 ">="    return GEQ;
 "=="    return EQ;

@@ -104,6 +104,7 @@ Op *root;
 %left '<' '>' LEQ GEQ
 %left '+' '-'
 %left '*' '/'
+%right APPEND
 %right UMINUS
 %right '!'
 
@@ -686,6 +687,14 @@ expression:
       	Op2_set_operande1(op, $3);
       	Op2_set_operande2(op, $5);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+    }
+    | expression APPEND expression
+    {
+    	Op2 *op = (Op2*)OpConcat_new();
+      	$$ = (Op*)op;
+      	Op2_set_operande1(op, $1);
+      	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @3.last_line, @3.last_column);
     }
       	| GETOUTPUTSIZE '(' ')'
       {
