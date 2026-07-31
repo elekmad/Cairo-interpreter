@@ -1737,11 +1737,19 @@ int Op2_execute(Op2 *self, OpContext *ctx)
 			{
 				printf("Op %p 2 operandes '%s'\n", self, ((Op*)self)->isa->name);
 				OpVariable_print(&v1);
-				printf("Add To\n");
+				printf("With\n");
 				OpVariable_print(&v2);
 				printf("Give\n");
 				OpVariable_print(&res);
 				OpVariable_copy(OpContext_get_current_value(ctx), &res);
+			}
+			else
+			{
+				String m;
+				String_init(&m);
+				String_append_printf(&m, "Error '%s' %p during compute", ((Op*)self)->isa->name, self);
+				OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
+				String_finalize(&m);
 			}
 		}
 		else
@@ -2599,8 +2607,12 @@ int compute_crochets(OpVariable *res, OpVariable *v1, OpVariable *v2)
 						double *d1 = OpVariable_get_doubles(v1), d2 = OpVariable_get_double(v2), dres = NAN;
 						size_t nb = OpVariable_get_number_elements(v1), pos = (size_t)d2;
 						if(nb > pos)
+						{
 							dres = d1[pos];
-						ret = OpVariable_set_double(res, dres);
+							ret = OpVariable_set_double(res, dres);
+						}
+						else
+							ret = -1;
 					}
 					else
 						ret =  -1;
@@ -2612,11 +2624,13 @@ int compute_crochets(OpVariable *res, OpVariable *v1, OpVariable *v2)
 						char cres[2];
 						size_t nb = OpVariable_get_number_elements(v1), pos = (size_t)d2;
 						if(nb > pos)
+						{
 							cres[0] = s[pos];
+							cres[1] = '\0';
+							ret = OpVariable_set_string(res, cres);
+						}
 						else
-							cres[0] = '\0';
-						cres[1] = '\0';
-						ret = OpVariable_set_string(res, cres);
+							ret = -1;
 					}
 					else
 						ret =  -1;
@@ -2628,10 +2642,12 @@ int compute_crochets(OpVariable *res, OpVariable *v1, OpVariable *v2)
 						const char *empty = "", *cres;
 						size_t nb = OpVariable_get_number_elements(v1), pos = (size_t)d2;
 						if(nb > pos)
+						{
 							cres = s[pos];
+							ret = OpVariable_set_string(res, cres);
+						}
 						else
-							cres = empty;
-						ret = OpVariable_set_string(res, cres);
+							ret = -1;
 					}
 					else
 						ret =  -1;
@@ -2863,6 +2879,14 @@ int Op1_execute(Op1 *self, OpContext *ctx)
 				printf("Give\n");
 				OpVariable_print(&res);
 				OpVariable_copy(OpContext_get_current_value(ctx), &res);
+			}
+			else
+			{
+				String m;
+				String_init(&m);
+				String_append_printf(&m, "Error '%s' %p during compute", ((Op*)self)->isa->name, self);
+				OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
+				String_finalize(&m);
 			}
 		}
 		else
