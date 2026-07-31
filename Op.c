@@ -2764,7 +2764,8 @@ int check_args_concat(OpVariable *v1, OpVariable *v2)
 	OpVarType t1 = OpVariable_get_type(v1), t2 = OpVariable_get_type(v2);
 	switch(t1)
 	{
-	case NONE :		return -1;
+	case NONE :		if(t2 == NONE)//Allowing starting a list by empty state, will be completed by type of t2
+						return -1;
 					break;
 	case DOUBLE :	if(t2 != DOUBLE && t2 != DOUBLES)
 						return -1;
