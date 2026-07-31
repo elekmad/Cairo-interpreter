@@ -3700,3 +3700,122 @@ Op *OpGetLast_new(void)
 {
 	return Op_new(&OpGetLast_isa.super);
 }
+
+int compute_get_len(OpVariable *res, OpVariable *v)
+{
+	int ret = -1;
+	switch(OpVariable_get_type(v))
+	{
+	case NONE :		break;
+	case DOUBLE: 	break;
+	case DOUBLES :	break;
+	case STRING :	{
+						size_t len = OpVariable_get_number_elements(v) - 1;
+						ret = OpVariable_set_double(res, (double)len);
+					}
+					break;
+	case STRINGS :
+					break;
+	}
+	return ret;
+}
+
+int check_args_get_len(OpVariable *v)
+{
+	int ret = 0;
+	OpVarType t = OpVariable_get_type(v);
+	switch(t)
+	{
+	case NONE :		return -1;
+					break;
+	case DOUBLE :	return -1;
+					break;
+	case DOUBLES :	return -1;
+					break;
+	case STRING :
+					break;
+	case STRINGS :	return -1;
+					break;
+	}
+	return ret;
+}
+
+OpIsaOneOp OpGetLen_isa = {
+		.super.name="GetLen",
+		.super.size=sizeof(Op1),
+		.super.init = (void(*)(Op*))Op1_init,
+		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
+		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
+		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
+		.check_arg = check_args_get_len,
+		.compute = compute_get_len
+};
+
+Op *OpGetLen_new(void)
+{
+	return Op_new(&OpGetLen_isa.super);
+}
+
+int compute_get_size(OpVariable *res, OpVariable *v)
+{
+	int ret = -1;
+	switch(OpVariable_get_type(v))
+	{
+	case NONE :		break;
+	case DOUBLE: 	break;
+	case DOUBLES :	{
+						size_t size = OpVariable_get_number_elements(v);
+						ret = OpVariable_set_double(res, (double)size);
+					}
+					break;
+	case STRING :	{
+						size_t size = OpVariable_get_number_elements(v);
+						ret = OpVariable_set_double(res, (double)size);
+					}
+					break;
+	case STRINGS :	{
+						size_t size = OpVariable_get_number_elements(v);
+						ret = OpVariable_set_double(res, (double)size);
+					}
+					break;
+	}
+	return ret;
+}
+
+int check_args_get_size(OpVariable *v)
+{
+	int ret = 0;
+	OpVarType t = OpVariable_get_type(v);
+	switch(t)
+	{
+	case NONE :		return -1;
+					break;
+	case DOUBLE :	return -1;
+					break;
+	case DOUBLES :
+					break;
+	case STRING :
+					break;
+	case STRINGS :
+					break;
+	}
+	return ret;
+}
+
+OpIsaOneOp OpGetSize_isa = {
+		.super.name="GetSize",
+		.super.size=sizeof(Op1),
+		.super.init = (void(*)(Op*))Op1_init,
+		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
+		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
+		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
+		.check_arg = check_args_get_size,
+		.compute = compute_get_size
+};
+
+Op *OpGetSize_new(void)
+{
+	return Op_new(&OpGetSize_isa.super);
+}

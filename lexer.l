@@ -50,6 +50,9 @@ int yycolumn = 1;
 (?i:"textextents")	{ return TEXTEXTENTS; }
 (?i:"fontextents")	{ return FONTEXTENTS; }
 (?i:"getoutputsize")	{ return GETOUTPUTSIZE; }
+(?i:"getlength")		{ return GETLEN; }
+(?i:"getlen")		{ return GETLEN; }
+(?i:"getsize")		{ return GETSIZE; }
 (?i:"getfirst")		{ return GETFIRST; }
 (?i:"getlast")		{ return GETLAST; }
 (?i:"concat")		{ return CONCAT; }

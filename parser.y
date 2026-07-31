@@ -70,6 +70,8 @@ Op *root;
 %token FONTEXTENTS
 %token GETFIRST
 %token GETLAST
+%token GETLEN
+%token GETSIZE
 %token PI
 %token PHI
 %token RED
@@ -658,6 +660,20 @@ expression:
       | GETLAST '(' expression ')'
       {
       	Op1 *op = (Op1*)OpGetLast_new();
+      	$$ = (Op*)op;
+      	Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @4.last_line, @4.last_column);
+      }
+      | GETLEN '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpGetLen_new();
+      	$$ = (Op*)op;
+      	Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @4.last_line, @4.last_column);
+      }
+      | GETSIZE '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpGetSize_new();
       	$$ = (Op*)op;
       	Op1_set_operande(op, $3);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @4.last_line, @4.last_column);
