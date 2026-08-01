@@ -178,9 +178,9 @@ typedef struct op_for_loop
 {
 	Op super;
 	size_t variable_number;
-	double start;
-	double condition;
-	double step;
+	Op *start;
+	Op *condition;
+	Op *step;
 	Op *loop;
 
 }OpForLoop;

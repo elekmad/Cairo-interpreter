@@ -1202,7 +1202,7 @@ OpIsa OpWhile_isa = {
 		.terminate = (void(*)(Op*))OpWhile_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))OpWhile_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpWhile_execute,
-		.check_args = NULL
+		.check_args = (int(*)(Op*, OpContext*))OpWhile_check_args
 };
 
 void OpWhile_init(OpWhile *self)
@@ -1240,6 +1240,14 @@ void _OpWhile_set_condition(OpWhile *self, Op *op)
 void _OpWhile_set_bloc(OpWhile *self, Op *op)
 {
 	OP_SET_OPERANDE(self, bloc, op);
+}
+
+int OpWhile_check_args(OpWhile *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->bloc != NULL && self->condition != NULL)
+		return 0;
+	return ret;
 }
 
 int OpWhile_fix_operandes(OpWhile *self, OpContext *ctx)
@@ -1291,15 +1299,15 @@ OpIsa OpForLoop_isa = {
 		.terminate = (void(*)(Op*))OpForLoop_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))OpForLoop_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpForLoop_execute,
-		.check_args = NULL
+		.check_args = (int(*)(Op*, OpContext*))OpForLoop_check_args
 };
 
 void OpForLoop_init(OpForLoop *self)
 {
 	Op_init(&self->super);
-	self->condition = NAN;
-	self->start = NAN;
-	self->step = NAN;
+	self->condition = NULL;
+	self->start = NULL;
+	self->step = NULL;
 	self->loop = NULL;
 	self->variable_number = 0;
 	Op_set_nb_ops(&self->super, 1);
@@ -1308,10 +1316,17 @@ void OpForLoop_init(OpForLoop *self)
 void OpForLoop_terminate(OpForLoop *self)
 {
 	Op_terminate(&self->super);
-	OpForLoop_set_loop(self, NULL);
+	_OpForLoop_set_start(self, NULL);
+	_OpForLoop_set_condition(self, NULL);
+	_OpForLoop_set_step(self, NULL);
+	_OpForLoop_set_loop(self, NULL);
 }
 
-#define FORLOOP_LOOP 0
+
+#define FORLOOP_START 0
+#define FORLOOP_CONDITION 1
+#define FORLOOP_STEP 2
+#define FORLOOP_LOOP 3
 
 
 void OpForLoop_set_variable_number(OpForLoop *self, size_t v)
@@ -1319,19 +1334,34 @@ void OpForLoop_set_variable_number(OpForLoop *self, size_t v)
 	self->variable_number = v;
 }
 
-void OpForLoop_set_start(OpForLoop *self, double v)
+void OpForLoop_set_start(OpForLoop *self, Op *v)
 {
-	self->start = v;
+	OP_ADD_OPERANDE(self, v, FORLOOP_START);
 }
 
-void OpForLoop_set_condition(OpForLoop *self, double v)
+void _OpForLoop_set_start(OpForLoop *self, Op *op)
 {
-	self->condition = v;
+	OP_SET_OPERANDE(self, start, op);
 }
 
-void OpForLoop_set_step(OpForLoop *self, double v)
+void OpForLoop_set_condition(OpForLoop *self, Op *v)
 {
-	self->step = v;
+	OP_ADD_OPERANDE(self, v, FORLOOP_CONDITION);
+}
+
+void _OpForLoop_set_condition(OpForLoop *self, Op *op)
+{
+	OP_SET_OPERANDE(self, condition, op);
+}
+
+void OpForLoop_set_step(OpForLoop *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, FORLOOP_STEP);
+}
+
+void _OpForLoop_set_step(OpForLoop *self, Op *op)
+{
+	OP_SET_OPERANDE(self, step, op);
 }
 
 void OpForLoop_set_loop(OpForLoop *self, Op *op)
@@ -1350,44 +1380,73 @@ int OpForLoop_fix_operandes(OpForLoop *self, OpContext *ctx)
 	if(self->super.nb_ops >= FORLOOP_LOOP)
 	{
 		ret = 0;
-		Op *l = self->super.operandes[FORLOOP_LOOP];
-		_OpForLoop_set_loop(self, l);
+		Op *o = self->super.operandes[FORLOOP_LOOP];
+		_OpForLoop_set_loop(self, o);
+		o = self->super.operandes[FORLOOP_START];
+		_OpForLoop_set_start(self, o);
+		o = self->super.operandes[FORLOOP_STEP];
+		_OpForLoop_set_step(self, o);
+		o = self->super.operandes[FORLOOP_CONDITION];
+		_OpForLoop_set_condition(self, o);
 	}
+	return ret;
+}
+
+int OpForLoop_check_args(OpForLoop *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->start != NULL && self->condition != NULL && self->loop != NULL)//By default step = 1
+		return 0;
 	return ret;
 }
 
 int OpForLoop_execute(OpForLoop *self, OpContext *ctx)
 {
 	int ret = 0;
-	if(!isnan(self->start) && !isnan(self->step) && !isnan(self->condition))
+	double start, condition, step = 1.0;
+
+	ret = Op_execute_get_double(self->start, (Op*)self, ctx, &start);
+	if(ret == -1)
+		return -1;
+
+	ret = Op_execute_get_double(self->condition, (Op*)self, ctx, &condition);
+	if(ret == -1)
+		return -1;
+
+	if(self->step != NULL)
 	{
-		bool stop = false;
-		double c = NAN, v;
-		printf("ForLoop %p Start\n", self);
-		v = self->start;
-		printf("ForLoop %p start op : @%zu = %f\n", self, self->variable_number, v);
-		OpContext_set_variable_value_double(ctx, self->variable_number, v);
-		do
-		{
-			printf("ForLoop %p Condition\n", self);
-			c = self->condition;
-			v = OpContext_get_variable_value(ctx, self->variable_number);
-			printf("ForLoop %p condition op : @%zu = %f\n", self, self->variable_number, v);
-			stop = double_eq(v, c) ? false : v > c ? true : false;
-			if(!stop)
-			{
-				printf("ForLoop %p Loop\n", self);
-				ret = Op_execute(self->loop, ctx);
-				printf("ForLoop %p End Loop\n", self);
-				printf("ForLoop %p Step\n", self);
-				v = v + self->step;
-				OpContext_set_variable_value_double(ctx, self->variable_number, v);
-				printf("ForLoop %p step op : @%zu = %f\n", self, self->variable_number, v);
-			}
-		}
-		while(!stop);
-		printf("ForLoop %p Stopped\n", self);
+		ret = Op_execute_get_double(self->step, (Op*)self, ctx, &step);
+		if(ret == -1)
+			return -1;
 	}
+
+	bool stop = false;
+	double c = NAN, v;
+	printf("ForLoop %p Start\n", self);
+	v = start;
+	printf("ForLoop %p start op : @%zu = %f\n", self, self->variable_number, v);
+	OpContext_set_variable_value_double(ctx, self->variable_number, v);
+	do
+	{
+		printf("ForLoop %p Condition\n", self);
+		c = condition;
+		v = OpContext_get_variable_value(ctx, self->variable_number);
+		printf("ForLoop %p condition op : @%zu = %f\n", self, self->variable_number, v);
+		stop = double_eq(v, c) ? false : v > c ? true : false;
+		if(!stop)
+		{
+			printf("ForLoop %p Loop\n", self);
+			ret = Op_execute(self->loop, ctx);
+			printf("ForLoop %p End Loop\n", self);
+			printf("ForLoop %p Step\n", self);
+			v = v + step;
+			OpContext_set_variable_value_double(ctx, self->variable_number, v);
+			printf("ForLoop %p step op : @%zu = %f\n", self, self->variable_number, v);
+		}
+	}
+	while(!stop);
+	printf("ForLoop %p Stopped\n", self);
+
 	return ret;
 }
 

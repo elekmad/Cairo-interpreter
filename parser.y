@@ -210,7 +210,7 @@ statement:
     	OpIf_set_false_branch(op, $7);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
     }
-    | FORLOOP '(' IDENTIFIER '=' '[' NUMBER ':' NUMBER ':' NUMBER ']' ')' block
+    | FORLOOP '(' IDENTIFIER '=' '[' expression ':' expression ':' expression ']' ')' block
     {
     	size_t var_num = OpContext_get_variable_number(Ctx, $3);
     	OpForLoop *op = (OpForLoop*)OpForLoop_new();
@@ -219,6 +219,17 @@ statement:
     	OpForLoop_set_condition(op, $8);
     	OpForLoop_set_step(op, $10);
     	OpForLoop_set_loop(op, $13);
+    	OpForLoop_set_variable_number(op, var_num);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+    }
+    | FORLOOP '(' IDENTIFIER '=' '[' expression ':' expression ']' ')' block
+    {
+    	size_t var_num = OpContext_get_variable_number(Ctx, $3);
+    	OpForLoop *op = (OpForLoop*)OpForLoop_new();
+    	$$ = (Op*)op;
+    	OpForLoop_set_start(op, $6);
+    	OpForLoop_set_condition(op, $8);
+    	OpForLoop_set_loop(op, $11);
     	OpForLoop_set_variable_number(op, var_num);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
     }
