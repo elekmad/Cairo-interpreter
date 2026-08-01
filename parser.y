@@ -887,6 +887,13 @@ expression:
 		Op1_set_operande(op, $3);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
+		| RADIANS '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpRadians_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
 		| DEGREES '(' expression ')'
       {
       	Op1 *op = (Op1*)OpDegrees_new();
