@@ -57,6 +57,8 @@ Op *root;
 %token ELSE
 %token IFX //Lower than else
 %token FORLOOP
+%token FOREACH
+%token IN
 %token WHILETRUE
 %token EQ
 %token NEQ
@@ -233,6 +235,16 @@ statement:
     	OpForLoop_set_condition(op, $8);
     	OpForLoop_set_loop(op, $11);
     	OpForLoop_set_variable_number(op, var_num);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+    }
+    | FOREACH '(' IDENTIFIER IN expression ')' block
+    {
+    	size_t var_num = OpContext_get_variable_number(Ctx, $3);
+    	OpForEach *op = (OpForEach*)OpForEach_new();
+    	$$ = (Op*)op;
+    	OpForEach_set_value(op, $5);
+    	OpForEach_set_loop(op, $7);
+    	OpForEach_set_variable_number(op, var_num);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
     }
     | WHILETRUE '(' expression ')' block

@@ -42,6 +42,8 @@ int yycolumn = 1;
 (?i:"if")			{ return IF; }
 (?i:"else")			{ return ELSE; }
 (?i:"for")			{ return FORLOOP; }
+(?i:"foreach")		{ return FOREACH; }
+(?i:"in")			{ return IN; }
 (?i:"while")		{ return WHILETRUE; }
 (?i:"setfontsize")	{ return FONTSIZE; }
 (?i:"setfont")		{ return FONT; }

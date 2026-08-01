@@ -453,6 +453,22 @@ int OpContext_set_variable_value_double(OpContext *self, size_t variable_number,
 	return 0;
 }
 
+int OpContext_set_variable_value_string(OpContext *self, size_t variable_number, const char *v)
+{
+	OpVariable *var;
+	if(self->number_of_variables < variable_number + 1)
+		return -1;
+	var = self->variables[variable_number];
+	if(OpVariable_set_string(var, v) == -1)
+	{
+		OpVariable_set_type(var, STRING);
+		OpVariable_set_string(var, v);
+	}
+
+	printf("Setting variable '%s' number %zu = %s\n", OpVariable_get_name(var), variable_number, v);
+	return 0;
+}
+
 int OpContext_copy_current_to_variable(OpContext *self, size_t var_num)
 {
 	OpVariable *var;
@@ -1320,7 +1336,6 @@ void OpForLoop_init(OpForLoop *self)
 	self->step = NULL;
 	self->loop = NULL;
 	self->variable_number = 0;
-	Op_set_nb_ops(&self->super, 1);
 }
 
 void OpForLoop_terminate(OpForLoop *self)
@@ -1463,6 +1478,157 @@ int OpForLoop_execute(OpForLoop *self, OpContext *ctx)
 Op *OpForLoop_new(void)
 {
 	return Op_new(&OpForLoop_isa);
+}
+
+
+OpIsa OpForEach_isa = {
+		.name="ForEach",
+		.size=sizeof(OpForEach),
+		.init = (void(*)(Op*))OpForEach_init,
+		.terminate = (void(*)(Op*))OpForEach_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpForEach_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpForEach_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpForEach_check_args
+};
+
+void OpForEach_init(OpForEach *self)
+{
+	Op_init(&self->super);
+	self->value = NULL;
+	self->loop = NULL;
+	self->variable_number = 0;
+}
+
+void OpForEach_terminate(OpForEach *self)
+{
+	Op_terminate(&self->super);
+	_OpForEach_set_value(self, NULL);
+	_OpForEach_set_loop(self, NULL);
+}
+
+
+#define FOREACH_VALUE 0
+#define FOREACH_LOOP 1
+
+
+void OpForEach_set_variable_number(OpForEach *self, size_t v)
+{
+	self->variable_number = v;
+}
+
+void OpForEach_set_value(OpForEach *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, FOREACH_VALUE);
+}
+
+void _OpForEach_set_value(OpForEach *self, Op *op)
+{
+	OP_SET_OPERANDE(self, value, op);
+}
+
+void OpForEach_set_loop(OpForEach *self, Op *op)
+{
+	OP_ADD_OPERANDE(self, op, FOREACH_LOOP);
+}
+
+void _OpForEach_set_loop(OpForEach *self, Op *op)
+{
+	OP_SET_OPERANDE(self, loop, op);
+}
+
+int OpForEach_fix_operandes(OpForEach *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= FOREACH_LOOP)
+	{
+		ret = 0;
+		Op *o = self->super.operandes[FOREACH_LOOP];
+		_OpForEach_set_loop(self, o);
+		o = self->super.operandes[FOREACH_VALUE];
+		_OpForEach_set_value(self, o);
+	}
+	return ret;
+}
+
+int OpForEach_check_args(OpForEach *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->value != NULL && self->loop != NULL)
+		return 0;
+	return ret;
+}
+
+int OpForEach_execute(OpForEach *self, OpContext *ctx)
+{
+	int ret = 0;
+	double start, condition, step = 1.0;
+
+	ret = Op_execute(self->value, ctx);
+	if(ret != 0)
+	{
+		printf("ForEach Evaluation of value failed\n");
+		return -1;
+	}
+
+	printf("ForEach %p Start\n", self);
+	OpVarType t = OpVariable_get_type(OpContext_get_current_value(ctx));
+	if(t == DOUBLES)
+	{
+		OpVariable v;
+		OpVariable_init(&v);
+		OpVariable_copy(&v, OpContext_get_current_value(ctx));
+
+		size_t nb = OpVariable_get_number_elements(&v), i;
+		double *d = OpVariable_get_doubles(&v);
+		for(i = 0; i < nb; i++)
+		{
+			OpContext_set_variable_value_double(ctx, self->variable_number, d[i]);
+			ret = Op_execute(self->loop, ctx);
+			if(ret != 0)
+			{
+				printf("Evaluation of ForEach Loop Failed\n");
+				break;
+			}
+		}
+
+		OpVariable_terminate(&v);
+	}
+	else if(t == STRINGS)
+	{
+		OpVariable v;
+		OpVariable_init(&v);
+		OpVariable_copy(&v, OpContext_get_current_value(ctx));
+
+		size_t nb = OpVariable_get_number_elements(&v), i;
+		const char * const *s = OpVariable_get_strings(&v);
+		for(i = 0; i < nb; i++)
+		{
+			OpContext_set_variable_value_string(ctx, self->variable_number, s[i]);
+			ret = Op_execute(self->loop, ctx);
+			if(ret != 0)
+			{
+				printf("Evaluation of ForEach Loop Failed\n");
+				break;
+			}
+		}
+
+		OpVariable_terminate(&v);
+	}
+	else
+	{
+		OpContext_set_running_state(ctx, (Op*)self, Error, "Value gave in ForEach is not an array");
+		printf("ForEach %p Stopped\n", self);
+		return -1;
+	}
+
+	printf("ForEach %p Stopped\n", self);
+
+	return ret;
+}
+
+Op *OpForEach_new(void)
+{
+	return Op_new(&OpForEach_isa);
 }
 
 OpIsa OpIntervalGen_isa = {

@@ -185,6 +185,15 @@ typedef struct op_for_loop
 
 }OpForLoop;
 
+typedef struct op_for_each
+{
+	Op super;
+	size_t variable_number;
+	Op *value;
+	Op *loop;
+
+}OpForEach;
+
 typedef struct op_interval_gen
 {
 	Op super;
