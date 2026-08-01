@@ -3888,3 +3888,149 @@ Op *OpGetSize_new(void)
 {
 	return Op_new(&OpGetSize_isa.super);
 }
+
+int compute_StrToDouble(OpVariable *res, OpVariable *v)
+{
+	int ret = -1;
+	switch(OpVariable_get_type(v))
+	{
+	case NONE :		break;
+	case DOUBLE: 	break;
+	case DOUBLES :	break;
+	case STRING :	{
+						const char *str = OpVariable_get_string(v);
+						double d = strtod(str, NULL);
+						ret = OpVariable_set_double(res, d);
+					}
+					break;
+	case STRINGS :	{
+						size_t size = OpVariable_get_number_elements(v), i;
+						const char * const * vs = OpVariable_get_strings(v);
+						for(i = 0; i < size; i++)
+						{
+							const char *str = vs[i];
+							double d = strtod(str, NULL);
+							ret = OpVariable_append_double(res, d);
+							if(ret != 0)
+								break;
+						}
+					}
+					break;
+	}
+	return ret;
+}
+
+int check_args_StrToDouble(OpVariable *v)
+{
+	int ret = 0;
+	OpVarType t = OpVariable_get_type(v);
+	switch(t)
+	{
+	case NONE :		return -1;
+					break;
+	case DOUBLE :	return -1;
+					break;
+	case DOUBLES :	return -1;
+					break;
+	case STRING :
+					break;
+	case STRINGS :
+					break;
+	}
+	return ret;
+}
+
+OpIsaOneOp OpStrToDouble_isa = {
+		.super.name="StrToDouble",
+		.super.size=sizeof(Op1),
+		.super.init = (void(*)(Op*))Op1_init,
+		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
+		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
+		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
+		.check_arg = check_args_StrToDouble,
+		.compute = compute_StrToDouble
+};
+
+Op *OpStrToDouble_new(void)
+{
+	return Op_new(&OpStrToDouble_isa.super);
+}
+
+int compute_DoubleToStr(OpVariable *res, OpVariable *v)
+{
+	int ret = -1;
+	switch(OpVariable_get_type(v))
+	{
+	case NONE :		break;
+	case DOUBLE: 	{
+						double d = OpVariable_get_double(v);
+						String s;
+						String_init(&s);
+						String_append_printf(&s, "%g", d);
+						ret = OpVariable_set_string(res, String_get_char_string(&s));
+						String_finalize(&s);
+					}
+					break;
+	case DOUBLES :	{
+						size_t nb = OpVariable_get_number_elements(v), i;
+						double *ds = OpVariable_get_doubles(v);
+							String s;
+							String_init(&s);
+						for(i = 0; i < nb; i++)
+						{
+							double d = ds[i];
+							String_empty(&s);
+							String_append_printf(&s, "%g", d);
+							ret = OpVariable_append_string(res, String_get_char_string(&s));
+							if(ret != 0)
+							{
+								String_finalize(&s);
+								break;
+							}
+						}
+						String_finalize(&s);
+					}
+					break;
+	case STRING :	break;
+	case STRINGS :	break;
+	}
+	return ret;
+}
+
+int check_args_DoubleToStr(OpVariable *v)
+{
+	int ret = 0;
+	OpVarType t = OpVariable_get_type(v);
+	switch(t)
+	{
+	case NONE :		return -1;
+					break;
+	case DOUBLE :
+					break;
+	case DOUBLES :
+					break;
+	case STRING :	return -1;
+					break;
+	case STRINGS :	return -1;
+					break;
+	}
+	return ret;
+}
+
+OpIsaOneOp OpDoubleToStr_isa = {
+		.super.name="DoubleToStr",
+		.super.size=sizeof(Op1),
+		.super.init = (void(*)(Op*))Op1_init,
+		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
+		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
+		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
+		.check_arg = check_args_DoubleToStr,
+		.compute = compute_DoubleToStr
+};
+
+Op *OpDoubleToStr_new(void)
+{
+	return Op_new(&OpDoubleToStr_isa.super);
+}

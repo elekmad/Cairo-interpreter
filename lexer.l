@@ -56,6 +56,8 @@ int yycolumn = 1;
 (?i:"getfirst")		{ return GETFIRST; }
 (?i:"getlast")		{ return GETLAST; }
 (?i:"concat")		{ return CONCAT; }
+(?i:"strtod")		{ return STRTOD; }
+(?i:"dtostr")		{ return DTOSTR; }
 (?i:"pi")			{ return PI; }
 (?i:"phi")			{ return PHI; }
 (?i:"red")			{ return RED; }

@@ -86,6 +86,8 @@ Op *root;
 %token SIN
 %token ASIN
 %token CONCAT
+%token STRTOD
+%token DTOSTR
 %token TAN
 %token ATAN
 %token FLOOR
@@ -871,9 +873,16 @@ expression:
       	Op1_set_operande(op, $2);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @2.last_line, @2.last_column);
       }
-		| RADIANS '(' expression ')'
+		| STRTOD '(' expression ')'
       {
-      	Op1 *op = (Op1*)OpRadians_new();
+      	Op1 *op = (Op1*)OpStrToDouble_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+		| DTOSTR '(' expression ')'
+      {
+      	Op1 *op = (Op1*)OpDoubleToStr_new();
       	$$ = (Op*)op;
 		Op1_set_operande(op, $3);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
