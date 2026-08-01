@@ -1093,7 +1093,7 @@ OpIsa OpIf_isa = {
 		.terminate = (void(*)(Op*))OpIf_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))OpIf_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpIf_execute,
-		.check_args = NULL
+		.check_args = (int(*)(Op*, OpContext*))OpIf_check_args
 };
 
 void OpIf_init(OpIf *self)
@@ -1149,13 +1149,22 @@ void _OpIf_set_false_branch(OpIf *self, Op *op)
 int OpIf_fix_operandes(OpIf *self, OpContext *ctx)
 {
 	int ret = -1;
-	if(self->super.nb_ops >=3)
+	if(self->super.nb_ops >=2)
 	{
 		ret = 0;
 		_OpIf_set_condition(self, self->super.operandes[OPIF_CONDITION]);
 		_OpIf_set_true_branch(self, self->super.operandes[OP_IF_TRUE_BRANCH]);
-		_OpIf_set_false_branch(self, self->super.operandes[OP_IF_FALSE_BRANCH]);
+		if(self->super.nb_ops >= 3)
+			_OpIf_set_false_branch(self, self->super.operandes[OP_IF_FALSE_BRANCH]);
 	}
+	return ret;
+}
+
+int OpIf_check_args(OpIf *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->condition != NULL && self->true_branch != NULL)
+		return 0;
 	return ret;
 }
 
@@ -1164,19 +1173,20 @@ int OpIf_execute(OpIf *self, OpContext *ctx)
 	int ret = 0;
 	double c = NAN;
 	printf("If %p Entered\n", self);
-	if(self->condition != NULL)
+
+	ret = Op_execute_get_double(self->condition, (Op*)self, ctx, &c);
+	if(ret == -1)
 	{
-		ret = Op_execute(self->condition, ctx);
-		c = OpContext_get_current_value_double(ctx);
-		printf("If %p Condition = %f\n", self, c);
+		printf("Error during if condifion\n");
+		return -1;
+
 	}
+	printf("If %p Condition = %f\n", self, c);
+
 	if(c != 0)
 	{
-		if(self->true_branch != NULL)
-		{
 			printf("If %p Branch True\n", self);
 			ret = Op_execute(self->true_branch, ctx);
-		}
 	}
 	else
 	{
