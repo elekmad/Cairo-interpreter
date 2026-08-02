@@ -18,7 +18,11 @@ void CanvaCtx_init(CanvaCtx *self, int width, int height, int pitch)
 	self->height = height;
 	self->pitch = pitch;
 	self->default_stroke_mode = Fill;
+#ifndef NOSDL
 	self->output_mode = SDL;
+#else
+	self->output_mode = SVG;
+#endif
 
 	self->pixels = malloc(width * height * 4);
 	self->output_file = NULL;
@@ -33,6 +37,7 @@ void CanvaCtx_init(CanvaCtx *self, int width, int height, int pitch)
 	    );
 	self->cr = cairo_create (self->surface);
 }
+
 
 void CanvaCtx_init_for_svg(CanvaCtx *self, int width, int height, const char *name)
 {
@@ -295,40 +300,6 @@ void CanvaCtx_draw_text_path(CanvaCtx *self, const char *text)
 	cairo_text_path(self->cr, text);
 }
 
-void CanvaCtx_draw(CanvaCtx *self)
-{
-	double xc = 128.0;
-	double yc = 128.0;
-	double radius = 100.0;
-	double angle1 = 45.0  * (M_PI/180.0);  /* angles are specified */
-	double angle2 = 180.0 * (M_PI/180.0);  /* in radians           */
-
-	CanvaCtx_set_color(self, 255, 255, 255, 255);
-	CanvaCtx_draw_rectangle(self, 0, 0, self->width, self->height);
-	CanvaCtx_fill(self);
-
-
-	CanvaCtx_set_color(self, 0, 0, 0, 255);
-
-
-	CanvaCtx_set_line_width (self, 10.0);
-	cairo_arc (self->cr, xc, yc, radius, angle1, angle2);
-	cairo_stroke (self->cr);
-
-	/* draw helping lines */
-	CanvaCtx_set_color(self, 255, 80, 80, 200);
-	CanvaCtx_set_line_width (self, 6.0);
-
-	cairo_arc (self->cr, xc, yc, 10.0, 0, 2*M_PI);
-	CanvaCtx_fill(self);
-
-	cairo_arc (self->cr, xc, yc, radius, angle1, angle1);
-	cairo_line_to (self->cr, xc, yc);
-	cairo_arc (self->cr, xc, yc, radius, angle2, angle2);
-	cairo_line_to (self->cr, xc, yc);
-	cairo_stroke (self->cr);
-}
-
 void CanvaCtx_stroke(CanvaCtx *self)
 {
 	cairo_pattern_t *pat = cairo_get_source(self->cr);
@@ -349,6 +320,7 @@ void CanvaCtx_stroke_preserve(CanvaCtx *self)
 	cairo_stroke_preserve (self->cr);
 }
 
+#ifndef NOSDL
 void CanvaCtx_update_display(CanvaCtx *self)
 {
 	cairo_surface_flush(self->surface);
@@ -359,6 +331,7 @@ void CanvaCtx_update_display(CanvaCtx *self)
         self->width * 4
     );
 }
+#endif
 
 void CanvaCtx_write_to_png(CanvaCtx *self)
 {
@@ -370,10 +343,14 @@ void CanvaCtx_finish(CanvaCtx *self)
 	cairo_surface_finish(self->surface);
 }
 
+#ifndef NOSDL
+
 void CanvaCtx_set_texture(CanvaCtx *self, SDL_Texture *t)
 {
 	self->texture = t;
 }
+
+#endif
 
 void CanvaCtx_free(CanvaCtx *self)
 {

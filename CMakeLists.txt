@@ -103,10 +103,16 @@ target_link_libraries(CairoTest PRIVATE Cairo::Cairo)
 message(STATUS "Cairo include: ${Cairo_INCLUDE_DIR}")
 message(STATUS "Cairo lib: ${Cairo_LIBRARY}")
 
+set(WITHSDL 1)
+if( NOSDL )
+	set(WITHSDL 0)
+	add_definitions(-DNOSDL)
+endif()
 
+if( WITHSDL)
 find_package(SDL2 REQUIRED CONFIG)
 target_link_libraries(CairoTest PRIVATE SDL2::SDL2)
-
+endif()
 
 
 include_directories(./)

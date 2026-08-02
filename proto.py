@@ -31,7 +31,7 @@ for entry in db:
     while i < len(cmd):
         arg = cmd[i]
 
-        if arg.startswith(("-I")):#, "-D", "-U")):
+        if arg.startswith(("-I", "-D")):#, "-U")):
             compiler_flags.append(arg)
 
         elif arg in ("-isystem", "-include", "-imacros"):

@@ -20,14 +20,17 @@
 
 CanvaCtx Canva;
 
+#ifndef NOSDL
 SDL_Renderer *renderer;
 SDL_Texture *texture;
 unsigned char *pixels;
 SDL_Window *window;
 int x=0, xspeed=0, y=0, yspeed=0;
 SDL_Event event;
+#endif
 int width = 640, height = 480;
 
+#ifndef NOSDL
 int one_iter(void)
 {
     if(x + xspeed < 640 && x + xspeed >= 0)
@@ -81,6 +84,8 @@ int one_iter(void)
 
 }
 
+#endif
+
 
 int main( int argc, char *argv[ ] )
 {
@@ -110,6 +115,7 @@ int main( int argc, char *argv[ ] )
 
 		CanvaCtxOutputMode output_mode = OpCanvaContext_get_output_mode(&Ctx);
 
+#ifndef NOSDL
 		if(output_mode == SDL)
 		{
 			if( SDL_Init( SDL_INIT_VIDEO ) == -1 )
@@ -165,6 +171,8 @@ int main( int argc, char *argv[ ] )
 
 			SDL_Quit();
 		}
+
+#endif
 
 		if(output_mode == PNG)
 		{

@@ -8,9 +8,11 @@
 #ifndef CANVACTX_H_
 #define CANVACTX_H_
 
-
+#ifndef NOSDL
 #include <SDL2/SDL.h>
+#endif
 #include <cairo.h>
+#include <inttypes.h>
 
 typedef enum canva_ctx_stroke_mode
 {
@@ -23,7 +25,9 @@ typedef enum canva_ctx_stroke_mode
 
 typedef enum canva_ctx_output_mode
 {
+#ifndef NOSDL
 	SDL,
+#endif
 	PNG,
 	SVG
 }CanvaCtxOutputMode;
@@ -52,7 +56,9 @@ typedef struct {
     int height;
     int pitch;
     uint32_t *pixels;
+#ifndef NOSDL
     SDL_Texture *texture;
+#endif
     char *output_file;
 
     CanvaCtxOutputMode output_mode;

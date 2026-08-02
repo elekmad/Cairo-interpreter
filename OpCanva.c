@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 void OpCanvaContext_init(OpCanvaContext *self)
 {
@@ -17,7 +18,11 @@ void OpCanvaContext_init(OpCanvaContext *self)
 	self->Canva = NULL;
 	self->width = 0;
 	self->height = 0;
+#ifndef NOSDL
 	self->output_mode = SDL;
+#else
+	self->output_mode = SVG;
+#endif
 	self->output_name = NULL;
 }
 
