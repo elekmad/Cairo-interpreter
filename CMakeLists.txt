@@ -57,7 +57,7 @@ add_executable(CairoTest
     ${FLEX_Lexer_OUTPUTS}
 )
 
-target_link_libraries(CairoTest PRIVATE fl)
+#target_link_libraries(CairoTest PRIVATE fl)
 target_link_libraries(CairoTest PRIVATE m)
 
 find_package(Python3 REQUIRED)
