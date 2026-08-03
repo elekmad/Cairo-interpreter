@@ -95,9 +95,9 @@ int main( int argc, char *argv[ ] )
 	OpCanvaContext Ctx;
 	OpCanvaContext_init(&Ctx);
     Op *root = NULL;
-    extern int yydebug, yy_flex_debug;
+    /*extern int yydebug, yy_flex_debug;
     yydebug = 1;
-    yy_flex_debug = 1;
+    yy_flex_debug = 1;*/
 
     if(yyparse(&root, (OpContext*)&Ctx) == 0 && root != NULL)
     {

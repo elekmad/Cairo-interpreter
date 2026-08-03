@@ -1,6 +1,6 @@
 %locations
 %define parse.error verbose
-%define parse.trace
+// %define parse.trace
 %locations
 %code requires
 {

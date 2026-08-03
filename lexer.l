@@ -15,7 +15,7 @@ int yycolumn = 1;
     yycolumn += yyleng;
 %}
 
-%option debug
+/* %option debug */
 %%
 
 \/\/[^\n]*				;
