@@ -1,0 +1,12 @@
+#setoutputsize(640,480);
+
+size=getoutputsize();
+color(255, 255, 255, 255)rectangle(0, 0, size[0], size[1]);
+t=[1:10];
+foreach(a in t)
+{
+//test
+	c=concat(concat(a*255/10, 0), 0);
+	t=concat(30*a, 30*a);
+	color(c)translate(t)rotate(a*3.14*2/10)rectangle(-20, -20, 40*phi(), 40);
+}

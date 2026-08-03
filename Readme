@@ -1,0 +1,9 @@
+Interpeteur au dessus de la lib cairo.
+
+Nécessite la lib cairo dev, la lib sdl2 dev si compilé avec sdl2, ainsi que flex et bison.
+
+Pour compiler :
+mkdir build
+cd build
+cmake ../ -DCMAKE_VERBOSE_MAKEFILE=false  -DCMAKE_RELEASE_MODE=Debug  -DBUILD_UNITTESTS=true -DUPDISTANT=true -DNOSDL=false
+make
