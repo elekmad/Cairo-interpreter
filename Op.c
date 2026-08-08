@@ -12,6 +12,28 @@
 #include <math.h>
 #include <string.h>
 
+const char *_Op_get_running_state_string(OpRunningState state)
+{
+	switch(state)
+	{
+	case Init : 		return "Init";
+						break;
+	case PreRun :		return "PreRun";
+						break;
+	case Ready :		return "Ready";
+						break;
+	case Run :			return "Run";
+						break;
+	case Finished :		return "Finished";
+						break;
+	case Error :		return "Error";
+						break;
+	case ParseError :	return "ParseError";
+						break;
+	}
+	return "";
+}
+
 void OpVariable_init(OpVariable *self)
 {
 	self->name = NULL;
@@ -334,12 +356,12 @@ void OpMessage_set_params(OpMessage *self, SourcePos *pos, OpRunningState state,
 
 void OpMessage_append_to_string_xml(OpMessage *self, String *s)
 {
-	String_append_printf(s, "<msg><pos><first_line>%d</first_line><first_column>%d</first_column><last_line>%d</last_line><last_column>%d</last_column></pos><running-state>%d</running-state><text>%s</text></msg>",
+	String_append_printf(s, "<msg><pos><first_line>%d</first_line><first_column>%d</first_column><last_line>%d</last_line><last_column>%d</last_column></pos><running-state>%s</running-state><text>%s</text></msg>",
 								self->pos.first_line,
 								self->pos.first_column,
 								self->pos.last_line,
 								self->pos.last_column,
-								self->state,
+								_Op_get_running_state_string(self->state),
 								String_get_char_string(&self->msg));
 }
 
