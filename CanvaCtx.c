@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <cairo-svg.h>
+#include <b64/cencode.h>
 
 void CanvaCtx_init(CanvaCtx *self, int width, int height, int pitch)
 {
@@ -70,7 +71,7 @@ void CanvaCtx_init_for_png(CanvaCtx *self, int width, int height)
 	self->height = height;
 	self->default_stroke_mode = Fill;
 
-	self->output_mode = SVG;
+	self->output_mode = PNG;
 
 	self->pixels = NULL;
 
@@ -353,7 +354,31 @@ void CanvaCtx_write_to_png(CanvaCtx *self)
 void CanvaCtx_export_to_xml(CanvaCtx *self, String *xml)
 {
 	String_append_char_string(xml, "<out><![CDATA[");
-	String_append_String(xml, &self->output_buffer);
+
+	if(self->output_mode == PNG)
+	{
+		base64_encodestate state;
+		base64_init_encodestate(&state);
+
+		char *encoded = malloc(String_get_length(&self->output_buffer) * 2);
+
+		int len = base64_encode_block(
+			String_get_data(&self->output_buffer),
+			String_get_length(&self->output_buffer),
+			encoded,
+			&state
+		);
+
+		len += base64_encode_blockend(
+			encoded + len,
+			&state
+		);
+
+		String_append_data(xml, (size_t)len, (const void*)encoded);
+		free(encoded);
+	}
+	else
+		String_append_String(xml, &self->output_buffer);
 	String_append_char_string(xml, "]]></out>");
 }
 
