@@ -43,8 +43,24 @@ typedef enum op_running_state
 	Ready,
 	Run,
 	Finished,
-	Error
+	Error,
+	ParseError
 }OpRunningState;
+
+typedef struct source_pos
+{
+    int first_line;
+    int first_column;
+    int last_line;
+    int last_column;
+} SourcePos;
+
+typedef struct op_message
+{
+	SourcePos pos;
+	OpRunningState state;
+	String msg;
+}OpMessage;
 
 typedef struct op_context
 {
@@ -52,6 +68,7 @@ typedef struct op_context
 	OpVariable current_value;
 	OpVariable **variables;
 	size_t number_of_variables;
+	LinkedList messages;
 }OpContext;
 
 typedef struct op Op;
@@ -65,14 +82,6 @@ typedef struct op_isa
 	int (*execute)(Op*, OpContext *);
 	int (*check_args)(Op*, OpContext*);
 }OpIsa;
-
-typedef struct source_pos
-{
-    int first_line;
-    int first_column;
-    int last_line;
-    int last_column;
-} SourcePos;
 
 typedef struct op
 {
@@ -136,13 +145,13 @@ typedef struct op_get_value
 }OpGetValue;
 
 
-typedef struct op_message
+typedef struct op_print_message
 {
 	Op super;
 	char *message;
 	Op *value;
 
-}OpMessage;
+}OpPrintMessage;
 
 typedef struct op_pi
 {

@@ -1,3 +1,4 @@
+%option header-file="lexer.h"
 %option noyywrap
 %option yylineno
 %{

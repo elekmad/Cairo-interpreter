@@ -13,6 +13,8 @@
 #include <CanvaCtx.h>
 #include <OpCanva.h>
 #include <parser.tab.h>
+#include <lexer.h>
+#include <unistd.h>
 
 #define SPEED_RATE 1
 
@@ -49,7 +51,7 @@ int one_iter(void)
                 break;
     	case SDL_KEYUP:
     	case SDL_KEYDOWN:
-    		printf("keydown %d\n", event.key.keysym.sym);
+    		fprintf(stderr, "keydown %d\n", event.key.keysym.sym);
     		switch(event.key.keysym.sym)
     		{
                         case SDLK_DOWN:
@@ -69,7 +71,7 @@ int one_iter(void)
                             return -1;
                             break;
     		}
-    	        printf("xspeed %d yspeed %d \n", xspeed, yspeed);
+    	        fprintf(stderr, "xspeed %d yspeed %d \n", xspeed, yspeed);
     	        break;
         }
     }
@@ -89,16 +91,44 @@ int one_iter(void)
 
 int main( int argc, char *argv[ ] )
 {
-
-    extern FILE *yyin;
-    yyin = fopen(argv[1], "r");
+	size_t readed;
 	OpCanvaContext Ctx;
 	OpCanvaContext_init(&Ctx);
     Op *root = NULL;
     /*extern int yydebug, yy_flex_debug;
     yydebug = 1;
     yy_flex_debug = 1;*/
+#ifdef CGIMODE
+    char *buffer;
+    char *length_env = getenv("CONTENT_LENGTH");
+    if(length_env == NULL)
+    {
+    	fprintf(stderr, "No CONTENT_LENGTH found into env\n");
+    	return -1;
+    }
+    size_t length = strtoul(length_env, NULL, 10);
+    fprintf(stderr, "about to read %zu from stdin\n", length);
+    buffer = malloc(length);
+    readed = read(0, buffer, length);
+    if(readed != length)
+    {
+    	fprintf(stderr, "read %zu != %zu\n", readed, length);
+    	return -1;
+    }
 
+    fprintf(stderr, "stdin read, creating buffer\n");
+    YY_BUFFER_STATE state = yy_scan_bytes(buffer, length);
+    fprintf(stderr, "now parse\n");
+#else
+    String buffer;
+    String_init(&buffer);
+    char buf[100];
+    while((readed = read(0, buf, 100)) > 0)
+    {
+    	String_append_data(&buffer, readed, (const void*)buf);
+    }
+    YY_BUFFER_STATE state = yy_scan_bytes(String_get_data(&buffer), String_get_length(&buffer));
+#endif
     if(yyparse(&root, (OpContext*)&Ctx) == 0 && root != NULL)
     {
     	int w, h;
@@ -120,7 +150,7 @@ int main( int argc, char *argv[ ] )
 		{
 			if( SDL_Init( SDL_INIT_VIDEO ) == -1 )
 			{
-				printf( "Can't init SDL:  %s\n", SDL_GetError( ) );
+				fprintf(stderr,  "Can't init SDL:  %s\n", SDL_GetError( ) );
 				return EXIT_FAILURE;
 			}
 
@@ -135,7 +165,7 @@ int main( int argc, char *argv[ ] )
 
 			if( sdl_surface == NULL )
 			{
-				printf( "Can't set video mode: %s\n", SDL_GetError( ) );
+				fprintf(stderr,  "Can't set video mode: %s\n", SDL_GetError( ) );
 				return EXIT_FAILURE;
 			}
 			texture = SDL_CreateTexture(renderer,
@@ -176,7 +206,7 @@ int main( int argc, char *argv[ ] )
 
 		if(output_mode == PNG)
 		{
-			CanvaCtx_init_for_png(&Canva, width, height, OpCanvaContext_get_output_name(&Ctx));
+			CanvaCtx_init_for_png(&Canva, width, height);
 
 			CanvaCtx_set_line_width (&Canva, 10.0);
 			CanvaCtx_set_color(&Canva, 0, 0, 0, 255);
@@ -186,13 +216,29 @@ int main( int argc, char *argv[ ] )
 			Op_launch(root, (OpContext*)&Ctx);
 
 			CanvaCtx_write_to_png(&Canva);
+#ifdef CGIMODE
+			String out;
+			String_init(&out);
+			String_append_char_string(&out, "Content-Type: application/xml; charset=utf-8\r\n");
+			String_append_char_string(&out, "\r\n");
+			OpCanvaContext_export_messages_to_xml(&Ctx, &out, true);
+			printf("%s", String_get_char_string(&out));
+			String_finalize(&out);
+#else
+			String out;
+			String_init(&out);
+			OpCanvaContext_export_messages_to_xml(&Ctx, &out, false);
+			fprintf(stderr, "%s", String_get_char_string(&out));
+			String_finalize(&out);
+			CanvaCtx_write_to_fd(&Canva, 1);
+#endif
 
 			CanvaCtx_terminate(&Canva);
 		}
 
 		if(output_mode == SVG)
 		{
-			CanvaCtx_init_for_svg(&Canva, width, height, OpCanvaContext_get_output_name(&Ctx));
+			CanvaCtx_init_for_svg(&Canva, width, height);
 
 			CanvaCtx_set_line_width (&Canva, 10.0);
 			CanvaCtx_set_color(&Canva, 0, 0, 0, 255);
@@ -202,10 +248,44 @@ int main( int argc, char *argv[ ] )
 			Op_launch(root, (OpContext*)&Ctx);
 
 			CanvaCtx_finish(&Canva);
-
+#ifdef CGIMODE
+			String out;
+			String_init(&out);
+			String_append_char_string(&out, "Content-Type: application/xml; charset=utf-8\r\n");
+			String_append_char_string(&out, "\r\n");
+			OpCanvaContext_export_messages_to_xml(&Ctx, &out, true);
+			printf("%s", String_get_char_string(&out));
+			String_finalize(&out);
+#else
+			String out;
+			String_init(&out);
+			OpCanvaContext_export_messages_to_xml(&Ctx, &out, false);
+			fprintf(stderr, "%s", String_get_char_string(&out));
+			String_finalize(&out);
+			CanvaCtx_write_to_fd(&Canva, 1);
+#endif
 			CanvaCtx_terminate(&Canva);
 		}
 	}
+    else
+    {
+#ifdef CGIMODE
+			String out;
+			String_init(&out);
+			String_append_char_string(&out, "Content-Type: application/xml; charset=utf-8\r\n");
+			String_append_char_string(&out, "\r\n");
+			OpCanvaContext_export_messages_to_xml(&Ctx, &out, true);
+			printf("%s", String_get_char_string(&out));
+			String_finalize(&out);
+#else
+			String out;
+			String_init(&out);
+			OpCanvaContext_export_messages_to_xml(&Ctx, &out, false);
+			fprintf(stderr, "%s", String_get_char_string(&out));
+			String_finalize(&out);
+#endif
+    }
+    yy_delete_buffer(state);
 
     OpCanvaContext_terminate(&Ctx);
 	Op_free(root);

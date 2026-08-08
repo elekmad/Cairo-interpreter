@@ -13,6 +13,7 @@
 #endif
 #include <cairo.h>
 #include <inttypes.h>
+#include <String.h>
 
 typedef enum canva_ctx_stroke_mode
 {
@@ -59,9 +60,9 @@ typedef struct {
 #ifndef NOSDL
     SDL_Texture *texture;
 #endif
-    char *output_file;
 
     CanvaCtxOutputMode output_mode;
+    String output_buffer;
 
     cairo_surface_t *surface;
     cairo_t *cr;

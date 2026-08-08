@@ -20,7 +20,6 @@ typedef struct op_canva_context
 	CanvaCtx *Canva;
 	int width;
 	int height;
-	char *output_name;
 	CanvaCtxOutputMode output_mode;
 }OpCanvaContext;
 

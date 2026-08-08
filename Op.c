@@ -125,23 +125,23 @@ int OpVariable_copy(OpVariable *self, OpVariable *other)
 void OpVariable_print(OpVariable *self)
 {
 	int cmpt;
-	printf("self %p name '%s' content :", self, self->name != NULL ? self->name : "null");
+	fprintf(stderr, "self %p name '%s' content :", self, self->name != NULL ? self->name : "null");
 	switch(self->type)
 	{
-	case NONE : 	printf("empty type");
+	case NONE : 	fprintf(stderr, "empty type");
 					break;
-	case DOUBLE : 	printf("%f", self->v);
+	case DOUBLE : 	fprintf(stderr, "%f", self->v);
 					break;
 	case DOUBLES :	for(cmpt = 0; cmpt < self->number_of_elements; cmpt++)
-						printf("%f, ", self->vs[cmpt]);
+						fprintf(stderr, "%f, ", self->vs[cmpt]);
 					break;
-	case STRING :	printf("'%s'", self->string);
+	case STRING :	fprintf(stderr, "'%s'", self->string);
 					break;
 	case STRINGS :	for(cmpt = 0; cmpt < self->number_of_elements; cmpt++)
-						printf("'%s', ", self->strings[cmpt]);
+						fprintf(stderr, "'%s', ", self->strings[cmpt]);
 					break;
 	}
-	printf("\n");
+	fprintf(stderr, "\n");
 }
 
 void OpVariable_to_string(OpVariable *self, String *s)
@@ -307,12 +307,58 @@ bool double_eq(double a, double b)
     return diff <= norm * 1e-12;
 }
 
+void OpMessage_init(OpMessage *self)
+{
+	String_init(&self->msg);
+}
+
+OpMessage *OpMessage_new(void)
+{
+	OpMessage *self = malloc(sizeof(OpMessage));
+	if(self != NULL)
+		OpMessage_init(self);
+	return self;
+}
+
+void OpMessage_terminate(OpMessage *self)
+{
+	String_finalize(&self->msg);
+}
+
+void OpMessage_set_params(OpMessage *self, SourcePos *pos, OpRunningState state, String *msg)
+{
+	memcpy(&self->pos, pos, sizeof(SourcePos));
+	self->state = state;
+	String_cpy(&self->msg, msg);
+}
+
+void OpMessage_append_to_string_xml(OpMessage *self, String *s)
+{
+	String_append_printf(s, "<msg><pos><first_line>%d</first_line><first_column>%d</first_column><last_line>%d</last_line><last_column>%d</last_column></pos><running-state>%d</running-state><text>%s</text></msg>",
+								self->pos.first_line,
+								self->pos.first_column,
+								self->pos.last_line,
+								self->pos.last_column,
+								self->state,
+								String_get_char_string(&self->msg));
+}
+
+void OpMessage_free(OpMessage *self)
+{
+	if(self != NULL)
+	{
+		OpMessage_terminate(self);
+		free(self);
+	}
+}
+
 void OpContext_init(OpContext *self)
 {
 	self->state = Init;
 	OpVariable_init(&self->current_value);
 	self->variables = NULL;
 	self->number_of_variables = 0;
+	LinkedList_init(&self->messages);
 }
 
 void OpContext_terminate(OpContext *self)
@@ -331,12 +377,42 @@ void OpContext_terminate(OpContext *self)
 			self->variables = NULL;
 		}
 	}
+	LinkedList_do_to_all(&self->messages, (void(*)(void*,void*))OpMessage_free, NULL);
+}
+
+void OpContext_export_messages_to_xml(OpContext *self, String *xml)
+{
+	String_append_char_string(xml, "<msgs>");
+	LinkedList_do_to_all(&self->messages, (void(*)(void*, void*))OpMessage_append_to_string_xml, xml);
+	String_append_char_string(xml, "</msgs>");
 }
 
 void OpContext_set_running_state(OpContext *self, Op *sender, OpRunningState state, const char *message)
 {
-	printf("Context %p setting state %d '%s' @%d:%d\n", self, state, message, sender->pos.first_line, sender->pos.first_column);
+	String s;
+	String_init(&s);
+	String_append_char_string(&s, message);
+	fprintf(stderr, "Context %p setting state %d '%s' @%d:%d\n", self, state, message, sender->pos.first_line, sender->pos.first_column);
 	self->state = state;
+	OpMessage *msg = OpMessage_new();
+	OpMessage_set_params(msg, &sender->pos, state, &s);
+	String_finalize(&s);
+
+	LinkedList_append(&self->messages, msg);
+}
+
+void OpContext_report_parse_error(OpContext *self, const char *message, SourcePos *Pos)
+{
+	String s;
+	String_init(&s);
+	String_append_char_string(&s, message);
+	fprintf(stderr, "Context %p parse error '%s' @%d:%d\n", self, message, Pos->first_line, Pos->first_column);
+	self->state = ParseError;
+	OpMessage *msg = OpMessage_new();
+	OpMessage_set_params(msg, Pos, ParseError, &s);
+	String_finalize(&s);
+
+	LinkedList_append(&self->messages, msg);
 }
 
 OpRunningState OpContext_get_running_state(OpContext *self)
@@ -449,7 +525,7 @@ int OpContext_set_variable_value_double(OpContext *self, size_t variable_number,
 		OpVariable_set_double(var, v);
 	}
 
-	printf("Setting variable '%s' number %zu = %f\n", OpVariable_get_name(var), variable_number, v);
+	fprintf(stderr, "Setting variable '%s' number %zu = %f\n", OpVariable_get_name(var), variable_number, v);
 	return 0;
 }
 
@@ -465,7 +541,7 @@ int OpContext_set_variable_value_string(OpContext *self, size_t variable_number,
 		OpVariable_set_string(var, v);
 	}
 
-	printf("Setting variable '%s' number %zu = %s\n", OpVariable_get_name(var), variable_number, v);
+	fprintf(stderr, "Setting variable '%s' number %zu = %s\n", OpVariable_get_name(var), variable_number, v);
 	return 0;
 }
 
@@ -476,11 +552,11 @@ int OpContext_copy_current_to_variable(OpContext *self, size_t var_num)
 		return -1;
 	var = self->variables[var_num];
 
-	printf("Copying Internal state to '%s'@%zu\n", OpVariable_get_name(var), var_num);
+	fprintf(stderr, "Copying Internal state to '%s'@%zu\n", OpVariable_get_name(var), var_num);
 	OpVariable_print(&self->current_value);
 	if(OpVariable_copy(var, &self->current_value) == -1)
 	{
-		printf("Error copy from Internal State to '%s'@%zu two different types\n", OpVariable_get_name(var), var_num);
+		fprintf(stderr, "Error copy from Internal State to '%s'@%zu two different types\n", OpVariable_get_name(var), var_num);
 		return -1;
 	}
 	OpVariable_print(var);
@@ -503,7 +579,7 @@ OpVariable *OpContext_get_variable(OpContext *self, size_t variable_number)
 	if(self->number_of_variables < variable_number + 1)
 		return NULL;
 	var = self->variables[variable_number];
-	printf("Getting variable '%s' number %zu\n", OpVariable_get_name(var), variable_number);
+	fprintf(stderr, "Getting variable '%s' number %zu\n", OpVariable_get_name(var), variable_number);
 	OpVariable_print(var);
 	return var;
 }
@@ -518,7 +594,7 @@ double OpContext_get_variable_value(OpContext *self, size_t variable_number)
 	if(OpVariable_get_type(var) != DOUBLE)
 		return NAN;
 	val = OpVariable_get_double(var);
-	printf("Getting variable '%s' number %zu = %f\n", OpVariable_get_name(var), variable_number, val);
+	fprintf(stderr, "Getting variable '%s' number %zu = %f\n", OpVariable_get_name(var), variable_number, val);
 	return val;
 }
 
@@ -617,7 +693,7 @@ int Op_prerun(Op *self, OpContext *ctx)
 	OpRunningState state = OpContext_get_running_state(ctx);
 	if(state != Init)
 	{
-		printf("Prerun Op %p Ctx %p failed : Ctx bad state : %d\n", self, ctx, state);
+		fprintf(stderr, "Prerun Op %p Ctx %p failed : Ctx bad state : %d\n", self, ctx, state);
 		return ret;
 	}
 	String m;
@@ -639,7 +715,7 @@ int Op_launch(Op *self, OpContext *ctx)
 	OpRunningState state = OpContext_get_running_state(ctx);
 	if(state != Ready)
 	{
-		printf("Launching Op %p Ctx %p failed : Ctx bad state : %d\n", self, ctx, state);
+		fprintf(stderr, "Launching Op %p Ctx %p failed : Ctx bad state : %d\n", self, ctx, state);
 		return ret;
 	}
 	String m;
@@ -819,13 +895,13 @@ int Op_execute(Op *self, OpContext *ctx)
 	if(self != NULL && ctx != NULL)
 	{
 		OpRunningState state = OpContext_get_running_state(ctx);
-		printf("Op %p : %s\n", self, self->isa->name);
+		fprintf(stderr, "Op %p : %s\n", self, self->isa->name);
 		if(state == Run)
 		{
 			if(self->isa->check_args != NULL)
 			{
 				ret = self->isa->check_args(self, ctx);
-				printf("Checking Args of %p %p : %d\n", self, ctx, ret);
+				fprintf(stderr, "Checking Args of %p %p : %d\n", self, ctx, ret);
 			}
 			if(ret == 0)
 				ret = self->isa->execute(self, ctx);
@@ -835,14 +911,14 @@ int Op_execute(Op *self, OpContext *ctx)
 			if(self->isa->check_args != NULL)
 			{
 				ret = self->isa->check_args(self, ctx);
-				printf("Checking Args of %p %p : %d\n", self, ctx, ret);
+				fprintf(stderr, "Checking Args of %p %p : %d\n", self, ctx, ret);
 			}
 			if(ret == 0)
 				ret = self->isa->execute(self, ctx);
 		}
 		else
-			printf("Op %p Not executed because Ctx state %d\n", self, state);
-		printf("Fin Op %p : %s\n", self, self->isa->name);
+			fprintf(stderr, "Op %p Not executed because Ctx state %d\n", self, state);
+		fprintf(stderr, "Fin Op %p : %s\n", self, self->isa->name);
 	}
 	return ret;
 }
@@ -907,44 +983,44 @@ Op *OpBloc_new(void)
 	return Op_new(&OpBloc_isa);
 }
 
-OpIsa OpMessage_isa = {
-		.name="Message",
-		.size=sizeof(OpMessage),
-		.init = (void(*)(Op*))OpMessage_init,
-		.terminate = (void(*)(Op*))OpMessage_terminate,
-		.fix_operandes = (int(*)(Op*, OpContext*))OpMessage_fix_operandes,
-		.execute = (int(*)(Op*, OpContext*))OpMessage_execute,
+OpIsa OpPrintMessage_isa = {
+		.name="PrintMessage",
+		.size=sizeof(OpPrintMessage),
+		.init = (void(*)(Op*))OpPrintMessage_init,
+		.terminate = (void(*)(Op*))OpPrintMessage_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpPrintMessage_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpPrintMessage_execute,
 		.check_args = NULL
 };
 
-void OpMessage_init(OpMessage *self)
+void OpPrintMessage_init(OpPrintMessage *self)
 {
 	Op_init(&self->super);
 	self->message = NULL;
 	self->value = NULL;
 }
 
-#define OPMESSAGE_VAUE 0
+#define OPPRINTMESSAGE_VAUE 0
 
-void OpMessage_set_value(OpMessage *self, Op *op)
+void OpPrintMessage_set_value(OpPrintMessage *self, Op *op)
 {
-	OP_ADD_OPERANDE(self, op, OPMESSAGE_VAUE);
+	OP_ADD_OPERANDE(self, op, OPPRINTMESSAGE_VAUE);
 }
 
-void _OpMessage_set_value(OpMessage *self, Op *op)
+void _OpPrintMessage_set_value(OpPrintMessage *self, Op *op)
 {
 	OP_SET_OPERANDE(self, value, op);
 }
 
-int OpMessage_fix_operandes(OpMessage *self, OpContext *ctx)
+int OpPrintMessage_fix_operandes(OpPrintMessage *self, OpContext *ctx)
 {
 	int ret = 0;
-	Op *v = ((Op*)self)->operandes[OPMESSAGE_VAUE];
-	_OpMessage_set_value(self, v);
+	Op *v = ((Op*)self)->operandes[OPPRINTMESSAGE_VAUE];
+	_OpPrintMessage_set_value(self, v);
 	return ret;
 }
 
-void OpMessage_set_message(OpMessage *self, const char *m)
+void OpPrintMessage_set_message(OpPrintMessage *self, const char *m)
 {
 	if(self->message != NULL)
 		free(self->message);
@@ -954,7 +1030,7 @@ void OpMessage_set_message(OpMessage *self, const char *m)
 		self->message = NULL;
 }
 
-int OpMessage_execute(OpMessage *self, OpContext *ctx)
+int OpPrintMessage_execute(OpPrintMessage *self, OpContext *ctx)
 {
 	int ret = 0;
 	OpVariable val;
@@ -970,7 +1046,8 @@ int OpMessage_execute(OpMessage *self, OpContext *ctx)
 			OpVariable_copy(&val, OpContext_get_current_value(ctx));
 			String_append_printf(&s, "Message '%s' : ", self->message);
 			OpVariable_to_string(&val, &s);
-			printf("%s\n", String_get_char_string(&s));
+			OpContext_set_running_state(ctx, (Op*)self, Run, String_get_char_string(&s));
+			fprintf(stderr, "%s\n", String_get_char_string(&s));
 		}
 		String_finalize(&s);
 		OpVariable_terminate(&val);
@@ -978,16 +1055,16 @@ int OpMessage_execute(OpMessage *self, OpContext *ctx)
 	return ret;
 }
 
-void OpMessage_terminate(OpMessage *self)
+void OpPrintMessage_terminate(OpPrintMessage *self)
 {
 	Op_terminate(&self->super);
-	_OpMessage_set_value(self, NULL);
-	OpMessage_set_message(self, NULL);
+	_OpPrintMessage_set_value(self, NULL);
+	OpPrintMessage_set_message(self, NULL);
 }
 
-Op *OpMessage_new(void)
+Op *OpPrintMessage_new(void)
 {
-	return Op_new(&OpMessage_isa);
+	return Op_new(&OpPrintMessage_isa);
 }
 
 
@@ -1188,31 +1265,31 @@ int OpIf_execute(OpIf *self, OpContext *ctx)
 {
 	int ret = 0;
 	double c = NAN;
-	printf("If %p Entered\n", self);
+	fprintf(stderr, "If %p Entered\n", self);
 
 	ret = Op_execute_get_double(self->condition, (Op*)self, ctx, &c);
 	if(ret == -1)
 	{
-		printf("Error during if condifion\n");
+		fprintf(stderr, "Error during if condifion\n");
 		return -1;
 
 	}
-	printf("If %p Condition = %f\n", self, c);
+	fprintf(stderr, "If %p Condition = %f\n", self, c);
 
 	if(c != 0)
 	{
-			printf("If %p Branch True\n", self);
+			fprintf(stderr, "If %p Branch True\n", self);
 			ret = Op_execute(self->true_branch, ctx);
 	}
 	else
 	{
 		if(self->false_branch != NULL)
 		{
-			printf("If %p Branch False\n", self);
+			fprintf(stderr, "If %p Branch False\n", self);
 			ret = Op_execute(self->false_branch, ctx);
 		}
 	}
-	printf("If %p Exited\n", self);
+	fprintf(stderr, "If %p Exited\n", self);
 	return ret;
 }
 
@@ -1293,22 +1370,22 @@ int OpWhile_execute(OpWhile *self, OpContext *ctx)
 {
 	int ret = 0;
 	double c = NAN;
-	printf("While %p Entered\n", self);
+	fprintf(stderr, "While %p Entered\n", self);
 	if(self->condition != NULL && self->bloc != NULL)
 	{
 		ret = Op_execute(self->condition, ctx);
 		c = OpContext_get_current_value_double(ctx);
-		printf("While %p Condition = %f\n", self, c);
+		fprintf(stderr, "While %p Condition = %f\n", self, c);
 		while(double_eq(c, 0.0) != 1)
 		{
-			printf("While %p Execute bloc\n", self);
+			fprintf(stderr, "While %p Execute bloc\n", self);
 			ret = Op_execute(self->bloc, ctx);
 			ret = Op_execute(self->condition, ctx);
 			c = OpContext_get_current_value_double(ctx);
-			printf("While %p Condition = %f\n", self, c);
+			fprintf(stderr, "While %p Condition = %f\n", self, c);
 		}
 	}
-	printf("While %p Exited\n", self);
+	fprintf(stderr, "While %p Exited\n", self);
 	return ret;
 }
 
@@ -1447,30 +1524,30 @@ int OpForLoop_execute(OpForLoop *self, OpContext *ctx)
 
 	bool stop = false;
 	double c = NAN, v;
-	printf("ForLoop %p Start\n", self);
+	fprintf(stderr, "ForLoop %p Start\n", self);
 	v = start;
-	printf("ForLoop %p start op : @%zu = %f\n", self, self->variable_number, v);
+	fprintf(stderr, "ForLoop %p start op : @%zu = %f\n", self, self->variable_number, v);
 	OpContext_set_variable_value_double(ctx, self->variable_number, v);
 	do
 	{
-		printf("ForLoop %p Condition\n", self);
+		fprintf(stderr, "ForLoop %p Condition\n", self);
 		c = condition;
 		v = OpContext_get_variable_value(ctx, self->variable_number);
-		printf("ForLoop %p condition op : @%zu = %f\n", self, self->variable_number, v);
+		fprintf(stderr, "ForLoop %p condition op : @%zu = %f\n", self, self->variable_number, v);
 		stop = double_eq(v, c) ? false : v > c ? true : false;
 		if(!stop)
 		{
-			printf("ForLoop %p Loop\n", self);
+			fprintf(stderr, "ForLoop %p Loop\n", self);
 			ret = Op_execute(self->loop, ctx);
-			printf("ForLoop %p End Loop\n", self);
-			printf("ForLoop %p Step\n", self);
+			fprintf(stderr, "ForLoop %p End Loop\n", self);
+			fprintf(stderr, "ForLoop %p Step\n", self);
 			v = v + step;
 			OpContext_set_variable_value_double(ctx, self->variable_number, v);
-			printf("ForLoop %p step op : @%zu = %f\n", self, self->variable_number, v);
+			fprintf(stderr, "ForLoop %p step op : @%zu = %f\n", self, self->variable_number, v);
 		}
 	}
 	while(!stop);
-	printf("ForLoop %p Stopped\n", self);
+	fprintf(stderr, "ForLoop %p Stopped\n", self);
 
 	return ret;
 }
@@ -1566,11 +1643,11 @@ int OpForEach_execute(OpForEach *self, OpContext *ctx)
 	ret = Op_execute(self->value, ctx);
 	if(ret != 0)
 	{
-		printf("ForEach Evaluation of value failed\n");
+		fprintf(stderr, "ForEach Evaluation of value failed\n");
 		return -1;
 	}
 
-	printf("ForEach %p Start\n", self);
+	fprintf(stderr, "ForEach %p Start\n", self);
 	OpVarType t = OpVariable_get_type(OpContext_get_current_value(ctx));
 	if(t == DOUBLES)
 	{
@@ -1586,7 +1663,7 @@ int OpForEach_execute(OpForEach *self, OpContext *ctx)
 			ret = Op_execute(self->loop, ctx);
 			if(ret != 0)
 			{
-				printf("Evaluation of ForEach Loop Failed\n");
+				fprintf(stderr, "Evaluation of ForEach Loop Failed\n");
 				break;
 			}
 		}
@@ -1607,7 +1684,7 @@ int OpForEach_execute(OpForEach *self, OpContext *ctx)
 			ret = Op_execute(self->loop, ctx);
 			if(ret != 0)
 			{
-				printf("Evaluation of ForEach Loop Failed\n");
+				fprintf(stderr, "Evaluation of ForEach Loop Failed\n");
 				break;
 			}
 		}
@@ -1617,11 +1694,11 @@ int OpForEach_execute(OpForEach *self, OpContext *ctx)
 	else
 	{
 		OpContext_set_running_state(ctx, (Op*)self, Error, "Value gave in ForEach is not an array");
-		printf("ForEach %p Stopped\n", self);
+		fprintf(stderr, "ForEach %p Stopped\n", self);
 		return -1;
 	}
 
-	printf("ForEach %p Stopped\n", self);
+	fprintf(stderr, "ForEach %p Stopped\n", self);
 
 	return ret;
 }
@@ -1797,7 +1874,7 @@ int OpGetVariable_execute(OpGetVariable *self, OpContext *ctx)
 {
 	int ret = 0;
 	OpVariable *var = OpContext_get_variable(ctx, self->variable_number);
-	printf("OP %p Getting variable number %zu\n", self, self->variable_number);
+	fprintf(stderr, "OP %p Getting variable number %zu\n", self, self->variable_number);
 	OpContext_copy_variable_to_current_value(ctx, var);
 	OpVariable_print(OpContext_get_current_value(ctx));
 	return ret;
@@ -1970,11 +2047,11 @@ int Op2_execute(Op2 *self, OpContext *ctx)
 			ret = ((OpIsaTwoOp*)((Op*)self)->isa)->compute(&res, &v1, &v2);
 			if(ret == 0)
 			{
-				printf("Op %p 2 operandes '%s'\n", self, ((Op*)self)->isa->name);
+				fprintf(stderr, "Op %p 2 operandes '%s'\n", self, ((Op*)self)->isa->name);
 				OpVariable_print(&v1);
-				printf("With\n");
+				fprintf(stderr, "With\n");
 				OpVariable_print(&v2);
-				printf("Give\n");
+				fprintf(stderr, "Give\n");
 				OpVariable_print(&res);
 				OpVariable_copy(OpContext_get_current_value(ctx), &res);
 			}
@@ -3110,9 +3187,9 @@ int Op1_execute(Op1 *self, OpContext *ctx)
 			ret = ((OpIsaOneOp*)((Op*)self)->isa)->compute(&res, &v);
 			if(ret == 0)
 			{
-				printf("Op %p 1 operandes '%s'\n", self, ((Op*)self)->isa->name);
+				fprintf(stderr, "Op %p 1 operandes '%s'\n", self, ((Op*)self)->isa->name);
 				OpVariable_print(&v);
-				printf("Give\n");
+				fprintf(stderr, "Give\n");
 				OpVariable_print(&res);
 				OpVariable_copy(OpContext_get_current_value(ctx), &res);
 			}
@@ -3154,11 +3231,15 @@ int compute_radians(OpVariable *res, OpVariable *v)
 	case DOUBLE :	OpVariable_set_double(res, OpVariable_get_double(v) * M_PI / 180);
 					return 0;
 					break;
-	case DOUBLES :	size_t cmpt, nb = OpVariable_get_number_elements(v);
-					double *d = OpVariable_get_doubles(v);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-						OpVariable_append_double(res, d[cmpt] * M_PI / 180);
-					return 0;
+	case DOUBLES :
+					{
+						size_t cmpt, nb = OpVariable_get_number_elements(v);
+
+						double *d = OpVariable_get_doubles(v);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, d[cmpt] * M_PI / 180);
+						return 0;
+					}
 					break;
 	}
 	return 0;
@@ -3203,11 +3284,14 @@ int compute_degrees(OpVariable *res, OpVariable *v)
 	case DOUBLE :	OpVariable_set_double(res, OpVariable_get_double(v) * 180 / M_PI);
 					return 0;
 					break;
-	case DOUBLES :	size_t cmpt, nb = OpVariable_get_number_elements(v);
-					double *d = OpVariable_get_doubles(v);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-						OpVariable_append_double(res, d[cmpt] * 180 / M_PI);
-					return 0;
+	case DOUBLES :	{
+						size_t cmpt, nb = OpVariable_get_number_elements(v);
+
+						double *d = OpVariable_get_doubles(v);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, d[cmpt] * 180 / M_PI);
+						return 0;
+					}
 					break;
 	}
 	return 0;
@@ -3252,11 +3336,14 @@ int compute_neg(OpVariable *res, OpVariable *v)
 	case DOUBLE :	OpVariable_set_double(res, OpVariable_get_double(v) * -1);
 					return 0;
 					break;
-	case DOUBLES :	size_t cmpt, nb = OpVariable_get_number_elements(v);
-					double *d = OpVariable_get_doubles(v);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-						OpVariable_append_double(res, d[cmpt] * -1);
-					return 0;
+	case DOUBLES :	{
+						size_t cmpt, nb = OpVariable_get_number_elements(v);
+
+						double *d = OpVariable_get_doubles(v);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, d[cmpt] * -1);
+						return 0;
+					}
 					break;
 	}
 	return 0;
@@ -3301,11 +3388,13 @@ int compute_logical_neg(OpVariable *res, OpVariable *v)
 	case DOUBLE :	OpVariable_set_double(res, double_eq(OpVariable_get_double(v), 0) ? 1.0 : 0.0);
 					return 0;
 					break;
-	case DOUBLES :	size_t cmpt, nb = OpVariable_get_number_elements(v);
-					double *d = OpVariable_get_doubles(v);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-						OpVariable_append_double(res, double_eq(d[cmpt], 0) ? 1.0 : 0.0);
-					return 0;
+	case DOUBLES :	{
+						size_t cmpt, nb = OpVariable_get_number_elements(v);
+						double *d = OpVariable_get_doubles(v);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, double_eq(d[cmpt], 0) ? 1.0 : 0.0);
+						return 0;
+					}
 					break;
 	}
 	return 0;
@@ -3350,11 +3439,14 @@ int compute_floor(OpVariable *res, OpVariable *v)
 	case DOUBLE :	OpVariable_set_double(res, floor(OpVariable_get_double(v)));
 					return 0;
 					break;
-	case DOUBLES :	size_t cmpt, nb = OpVariable_get_number_elements(v);
-					double *d = OpVariable_get_doubles(v);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-						OpVariable_append_double(res, floor(d[cmpt]));
-					return 0;
+	case DOUBLES :	{
+						size_t cmpt, nb = OpVariable_get_number_elements(v);
+
+						double *d = OpVariable_get_doubles(v);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, floor(d[cmpt]));
+						return 0;
+					}
 					break;
 	}
 	return 0;
@@ -3399,11 +3491,14 @@ int compute_ceil(OpVariable *res, OpVariable *v)
 	case DOUBLE :	OpVariable_set_double(res, ceil(OpVariable_get_double(v)));
 					return 0;
 					break;
-	case DOUBLES :	size_t cmpt, nb = OpVariable_get_number_elements(v);
-					double *d = OpVariable_get_doubles(v);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-						OpVariable_append_double(res, ceil(d[cmpt]));
-					return 0;
+	case DOUBLES :	{
+						size_t cmpt, nb = OpVariable_get_number_elements(v);
+
+						double *d = OpVariable_get_doubles(v);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, ceil(d[cmpt]));
+						return 0;
+					}
 					break;
 	}
 	return 0;
@@ -3448,11 +3543,14 @@ int compute_cos(OpVariable *res, OpVariable *v)
 	case DOUBLE :	OpVariable_set_double(res, cos(OpVariable_get_double(v)));
 					return 0;
 					break;
-	case DOUBLES :	size_t cmpt, nb = OpVariable_get_number_elements(v);
-					double *d = OpVariable_get_doubles(v);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-						OpVariable_append_double(res, cos(d[cmpt]));
-					return 0;
+	case DOUBLES :	{
+						size_t cmpt, nb = OpVariable_get_number_elements(v);
+
+						double *d = OpVariable_get_doubles(v);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, cos(d[cmpt]));
+						return 0;
+					}
 					break;
 	}
 	return 0;
@@ -3497,11 +3595,14 @@ int compute_acos(OpVariable *res, OpVariable *v)
 	case DOUBLE :	OpVariable_set_double(res, acos(OpVariable_get_double(v)));
 					return 0;
 					break;
-	case DOUBLES :	size_t cmpt, nb = OpVariable_get_number_elements(v);
-					double *d = OpVariable_get_doubles(v);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-						OpVariable_append_double(res, acos(d[cmpt]));
-					return 0;
+	case DOUBLES :	{
+						size_t cmpt, nb = OpVariable_get_number_elements(v);
+
+						double *d = OpVariable_get_doubles(v);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, acos(d[cmpt]));
+						return 0;
+					}
 					break;
 	}
 	return 0;
@@ -3546,11 +3647,14 @@ int compute_sin(OpVariable *res, OpVariable *v)
 	case DOUBLE :	OpVariable_set_double(res, sin(OpVariable_get_double(v)));
 					return 0;
 					break;
-	case DOUBLES :	size_t cmpt, nb = OpVariable_get_number_elements(v);
-					double *d = OpVariable_get_doubles(v);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-						OpVariable_append_double(res, sin(d[cmpt]));
-					return 0;
+	case DOUBLES :	{
+						size_t cmpt, nb = OpVariable_get_number_elements(v);
+
+						double *d = OpVariable_get_doubles(v);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, sin(d[cmpt]));
+						return 0;
+					}
 					break;
 	}
 	return 0;
@@ -3595,11 +3699,14 @@ int compute_asin(OpVariable *res, OpVariable *v)
 	case DOUBLE :	OpVariable_set_double(res, asin(OpVariable_get_double(v)));
 					return 0;
 					break;
-	case DOUBLES :	size_t cmpt, nb = OpVariable_get_number_elements(v);
-					double *d = OpVariable_get_doubles(v);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-						OpVariable_append_double(res, asin(d[cmpt]));
-					return 0;
+	case DOUBLES :	{
+						size_t cmpt, nb = OpVariable_get_number_elements(v);
+
+						double *d = OpVariable_get_doubles(v);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, asin(d[cmpt]));
+						return 0;
+					}
 					break;
 	}
 	return 0;
@@ -3644,11 +3751,14 @@ int compute_tan(OpVariable *res, OpVariable *v)
 	case DOUBLE :	OpVariable_set_double(res, tan(OpVariable_get_double(v)));
 					return 0;
 					break;
-	case DOUBLES :	size_t cmpt, nb = OpVariable_get_number_elements(v);
-					double *d = OpVariable_get_doubles(v);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-						OpVariable_append_double(res, tan(d[cmpt]));
-					return 0;
+	case DOUBLES :	{
+						size_t cmpt, nb = OpVariable_get_number_elements(v);
+
+						double *d = OpVariable_get_doubles(v);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, tan(d[cmpt]));
+						return 0;
+					}
 					break;
 	}
 	return 0;
@@ -3693,11 +3803,14 @@ int compute_atan(OpVariable *res, OpVariable *v)
 	case DOUBLE :	OpVariable_set_double(res, atan(OpVariable_get_double(v)));
 					return 0;
 					break;
-	case DOUBLES :	size_t cmpt, nb = OpVariable_get_number_elements(v);
-					double *d = OpVariable_get_doubles(v);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-						OpVariable_append_double(res, atan(d[cmpt]));
-					return 0;
+	case DOUBLES :	{
+						size_t cmpt, nb = OpVariable_get_number_elements(v);
+
+						double *d = OpVariable_get_doubles(v);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, atan(d[cmpt]));
+						return 0;
+					}
 					break;
 	}
 	return 0;
@@ -3742,11 +3855,14 @@ int compute_sqrt(OpVariable *res, OpVariable *v)
 	case DOUBLE :	OpVariable_set_double(res, sqrt(OpVariable_get_double(v)));
 					return 0;
 					break;
-	case DOUBLES :	size_t cmpt, nb = OpVariable_get_number_elements(v);
-					double *d = OpVariable_get_doubles(v);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-						OpVariable_append_double(res, sqrt(d[cmpt]));
-					return 0;
+	case DOUBLES :	{
+						size_t cmpt, nb = OpVariable_get_number_elements(v);
+
+						double *d = OpVariable_get_doubles(v);
+						for(cmpt = 0; cmpt < nb; cmpt++)
+							OpVariable_append_double(res, sqrt(d[cmpt]));
+						return 0;
+					}
 					break;
 	}
 	return 0;

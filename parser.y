@@ -1,4 +1,4 @@
-%locations
+// %locations
 %define parse.error verbose
 // %define parse.trace
 %locations
@@ -12,13 +12,9 @@
 #include <OpCanva.h>
 
 extern int yylex();
-void yyerror(Op **root, OpContext *Ctx, const char *s)
-{
-	if(root != NULL && *root != NULL)
-		printf("Problem during parsing %s %p : %s\n", Op_get_name(*root), *root, s);
-	else
-		printf("Problem during parsing with NULL op : %s\n", s);
-}
+
+void yyerror(Op **root, OpContext *Ctx, const char *s);
+
 
 Op *root;
 
@@ -180,19 +176,17 @@ statement:
       	Op_set_for_prerunning($$);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
-      	| SETPNGOUTPUT '(' TEXTCONTENT ')' ';'
+      	| SETPNGOUTPUT '(' ')' ';'
       {
 		OpSetOutputPNG *op = (OpSetOutputPNG *)OpSetOutputPNG_new();
       	$$ = (Op*)op;
-		OpSetOutputPNG_set_filename(op, $3);
       	Op_set_for_prerunning($$);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
-      	| SETSVGOUTPUT '(' TEXTCONTENT ')' ';'
+      	| SETSVGOUTPUT '(' ')' ';'
       {
 		OpSetOutputSVG *op = (OpSetOutputSVG *)OpSetOutputSVG_new();
       	$$ = (Op*)op;
-		OpSetOutputSVG_set_filename(op, $3);
       	Op_set_for_prerunning($$);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
@@ -510,18 +504,18 @@ statement:
 	  }
       	| MESSAGE '(' TEXTCONTENT ',' expression ')' ';'
       {
-		OpMessage *op = (OpMessage*)OpMessage_new();
+		OpPrintMessage *op = (OpPrintMessage*)OpPrintMessage_new();
       	$$ = (Op*)op;
-		OpMessage_set_message(op, $3);
-		OpMessage_set_value(op, $5);
+		OpPrintMessage_set_message(op, $3);
+		OpPrintMessage_set_value(op, $5);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
       	| PREMESSAGE '(' TEXTCONTENT ',' expression ')' ';'
       {
-		OpMessage *op = (OpMessage*)OpMessage_new();
+		OpPrintMessage *op = (OpPrintMessage*)OpPrintMessage_new();
       	$$ = (Op*)op;
-		OpMessage_set_message(op, $3);
-		OpMessage_set_value(op, $5);
+		OpPrintMessage_set_message(op, $3);
+		OpPrintMessage_set_value(op, $5);
       	Op_set_for_prerunning($$);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
@@ -980,3 +974,21 @@ expression:
 ;
 
 %%
+
+void yyerror(Op **root, OpContext *Ctx, const char *s)
+{
+	if(Ctx != NULL)
+	{
+		SourcePos Pos = {
+						.first_line = yylloc.first_line,
+						.first_column = yylloc.first_column,
+						.last_line = yylloc.last_line,
+						.last_column = yylloc.last_column
+						};
+		OpContext_report_parse_error(Ctx, s, &Pos);
+	}
+	if(root != NULL && *root != NULL)
+		fprintf(stderr, "Problem during parsing %s %p : %s @%d:%d\n", Op_get_name(*root), *root, s, yylloc.first_line, yylloc.first_column);
+	else
+		fprintf(stderr, "Problem during parsing with NULL op : %s\n", s);
+}

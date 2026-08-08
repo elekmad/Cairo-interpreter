@@ -23,7 +23,6 @@ void OpCanvaContext_init(OpCanvaContext *self)
 #else
 	self->output_mode = SVG;
 #endif
-	self->output_name = NULL;
 }
 
 void OpCanvaContext_set_Canva(OpCanvaContext *self, CanvaCtx *c)
@@ -51,16 +50,14 @@ void OpCanvaContext_set_height(OpCanvaContext *self, int height)
 	self->height = height;
 }
 
-void OpCanvaContext_set_output_png(OpCanvaContext *self, const char *name)
+void OpCanvaContext_set_output_png(OpCanvaContext *self)
 {
 	self->output_mode = PNG;
-	self->output_name = strdup(name);
 }
 
-void OpCanvaContext_set_output_svg(OpCanvaContext *self, const char *name)
+void OpCanvaContext_set_output_svg(OpCanvaContext *self)
 {
 	self->output_mode = SVG;
-	self->output_name = strdup(name);
 }
 
 CanvaCtxOutputMode OpCanvaContext_get_output_mode(OpCanvaContext *self)
@@ -68,16 +65,18 @@ CanvaCtxOutputMode OpCanvaContext_get_output_mode(OpCanvaContext *self)
 	return self->output_mode;
 }
 
-const char *OpCanvaContext_get_output_name(OpCanvaContext *self)
+void OpCanvaContext_export_messages_to_xml(OpCanvaContext *self, String *xml, bool with_output)
 {
-	return self->output_name;
+	String_append_char_string(xml, "<xml>");
+	if(with_output && self->Canva != NULL)
+		CanvaCtx_export_to_xml(self->Canva, xml);
+	OpContext_export_messages_to_xml(&self->super, xml);
+	String_append_char_string(xml, "</xml>");
 }
 
 void OpCanvaContext_terminate(OpCanvaContext *self)
 {
 	OpContext_terminate(&self->super);
-	if(self->output_name != NULL)
-		free(self->output_name);
 }
 
 OpIsa OpCircle_isa = {
@@ -153,7 +152,7 @@ int OpCircle_execute(OpCircle *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		printf("Op Draw Circle %f %f %f %f %f\n", x, y, r, a1, a2);
+		fprintf(stderr, "Op Draw Circle %f %f %f %f %f\n", x, y, r, a1, a2);
 		CanvaCtx_draw_arc(canvactx->Canva, x, y, r, a1, a2);
 	}
 	return ret;
@@ -334,7 +333,7 @@ int OpRectangle_execute(OpRectangle *self, OpCanvaContext *canvactx)
 	}
 	if(ret == 0)
 	{
-		printf("Op Draw Rectangle %f %f %f %f\n", x, y, w, h);
+		fprintf(stderr, "Op Draw Rectangle %f %f %f %f\n", x, y, w, h);
 		CanvaCtx_draw_rectangle(canvactx->Canva, x, y, w, h);
 	}
 	return ret;
@@ -503,7 +502,7 @@ int OpColor_execute(OpColor *self, OpCanvaContext *canvactx)
 	}
 	if(ret == 0)
 	{
-		printf("Op Set Color %f %f %f %f\n", r, g, b, a);
+		fprintf(stderr, "Op Set Color %f %f %f %f\n", r, g, b, a);
 		CanvaCtx_set_color(canvactx->Canva, r, g, b, a);
 	}
 	return ret;
@@ -678,7 +677,7 @@ int OpSetBGColor_execute(OpSetBGColor *self, OpCanvaContext *canvactx)
 		int w, h;
 		w = OpCanvaContext_get_width(canvactx);
 		h = OpCanvaContext_get_height(canvactx);
-		printf("Op Set BG Color %f %f %f %f\n", r, g, b, a);
+		fprintf(stderr, "Op Set BG Color %f %f %f %f\n", r, g, b, a);
 		CanvaCtx_set_color(canvactx->Canva, r, g, b, a);
 		CanvaCtx_draw_rectangle(canvactx->Canva, 0, 0, w, h);
 		CanvaCtx_fill(canvactx->Canva);
@@ -922,7 +921,7 @@ int OpSetOutputSize_execute(OpSetOutputSize *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		printf("Op Set Output Size Width Height %f %f\n", w, h);
+		fprintf(stderr, "Op Set Output Size Width Height %f %f\n", w, h);
 		OpCanvaContext_set_width(canvactx, (int)w);
 		OpCanvaContext_set_height(canvactx, (int)h);
 	}
@@ -996,7 +995,7 @@ int OpSetLineWidth_execute(OpSetLineWidth *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		printf("Op Set Line Width %f\n", w);
+		fprintf(stderr, "Op Set Line Width %f\n", w);
 		CanvaCtx_set_line_width(canvactx->Canva, w);
 	}
 	return ret;
@@ -1033,7 +1032,7 @@ int OpGetLineWidth_execute(OpGetLineWidth *self, OpCanvaContext *canvactx)
 	int ret = 0;
 	OpContext *ctx = (OpContext*)canvactx;
 	double w  = CanvaCtx_get_line_width(canvactx->Canva);
-	printf("Op Get Line Width : %f\n", w);
+	fprintf(stderr, "Op Get Line Width : %f\n", w);
 
 	OpContext_set_current_value_double(ctx, w);
 	return ret;
@@ -1106,7 +1105,7 @@ int OpRotate_execute(OpRotate *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		printf("Op Rotate %f\n", a);
+		fprintf(stderr, "Op Rotate %f\n", a);
 		CanvaCtx_rotate(canvactx->Canva, a);
 	}
 	return ret;
@@ -1237,7 +1236,7 @@ int OpTranslate_execute(OpTranslate *self, OpCanvaContext *canvactx)
 	}
 	if(ret == 0)
 	{
-		printf("Op Translate %f %f\n", x, y);
+		fprintf(stderr, "Op Translate %f %f\n", x, y);
 		CanvaCtx_translate(canvactx->Canva, x, y);
 	}
 	return ret;
@@ -1367,7 +1366,7 @@ int OpMoveTo_execute(OpMoveTo *self, OpCanvaContext *canvactx)
 	}
 	if(ret == 0)
 	{
-		printf("Op Move To %f %f\n", x, y);
+		fprintf(stderr, "Op Move To %f %f\n", x, y);
 		CanvaCtx_move_to(canvactx->Canva, x, y);
 	}
 	return ret;
@@ -1498,7 +1497,7 @@ int OpDrawLineTo_execute(OpDrawLineTo *self, OpCanvaContext *canvactx)
 	}
 	if(ret == 0)
 	{
-		printf("Op Draw Line To %f %f\n", x, y);
+		fprintf(stderr, "Op Draw Line To %f %f\n", x, y);
 		CanvaCtx_draw_line_to(canvactx->Canva, x, y);
 	}
 	return ret;
@@ -1602,7 +1601,7 @@ void OpCanvaBloc_set_auto_stroke(OpCanvaBloc *self)
 int OpCanvaBloc_execute(OpCanvaBloc *self, OpCanvaContext *ctx)
 {
 	int ret = 0;
-	printf("Canva %p Save\n", ctx->Canva);
+	fprintf(stderr, "Canva %p Save\n", ctx->Canva);
 	CanvaCtx_save(ctx->Canva);
 	ret = OpBloc_execute(&self->super, (OpContext*)ctx);
 	if(ret == 0)
@@ -1610,7 +1609,7 @@ int OpCanvaBloc_execute(OpCanvaBloc *self, OpCanvaContext *ctx)
 		if(self->auto_stroke == true)
 			CanvaCtx_auto_stroke(ctx->Canva);
 	}
-	printf("Canva %p Restore\n", ctx->Canva);
+	fprintf(stderr, "Canva %p Restore\n", ctx->Canva);
 	CanvaCtx_restore(ctx->Canva);
 	return ret;
 }
@@ -1838,7 +1837,7 @@ int OpSetFontSize_execute(OpSetFontSize *self, OpCanvaContext *canvactx)
 	if(ret == 0)
 	{
 		CanvaCtx_set_font_size(canvactx->Canva, s);
-		printf("Op Set Font Size %f\n", s);
+		fprintf(stderr, "Op Set Font Size %f\n", s);
 	}
 	return ret;
 }
@@ -1930,7 +1929,7 @@ int OpGetTextExtents_execute(OpGetTextExtents *self, OpCanvaContext *canvactx)
 			String s;
 			String_init(&s);
 			OpVariable_to_string(&v, &s);
-			printf("Get Text Extents : %s\n", String_get_char_string(&s));
+			fprintf(stderr, "Get Text Extents : %s\n", String_get_char_string(&s));
 			String_finalize(&s);
 			OpVariable_terminate(&v);
 	}
@@ -1980,7 +1979,7 @@ int OpGetFontExtents_execute(OpGetFontExtents *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	printf("Get Font Extents : %s\n", String_get_char_string(&s));
+	fprintf(stderr, "Get Font Extents : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -2028,7 +2027,7 @@ int OpGetOutputSize_execute(OpGetOutputSize *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	printf("Get Output Size : %s\n", String_get_char_string(&s));
+	fprintf(stderr, "Get Output Size : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -2074,7 +2073,7 @@ int OpGetRedColor_execute(OpGetRedColor *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	printf("Get Output Size : %s\n", String_get_char_string(&s));
+	fprintf(stderr, "Get Output Size : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -2119,7 +2118,7 @@ int OpGetGreenColor_execute(OpGetGreenColor *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	printf("Get Output Size : %s\n", String_get_char_string(&s));
+	fprintf(stderr, "Get Output Size : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -2164,7 +2163,7 @@ int OpGetBlueColor_execute(OpGetBlueColor *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	printf("Get Output Size : %s\n", String_get_char_string(&s));
+	fprintf(stderr, "Get Output Size : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -2209,7 +2208,7 @@ int OpGetBlackColor_execute(OpGetBlackColor *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	printf("Get Output Size : %s\n", String_get_char_string(&s));
+	fprintf(stderr, "Get Output Size : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -2254,7 +2253,7 @@ int OpGetWhiteColor_execute(OpGetWhiteColor *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	printf("Get Output Size : %s\n", String_get_char_string(&s));
+	fprintf(stderr, "Get Output Size : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -2281,11 +2280,6 @@ void OpSetOutputPNG_init(OpSetOutputPNG *self)
 	Op_init(&self->super);
 }
 
-void OpSetOutputPNG_set_filename(OpSetOutputPNG *self, const char *name)
-{
-	self->filename = strdup(name);
-}
-
 void OpSetOutputPNG_terminate(OpSetOutputPNG *self)
 {
 	Op_terminate(&self->super);
@@ -2293,7 +2287,7 @@ void OpSetOutputPNG_terminate(OpSetOutputPNG *self)
 
 int OpSetOutputPNG_execute(OpSetOutputPNG *self, OpCanvaContext *ctx)
 {
-	OpCanvaContext_set_output_png(ctx, self->filename);
+	OpCanvaContext_set_output_png(ctx);
 	return 0;
 }
 
@@ -2317,11 +2311,6 @@ void OpSetOutputSVG_init(OpSetOutputSVG *self)
 	Op_init(&self->super);
 }
 
-void OpSetOutputSVG_set_filename(OpSetOutputSVG *self, const char *name)
-{
-	self->filename = strdup(name);
-}
-
 void OpSetOutputSVG_terminate(OpSetOutputSVG *self)
 {
 	Op_terminate(&self->super);
@@ -2329,7 +2318,7 @@ void OpSetOutputSVG_terminate(OpSetOutputSVG *self)
 
 int OpSetOutputSVG_execute(OpSetOutputSVG *self, OpCanvaContext *ctx)
 {
-	OpCanvaContext_set_output_svg(ctx, self->filename);
+	OpCanvaContext_set_output_svg(ctx);
 	return 0;
 }
 

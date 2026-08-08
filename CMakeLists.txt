@@ -36,7 +36,7 @@ BISON_TARGET(
     Parser
     parser.y
     ${CMAKE_CURRENT_SOURCE_DIR}/parser.tab.c
-    COMPILE_FLAGS "-Wcounterexamples"
+    #COMPILE_FLAGS "-Wcounterexamples"
 )
 
 FLEX_TARGET(
@@ -59,6 +59,11 @@ add_executable(CairoTest
 
 #target_link_libraries(CairoTest PRIVATE fl)
 target_link_libraries(CairoTest PRIVATE m)
+find_library(B64_LIBRARY
+    NAMES libb64.a
+)
+
+target_link_libraries(CairoTest PRIVATE ${B64_LIBRARY})
 
 find_package(Python3 REQUIRED)
 
@@ -107,6 +112,10 @@ set(WITHSDL 1)
 if( NOSDL )
 	set(WITHSDL 0)
 	add_definitions(-DNOSDL)
+endif()
+
+if( CGIMODE )
+	add_definitions(-DCGIMODE)
 endif()
 
 if( WITHSDL)

@@ -1,5 +1,5 @@
 #setoutputsize(640,480);
-#setsvgoutput("test_for4.svg");
+#setsvgoutput();
 
 size=getoutputsize();
 color(255, 255, 255, 255)rectangle(0, 0, size[0], size[1]);
