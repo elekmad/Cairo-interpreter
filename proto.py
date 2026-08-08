@@ -18,8 +18,8 @@ for entry in db:
     if os.path.basename(src) == "parser.tab.c":
         continue
 
-    if "build/" in os.path.dirname(src):
-        continue
+#    if "build/" in os.path.dirname(src):
+#        continue
 
     if not src.endswith(".c"):
         continue
