@@ -1,9 +1,26 @@
 Interpeteur au dessus de la lib cairo.
 
-Nécessite la lib cairo dev, la lib sdl2 dev si compilé avec sdl2, ainsi que flex et bison.
+Nécessite la lib cairo dev, la lib sdl2 dev si compilé avec sdl2, ainsi que flex et bison, et b64 pour le png via serveur
+
+Option NOSDL : désative la prise en charge de SDL2 pour la sortie graphique. Fonctionne alors 100% bash, utile poru le CGI.
+
+option CGIMODE : active en plus la sortie totale xml avec les headers pour le serveur et prise en compte du CONTENT_LENGTH pour l'entrée.
 
 Pour compiler :
 mkdir build
 cd build
-cmake ../ -DCMAKE_VERBOSE_MAKEFILE=false  -DCMAKE_RELEASE_MODE=Debug  -DBUILD_UNITTESTS=true -DUPDISTANT=true -DNOSDL=false
+cmake ../ -DCMAKE_VERBOSE_MAKEFILE=false  -DCMAKE_RELEASE_MODE=Debug  -DBUILD_UNITTESTS=true -DUPDISTANT=true -DNOSDL=false -DCGIMODE=false
 make
+
+Tester mode bash :
+
+Avec SDL2
+./CairoTest < fichier
+
+Sans SDL2
+./CairoTest < fichier > output
+
+Tester mode serveur :
+
+export CONTENT_LENGTH=$(wc -c fichier);
+./CairoTest < fichier
