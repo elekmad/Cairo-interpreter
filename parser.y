@@ -125,11 +125,13 @@ program:
           Op_set_for_prerunning(*root);//Must be done before append because is recursive
           $$ = (Op*)op;
           OpBloc_append_Op(op, $1);
+      		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 		}
       | program statement
         {
         	$$ = $1;
           OpBloc_append_Op((OpBloc*)$$, $2);
+      		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 ;
 
@@ -139,12 +141,14 @@ block:
 			OpBloc *op = (OpBloc*)OpBloc_new();
           $$ = (Op*)op;	
           OpBloc_append_Op(op, $2);	
+      		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 		}
 		| statement
 		{
 			OpBloc *op = (OpBloc*)OpBloc_new();
           $$ = (Op*)op;
           OpBloc_append_Op(op, $1);	
+      		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 		}
 ;
 
@@ -169,6 +173,7 @@ statement:
       		OpSetVariable_set_variable_number(op, var_num);
       		OpSetVariable_set_value(op, (Op*)$3);
       		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      		free($1);
       }
       	| SETOUTPUTSIZE '(' expression ',' expression ')' ';'
       {
@@ -222,6 +227,7 @@ statement:
     	OpForLoop_set_loop(op, $13);
     	OpForLoop_set_variable_number(op, var_num);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		free($3);
     }
     | FORLOOP '(' IDENTIFIER '=' '[' expression ':' expression ']' ')' block
     {
@@ -233,6 +239,7 @@ statement:
     	OpForLoop_set_loop(op, $11);
     	OpForLoop_set_variable_number(op, var_num);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		free($3);
     }
     | FOREACH '(' IDENTIFIER IN expression ')' block
     {
@@ -243,6 +250,7 @@ statement:
     	OpForEach_set_loop(op, $7);
     	OpForEach_set_variable_number(op, var_num);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		free($3);
     }
     | WHILETRUE '(' expression ')' block
     {
@@ -699,6 +707,7 @@ expression:
       	OpGetValue *op = (OpGetValue*)OpGetValue_new();
       	$$ = (Op*)op;
       	OpGetValue_set_value_string(op, $1);
+      	free($1);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       	| TEXTEXTENTS '(' expression ')'
@@ -846,6 +855,7 @@ expression:
       	$$ = (Op*)op;
       	OpGetVariable_set_variable_number(op, var_num);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		free($1);
       }
 
     | IDENTIFIER '[' expression ']'
@@ -860,6 +870,7 @@ expression:
       	
       	Op2_set_operande1(op, (Op*)opg);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		free($1);
       }
 
     | expression EQ expression

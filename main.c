@@ -287,6 +287,10 @@ int main( int argc, char *argv[ ] )
     }
     yy_delete_buffer(state);
 
+#ifndef CGIMODE
+    String_finalize(&buffer);
+#endif
+
     OpCanvaContext_terminate(&Ctx);
 	Op_free(root);
 

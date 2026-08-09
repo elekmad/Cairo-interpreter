@@ -400,6 +400,7 @@ void OpContext_terminate(OpContext *self)
 		}
 	}
 	LinkedList_do_to_all(&self->messages, (void(*)(void*,void*))OpMessage_free, NULL);
+	LinkedList_finalize(&self->messages);
 }
 
 void OpContext_export_messages_to_xml(OpContext *self, String *xml)
@@ -625,6 +626,10 @@ void Op_init(Op *self)
 	self->for_prerunning = false;
 	self->operandes = NULL;
 	self->nb_ops = 0;
+	self->pos.first_line = 0;
+	self->pos.first_column = 0;
+	self->pos.last_line = 0;
+	self->pos.last_column = 0;
 }
 
 void Op_set_nb_ops(Op *self, size_t nb)
@@ -671,6 +676,8 @@ const char *Op_get_name(Op *self)
 
 void Op_terminate(Op *self)
 {
+	if(self->operandes != NULL)
+		free(self->operandes);
 }
 
 Op *Op_new(OpIsa *isa)
