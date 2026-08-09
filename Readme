@@ -11,6 +11,7 @@ mkdir build
 cd build
 cmake ../ -DCMAKE_VERBOSE_MAKEFILE=false  -DCMAKE_RELEASE_MODE=Debug  -DBUILD_UNITTESTS=true -DUPDISTANT=true -DNOSDL=false -DCGIMODE=false
 make
+make <= Un 2e make est actuellement nécessaire la premiere fois a cause d'un probleme de dépendances mal gérées avec cproto
 
 Tester mode bash :
 

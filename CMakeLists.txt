@@ -65,15 +65,6 @@ find_library(B64_LIBRARY
 
 target_link_libraries(CairoTest PRIVATE ${B64_LIBRARY})
 
-find_package(Python3 REQUIRED)
-
-add_custom_target(proto
-    COMMAND ${Python3_EXECUTABLE}
-            ${CMAKE_SOURCE_DIR}/proto.py
-#    DEPENDS CairoTest
-)
-add_dependencies(CairoTest proto)
-
 include(FetchContent)
 
 FetchContent_Declare(
@@ -99,6 +90,17 @@ endif()
 
 target_link_libraries(CairoTest PRIVATE Strings)
 target_include_directories(CairoTest PRIVATE ${Strings_SOURCE_DIR})
+
+find_package(Python3 REQUIRED)
+
+message(STATUS "top cproto includes : ${CPROTO_INCLUDES}")
+add_custom_target(proto
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/proto.py ${CPROTO_INCLUDES}
+#    DEPENDS CairoTest
+)
+add_dependencies(CairoTest proto)
+add_dependencies(Strings proto)
 
 find_package(PkgConfig REQUIRED)
 
