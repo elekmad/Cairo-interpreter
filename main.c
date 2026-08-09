@@ -287,7 +287,9 @@ int main( int argc, char *argv[ ] )
     }
     yy_delete_buffer(state);
 
-#ifndef CGIMODE
+#ifdef CGIMODE
+    free(buffer);
+#else
     String_finalize(&buffer);
 #endif
 
