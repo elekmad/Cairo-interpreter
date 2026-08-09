@@ -1,7 +1,6 @@
 #setoutputsize(640,480);
 
-size=getoutputsize();
-color(255, 255, 255, 255)rectangle(0, 0, size[0], size[1]);
+setbgolor(white());
 t=[1:10];
 foreach(a in t)
 {
