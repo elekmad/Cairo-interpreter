@@ -27,6 +27,7 @@ typedef struct op_canva_context
 typedef struct op_circle
 {
 	Op super;
+	bool negative_arc;
 	Op *x;
 	Op *y;
 	Op *r;
@@ -35,6 +36,19 @@ typedef struct op_circle
 	Op *params;
 
 }OpCircle;
+
+typedef struct op_curve
+{
+	Op super;
+	Op *x;
+	Op *y;
+	Op *m1x;
+	Op *m1y;
+	Op *m2x;
+	Op *m2y;
+	Op *params;
+
+}OpCurve;
 
 
 typedef struct op_rectangle
@@ -111,6 +125,14 @@ typedef struct op_move_to
 	Op *y;
 	Op *params;
 }OpMoveTo;
+
+typedef struct op_scale
+{
+	Op super;
+	Op *x;
+	Op *y;
+	Op *params;
+}OpScale;
 
 typedef struct op_draw_line_to
 {

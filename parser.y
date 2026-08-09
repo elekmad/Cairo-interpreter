@@ -38,6 +38,8 @@ Op *root;
 %token RECTANGLE
 %token SETBGCOLOR
 %token ARC
+%token ARCNEG
+%token CURVE
 %token STROKE
 %token STROKEPRESERVE
 %token COLOR
@@ -48,6 +50,7 @@ Op *root;
 %token ROTATE
 %token TRANSLATE
 %token MOVETO
+%token SCALE
 %token LINETO
 %token IF
 %token ELSE
@@ -287,6 +290,64 @@ statement:
       	OpCircle_set_a2(op, $11);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
+
+    | ARC '(' expression  ')' ';'
+      {
+      	OpCircle *op = (OpCircle*)OpCircle_new();
+      	$$ = (Op*)op;
+		OpCircle_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+    | ARCNEG '(' expression ','
+                 expression ','
+                 expression ','
+                 expression ','
+                 expression ')' ';'
+      {
+      	OpCircle *op = (OpCircle*)OpCircle_new();
+      	$$ = (Op*)op;
+      	OpCircle_set_negative(op);
+		OpCircle_set_x(op, $3);
+      	OpCircle_set_y(op, $5);
+      	OpCircle_set_r(op, $7);
+      	OpCircle_set_a1(op, $9);
+      	OpCircle_set_a2(op, $11);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+    | ARCNEG '(' expression ')' ';'
+      {
+      	OpCircle *op = (OpCircle*)OpCircle_new();
+      	$$ = (Op*)op;
+      	OpCircle_set_negative(op);
+		OpCircle_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+    | CURVE '(' expression ','
+                 expression ','
+                 expression ','
+                 expression ','
+                 expression ','
+                 expression ')' ';'
+      {
+      	OpCurve *op = (OpCurve*)OpCurve_new();
+      	$$ = (Op*)op;
+		OpCurve_set_m1x(op, $3);
+      	OpCurve_set_m1y(op, $5);
+      	OpCurve_set_m2x(op, $7);
+      	OpCurve_set_m2y(op, $9);
+      	OpCurve_set_x(op, $11);
+      	OpCurve_set_y(op, $13);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+    | CURVE '(' expression ')' ';'
+      {
+      	OpCurve *op = (OpCurve*)OpCurve_new();
+      	$$ = (Op*)op;
+		OpCurve_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
       
       | COLOR '(' expression ','
                  expression ','
@@ -434,6 +495,46 @@ statement:
       	$$ = (Op*)op;
       	OpTranslate *opt = (OpTranslate*)OpTranslate_new();
 		OpTranslate_set_params(opt, $3);
+        OpBloc_append_Op(op, (Op*)opt);
+        OpBloc_append_Op(op, $5);
+  		Op_set_source_pos((Op*)opt, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		Op_set_source_pos($$, @5.first_line, @5.first_column, @5.last_line, @5.last_column);
+      }
+      	| SCALE '(' expression ','
+      				   expression ')' ';'
+      {
+      	OpScale *op = (OpScale*)OpScale_new();
+      	$$ = (Op*)op;
+		OpScale_set_x(op, $3);
+		OpScale_set_y(op, $5);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+    	| SCALE '(' expression ','
+      				    expression ')' block
+      {
+      	OpBloc *op = (OpBloc*)OpCanvaBloc_new();
+      	$$ = (Op*)op;
+      	OpScale *opt = (OpScale*)OpScale_new();
+		OpScale_set_x(opt, $3);
+		OpScale_set_y(opt, $5);
+        OpBloc_append_Op(op, (Op*)opt);
+        OpBloc_append_Op(op, $7);
+  		Op_set_source_pos((Op*)opt, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		Op_set_source_pos($$, @7.first_line, @7.first_column, @7.last_line, @7.last_column);
+      }
+      	| SCALE '(' expression ')' ';'
+      {
+      	OpScale *op = (OpScale*)OpScale_new();
+      	$$ = (Op*)op;
+		OpScale_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+    	| SCALE '(' expression ')' block
+      {
+      	OpBloc *op = (OpBloc*)OpCanvaBloc_new();
+      	$$ = (Op*)op;
+      	OpScale *opt = (OpScale*)OpScale_new();
+		OpScale_set_params(opt, $3);
         OpBloc_append_Op(op, (Op*)opt);
         OpBloc_append_Op(op, $5);
   		Op_set_source_pos((Op*)opt, @1.first_line, @1.first_column, @1.last_line, @1.last_column);

@@ -30,6 +30,8 @@ int yycolumn = 1;
 (?i:"rectangle")	{ return RECTANGLE; }
 (?i:"setbgcolor")	{ return SETBGCOLOR; }
 (?i:"arc")			{ return ARC; }
+(?i:"arcneg")		{ return ARCNEG; }
+(?i:"curve")		{ return CURVE; }
 (?i:"stroke")		{ return STROKE; }
 (?i:"strokepreserve")		{ return STROKEPRESERVE; }
 (?i:"color")		{ return COLOR; }
@@ -40,6 +42,7 @@ int yycolumn = 1;
 (?i:"rotate")		{ return ROTATE; }
 (?i:"translate")	{ return TRANSLATE; }
 (?i:"moveto")		{ return MOVETO; }
+(?i:"scale")		{ return SCALE; }
 (?i:"lineto")		{ return LINETO; }
 (?i:"if")			{ return IF; }
 (?i:"else")			{ return ELSE; }

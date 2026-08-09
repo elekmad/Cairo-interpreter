@@ -92,6 +92,7 @@ OpIsa OpCircle_isa = {
 void OpCircle_init(OpCircle *self)
 {
 	Op_init(&self->super);
+	self->negative_arc = false;
 	self->x = NULL;
 	self->y = NULL;
 	self->r = NULL;
@@ -109,6 +110,11 @@ void OpCircle_terminate(OpCircle *self)
 	_OpCircle_set_a1(self, NULL);
 	_OpCircle_set_a2(self, NULL);
 	_OpCircle_set_params(self, NULL);
+}
+
+void OpCircle_set_negative(OpCircle *self)
+{
+	self->negative_arc = true;
 }
 
 int OpCircle_check_args(OpCircle *self, OpCanvaContext *canvactx)
@@ -152,8 +158,16 @@ int OpCircle_execute(OpCircle *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Draw Circle %f %f %f %f %f\n", x, y, r, a1, a2);
-		CanvaCtx_draw_arc(canvactx->Canva, x, y, r, a1, a2);
+		if(self->negative_arc == false)
+		{
+			fprintf(stderr, "Op Draw Circle %f %f %f %f %f\n", x, y, r, a1, a2);
+			CanvaCtx_draw_arc(canvactx->Canva, x, y, r, a1, a2);
+		}
+		else
+		{
+			fprintf(stderr, "Op Draw Negative Circle %f %f %f %f %f\n", x, y, r, a1, a2);
+			CanvaCtx_draw_arc_negative(canvactx->Canva, x, y, r, a1, a2);
+		}
 	}
 	return ret;
 }
@@ -260,6 +274,207 @@ int OpCircle_fix_operandes(OpCircle *self, OpContext *ctx)
 Op *OpCircle_new(void)
 {
 	return Op_new(&OpCircle_isa);
+}
+
+OpIsa OpCurve_isa = {
+		.name="Curve",
+		.size=sizeof(OpCurve),
+		.init = (void(*)(Op*))OpCurve_init,
+		.terminate = (void(*)(Op*))OpCurve_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpCurve_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpCurve_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpCurve_check_args,
+};
+
+void OpCurve_init(OpCurve *self)
+{
+	Op_init(&self->super);
+	self->x = NULL;
+	self->y = NULL;
+	self->m1x = NULL;
+	self->m1y = NULL;
+	self->m2x = NULL;
+	self->m2y = NULL;
+	self->params = NULL;
+}
+
+void OpCurve_terminate(OpCurve *self)
+{
+	Op_terminate(&self->super);
+	_OpCurve_set_x(self, NULL);
+	_OpCurve_set_y(self, NULL);
+	_OpCurve_set_m1x(self, NULL);
+	_OpCurve_set_m1y(self, NULL);
+	_OpCurve_set_m2x(self, NULL);
+	_OpCurve_set_m2y(self, NULL);
+	_OpCurve_set_params(self, NULL);
+}
+
+int OpCurve_check_args(OpCurve *self, OpCanvaContext *canvactx)
+{
+	if(self->params != NULL || (self->x != NULL && self->y != NULL && self->m1x != NULL && self->m1y != NULL && self->m2x != NULL && self->m2y != NULL))
+		return 0;
+	return -1;
+}
+
+int OpCurve_execute(OpCurve *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double x = NAN, y = NAN, m1x = NAN, m1y = NAN, m2x = NAN, m2y = NAN;
+	if(self->params != NULL)
+	{
+		double *d;
+		size_t size;
+		ret = Op_execute_get_doubles(self->params, (Op*)self, ctx, &d, &size, 6);
+		if(ret == 0)
+		{
+			m1x=d[0];
+			m1y=d[1];
+			m2x=d[2];
+			m2y=d[3];
+			x=d[4];
+			y=d[5];
+		}
+	}
+	else if(self->x != NULL)
+	{
+		ret = Op_execute_get_double(self->x, (Op*)self, ctx, &x);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->y, (Op*)self, ctx, &y);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->m1x, (Op*)self, ctx, &m1x);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->m1y, (Op*)self, ctx, &m1y);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->m2x, (Op*)self, ctx, &m2x);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->m2y, (Op*)self, ctx, &m2y);
+	}
+
+	if(ret == 0)
+	{
+		fprintf(stderr, "Op Draw Bezier Curve to {%f, %f}, handle 1 {%f, %f}, handle 2 {%f, %f}\n", x, y, m1x, m1y, m2x, m2y);
+		CanvaCtx_draw_bezier(canvactx->Canva, x, y, m1x, m1y, m2x, m2y);
+	}
+	return ret;
+}
+
+void _OpCurve_set_x(OpCurve *self, Op *v)
+{
+	OP_SET_OPERANDE(self, x, v);
+}
+
+void _OpCurve_set_y(OpCurve *self, Op *v)
+{
+	OP_SET_OPERANDE(self, y, v);
+}
+
+void _OpCurve_set_m1x(OpCurve *self, Op *v)
+{
+	OP_SET_OPERANDE(self, m1x, v);
+}
+
+void _OpCurve_set_m1y(OpCurve *self, Op *v)
+{
+	OP_SET_OPERANDE(self, m1y, v);
+}
+
+void _OpCurve_set_m2x(OpCurve *self, Op *v)
+{
+	OP_SET_OPERANDE(self, m2x, v);
+}
+
+void _OpCurve_set_m2y(OpCurve *self, Op *v)
+{
+	OP_SET_OPERANDE(self, m2y, v);
+}
+
+void _OpCurve_set_params(OpCurve *self, Op *v)
+{
+	OP_SET_OPERANDE(self, params, v);
+}
+
+#define OPCURVE_X 0
+#define OPCURVE_Y 1
+#define OPCURVE_M1X 2
+#define OPCURVE_M1Y 3
+#define OPCURVE_M2X 4
+#define OPCURVE_M2Y 5
+#define OPCURVE_PARAMS 6
+
+void OpCurve_set_x(OpCurve *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPCURVE_X);
+}
+
+void OpCurve_set_y(OpCurve *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPCURVE_Y);
+}
+
+void OpCurve_set_m1x(OpCurve *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPCURVE_M1X);
+}
+
+void OpCurve_set_m1y(OpCurve *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPCURVE_M1Y);
+}
+
+void OpCurve_set_m2x(OpCurve *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPCURVE_M2X);
+}
+
+void OpCurve_set_m2y(OpCurve *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPCURVE_M2Y);
+}
+
+void OpCurve_set_params(OpCurve *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPCURVE_PARAMS);
+}
+
+int OpCurve_fix_operandes(OpCurve *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 6)
+	{
+		Op *x, *y, *m1x, *m1y, *m2x, *m2y, *params = NULL;
+		x = self->super.operandes[OPCURVE_X];
+		y = self->super.operandes[OPCURVE_Y];
+		m1x = self->super.operandes[OPCURVE_M1X];
+		m1y = self->super.operandes[OPCURVE_M1Y];
+		m2x = self->super.operandes[OPCURVE_M2X];
+		m2y = self->super.operandes[OPCURVE_M2Y];
+		if(self->super.nb_ops >= 6)
+			params = self->super.operandes[OPCURVE_PARAMS];
+
+		if(x != NULL && y != NULL && m1x != NULL && m1y != NULL && m2x != NULL && m2y != NULL)
+		{
+			ret = 0;
+			_OpCurve_set_x(self, x);
+			_OpCurve_set_y(self, y);
+			_OpCurve_set_m1x(self, m1x);
+			_OpCurve_set_m1y(self, m1y);
+			_OpCurve_set_m2x(self, m2x);
+			_OpCurve_set_m2y(self, m2y);
+		}
+		else if(params != NULL)
+		{
+			ret = 0;
+			_OpCurve_set_params(self, params);
+		}
+	}
+	return ret;
+}
+
+Op *OpCurve_new(void)
+{
+	return Op_new(&OpCurve_isa);
 }
 
 
@@ -1375,6 +1590,136 @@ int OpMoveTo_execute(OpMoveTo *self, OpCanvaContext *canvactx)
 Op *OpMoveTo_new(void)
 {
 	return Op_new(&OpMoveTo_isa);
+}
+
+
+OpIsa OpScale_isa = {
+		.name="Scale",
+		.size=sizeof(OpScale),
+		.init = (void(*)(Op*))OpScale_init,
+		.terminate = (void(*)(Op*))OpScale_terminate,
+		.execute = (int(*)(Op*, OpContext*))OpScale_execute,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpScale_fix_operandes,
+		.check_args = (int(*)(Op*, OpContext*))OpScale_check_args,
+};
+
+void OpScale_init(OpScale *self)
+{
+	Op_init(&self->super);
+	self->x = NULL;
+	self->y= NULL;
+	self->params = NULL;
+}
+
+void OpScale_terminate(OpScale *self)
+{
+	Op_terminate(&self->super);
+	_OpScale_set_x(self, NULL);
+	_OpScale_set_y(self, NULL);
+	_OpScale_set_params(self, NULL);
+}
+
+#define OPSCALE_X 0
+#define OPSCALE_Y 1
+#define OPSCALE_PARAMS 2
+
+void OpScale_set_x(OpScale *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPSCALE_X);
+}
+
+void OpScale_set_y(OpScale *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPSCALE_Y);
+}
+
+void OpScale_set_params(OpScale *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPSCALE_PARAMS);
+}
+
+void _OpScale_set_x(OpScale *self, Op *v)
+{
+	OP_SET_OPERANDE(self, x, v);
+}
+
+void _OpScale_set_y(OpScale *self, Op *v)
+{
+	OP_SET_OPERANDE(self, y, v);
+}
+
+void _OpScale_set_params(OpScale *self, Op *v)
+{
+	OP_SET_OPERANDE(self, params, v);
+}
+
+int OpScale_fix_operandes(OpScale *self, OpCanvaContext *canvactx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >=2)
+	{
+		Op *x, *y, *params = NULL;
+		x = self->super.operandes[OPSCALE_X];
+		y = self->super.operandes[OPSCALE_Y];
+		if(self->super.nb_ops >= 3)
+			params = self->super.operandes[OPSCALE_PARAMS];
+
+		if(x != NULL && y != NULL)
+		{
+			ret = 0;
+			_OpScale_set_x(self, x);
+			_OpScale_set_y(self, y);
+		}
+		else if(params != NULL)
+		{
+			ret = 0;
+			_OpScale_set_params(self, params);
+		}
+	}
+	return ret;
+}
+
+int OpScale_check_args(OpScale *self, OpCanvaContext *canvactx)
+{
+	if(self->params != NULL || (self->x != NULL && self->y != NULL))
+		return 0;
+	return -1;
+}
+
+int OpScale_execute(OpScale *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double x = NAN, y = NAN;
+	if(self->params != NULL)
+	{
+		double *d;
+		size_t size;
+		ret = Op_execute_get_doubles(self->params, (Op*)self, ctx, &d, &size, 2);
+		if(ret == 0)
+		{
+			x=d[0];
+			y=d[1];
+		}
+	}
+	else if(self->x != NULL)
+	{
+		ret = Op_execute_get_double(self->x, (Op*)self, ctx, &x);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->y, (Op*)self, ctx, &y);
+
+	}
+	if(ret == 0)
+	{
+		fprintf(stderr, "Op Scale %f %f\n", x, y);
+		CanvaCtx_scale(canvactx->Canva, x, y);
+	}
+	return ret;
+}
+
+Op *OpScale_new(void)
+{
+	return Op_new(&OpScale_isa);
 }
 
 

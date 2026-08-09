@@ -144,10 +144,22 @@ void CanvaCtx_draw_arc(CanvaCtx *self, double x, double y, double r, double a1, 
 	cairo_arc(self->cr, x, y, r, a1, a2);
 }
 
+void CanvaCtx_draw_arc_negative(CanvaCtx *self, double x, double y, double r, double a1, double a2)
+{
+	fprintf(stderr, "Cairo %p arc negative %f %f %f %f %f\n", self->cr, x, y, r, a1, a2);
+	cairo_arc_negative(self->cr, x, y, r, a1, a2);
+}
+
 void CanvaCtx_draw_line_to(CanvaCtx *self, double x, double y)
 {
 	fprintf(stderr, "Cairo %p draw line to %f %f\n", self->cr, x, y);
 	cairo_line_to(self->cr, x, y);
+}
+
+void CanvaCtx_draw_bezier(CanvaCtx *self, double x, double y, double m1x, double m1y, double m2x, double m2y)
+{
+	fprintf(stderr, "Cairo %p beziez to {%f, %f} handle 1 {%f, %f} handle 2 {%f, %f}\n", self->cr, x, y, m1x, m1y, m2x, m2y);
+	cairo_curve_to(self->cr, m1x, m1y, m2x, m2y, x, y);
 }
 
 void CanvaCtx_send_defaults(CanvaCtx *self)
@@ -288,6 +300,12 @@ void CanvaCtx_move_to(CanvaCtx *self, double x, double y)
 {
 	fprintf(stderr, "Cairo %p move to %f, %f\n", self->cr, x, y);
 	cairo_move_to(self->cr, x, y);
+}
+
+void CanvaCtx_scale(CanvaCtx *self, double x, double y)
+{
+	fprintf(stderr, "Cairo %p scale %f, %f\n", self->cr, x, y);
+	cairo_scale(self->cr, x, y);
 }
 
 void CanvaCtx_draw_text(CanvaCtx *self, const char *text)
