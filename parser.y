@@ -37,6 +37,12 @@ Op *root;
 
 %token RECTANGLE
 %token SETBGCOLOR
+%token SETAUTOSTROKECOLOR
+%token SETAUTOFILLCOLOR
+%token SETAUTOFILL
+%token SETAUTOSTROKE
+%token SETAUTOFILLSTROKE
+%token SETAUTOSTROKEFILL
 %token ARC
 %token ARCNEG
 %token CURVE
@@ -120,9 +126,10 @@ Op *root;
 program:
 		statement
 		{
-			OpBloc *op = (OpBloc*)OpBloc_new();
+			OpBloc *op = (OpBloc*)OpCanvaBloc_new();
           *root = (Op*)op;
           Op_set_for_prerunning(*root);//Must be done before append because is recursive
+          OpCanvaBloc_set_auto_stroke((OpCanvaBloc*)op);
           $$ = (Op*)op;
           OpBloc_append_Op(op, $1);
       		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
@@ -196,6 +203,30 @@ statement:
 		OpSetOutputSVG *op = (OpSetOutputSVG *)OpSetOutputSVG_new();
       	$$ = (Op*)op;
       	Op_set_for_prerunning($$);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| SETAUTOFILL '(' ')' ';'
+      {
+		Op *op = (Op *)OpSetAutoFill_new();
+      	$$ = (Op*)op;
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| SETAUTOSTROKE '(' ')' ';'
+      {
+		Op *op = (Op *)OpSetAutoStroke_new();
+      	$$ = (Op*)op;
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| SETAUTOFILLSTROKE '(' ')' ';'
+      {
+		Op *op = (Op *)OpSetAutoFillStroke_new();
+      	$$ = (Op*)op;
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| SETAUTOSTROKEFILL '(' ')' ';'
+      {
+		Op *op = (Op *)OpSetAutoStrokeFill_new();
+      	$$ = (Op*)op;
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
     | IF '(' expression ')' block %prec IFX
@@ -416,20 +447,64 @@ statement:
                  expression ','
                  expression ')' ';'
       {
-      	OpSetBGColor *op = (OpSetBGColor*)OpSetBGColor_new();
+      	OpColor *op = (OpColor*)OpSetBGColor_new();
       	$$ = (Op*)op;
-		OpSetBGColor_set_red(op, $3);
-      	OpSetBGColor_set_green(op, $5);
-      	OpSetBGColor_set_blue(op, $7);
-      	OpSetBGColor_set_alpha(op, $9);
+		OpColor_set_red(op, $3);
+      	OpColor_set_green(op, $5);
+      	OpColor_set_blue(op, $7);
+      	OpColor_set_alpha(op, $9);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       
       | SETBGCOLOR '(' expression ')' ';'
       {
-      	OpSetBGColor *op = (OpSetBGColor*)OpSetBGColor_new();
+      	OpColor *op = (OpColor*)OpSetBGColor_new();
       	$$ = (Op*)op;
-		OpSetBGColor_set_params(op, $3);
+		OpColor_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | SETAUTOSTROKECOLOR '(' expression ','
+                 expression ','
+                 expression ','
+                 expression ')' ';'
+      {
+      	OpColor *op = (OpColor*)OpSetDefaultStrokeColor_new();
+      	$$ = (Op*)op;
+		OpColor_set_red(op, $3);
+      	OpColor_set_green(op, $5);
+      	OpColor_set_blue(op, $7);
+      	OpColor_set_alpha(op, $9);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | SETAUTOSTROKECOLOR '(' expression ')' ';'
+      {
+      	OpColor *op = (OpColor*)OpSetDefaultStrokeColor_new();
+      	$$ = (Op*)op;
+		OpColor_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | SETAUTOFILLCOLOR '(' expression ','
+                 expression ','
+                 expression ','
+                 expression ')' ';'
+      {
+      	OpColor *op = (OpColor*)OpSetDefaultFillColor_new();
+      	$$ = (Op*)op;
+		OpColor_set_red(op, $3);
+      	OpColor_set_green(op, $5);
+      	OpColor_set_blue(op, $7);
+      	OpColor_set_alpha(op, $9);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | SETAUTOFILLCOLOR '(' expression ')' ';'
+      {
+      	OpColor *op = (OpColor*)OpSetDefaultFillColor_new();
+      	$$ = (Op*)op;
+		OpColor_set_params(op, $3);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 		| SETLINEWIDTH '(' expression ')' ';'

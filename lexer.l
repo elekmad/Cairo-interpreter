@@ -29,6 +29,12 @@ int yycolumn = 1;
 
 (?i:"rectangle")	{ return RECTANGLE; }
 (?i:"setbgcolor")	{ return SETBGCOLOR; }
+(?i:"setautostrokecolor")	{ return SETAUTOSTROKECOLOR; }
+(?i:"setautofillcolor")	{ return SETAUTOFILLCOLOR; }
+(?i:"setautofill")	{ return SETAUTOFILL; }
+(?i:"setautostroke")	{ return SETAUTOSTROKE; }
+(?i:"setautofillstroke")	{ return SETAUTOFILLSTROKE; }
+(?i:"setautostrokefill")	{ return SETAUTOSTROKEFILL; }
 (?i:"arc")			{ return ARC; }
 (?i:"arcneg")		{ return ARCNEG; }
 (?i:"curve")		{ return CURVE; }

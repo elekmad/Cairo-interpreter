@@ -14,6 +14,7 @@
 #include <cairo.h>
 #include <inttypes.h>
 #include <String.h>
+#include <stdbool.h>
 
 typedef enum canva_ctx_stroke_mode
 {
@@ -67,8 +68,11 @@ typedef struct {
     cairo_surface_t *surface;
     cairo_t *cr;
     double default_line_with;
-    double default_color[4];
+    double default_stroke_color[4];
+    double default_fill_color[4];
     CanvaCtxStrokeMode default_stroke_mode;
+    bool pending_path;
+    bool color_set_up;
 
 } CanvaCtx;
 

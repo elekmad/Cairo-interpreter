@@ -74,18 +74,6 @@ typedef struct op_color
 
 }OpColor;
 
-
-typedef struct op_set_background_color
-{
-	Op super;
-	Op *red;
-	Op *blue;
-	Op *green;
-	Op *alpha;
-	Op *params;
-
-}OpSetBGColor;
-
 typedef struct op_set_line_width
 {
 	Op super;
@@ -147,28 +135,6 @@ typedef struct op_canva_bloc
 	OpBloc super;
 	bool auto_stroke;
 }OpCanvaBloc;
-
-
-
-typedef struct op_stroke
-{
-	Op super;
-}OpStroke;
-
-typedef struct op_fill
-{
-	Op super;
-}OpFill;
-
-typedef struct op_stroke_preserve
-{
-	Op super;
-}OpStrokePreserve;
-
-typedef struct op_fill_preserve
-{
-	Op super;
-}OpFillPreserve;
 
 
 typedef struct op_font_selector

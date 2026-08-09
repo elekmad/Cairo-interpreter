@@ -822,42 +822,15 @@ Op *OpColor_new(void)
 
 OpIsa OpSetBGColor_isa = {
 		.name="SetBGColor",
-		.size=sizeof(OpSetBGColor),
-		.init = (void(*)(Op*))OpSetBGColor_init,
-		.terminate = (void(*)(Op*))OpSetBGColor_terminate,
-		.fix_operandes = (int(*)(Op*, OpContext*))OpSetBGColor_fix_operandes,
+		.size=sizeof(OpColor),
+		.init = (void(*)(Op*))OpColor_init,
+		.terminate = (void(*)(Op*))OpColor_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpColor_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpSetBGColor_execute,
-		.check_args = (int(*)(Op*, OpContext*))OpSetBGColor_check_args,
+		.check_args = (int(*)(Op*, OpContext*))OpColor_check_args,
 };
 
-void OpSetBGColor_init(OpSetBGColor *self)
-{
-	Op_init(&self->super);
-	self->red = NULL;
-	self->blue = NULL;
-	self->green = NULL;
-	self->alpha = NULL;
-	self->params = NULL;
-}
-
-void OpSetBGColor_terminate(OpSetBGColor *self)
-{
-	Op_terminate(&self->super);
-	_OpSetBGColor_set_red(self, NULL);
-	_OpSetBGColor_set_green(self, NULL);
-	_OpSetBGColor_set_blue(self, NULL);
-	_OpSetBGColor_set_alpha(self, NULL);
-	_OpSetBGColor_set_params(self, NULL);
-}
-
-int OpSetBGColor_check_args(OpSetBGColor *self, OpCanvaContext *canvactx)
-{
-	if(self->params != NULL || (self->red != NULL && self->blue != NULL && self->green != NULL && self->alpha != NULL))
-		return 0;
-	return -1;
-}
-
-int OpSetBGColor_execute(OpSetBGColor *self, OpCanvaContext *canvactx)
+int OpSetBGColor_execute(OpColor *self, OpCanvaContext *canvactx)
 {
 	int ret = 0;
 	OpContext *ctx = (OpContext*)canvactx;
@@ -894,98 +867,7 @@ int OpSetBGColor_execute(OpSetBGColor *self, OpCanvaContext *canvactx)
 		h = OpCanvaContext_get_height(canvactx);
 		fprintf(stderr, "Op Set BG Color %f %f %f %f\n", r, g, b, a);
 		CanvaCtx_set_color(canvactx->Canva, r, g, b, a);
-		CanvaCtx_draw_rectangle(canvactx->Canva, 0, 0, w, h);
-		CanvaCtx_fill(canvactx->Canva);
-	}
-	return ret;
-}
-
-void _OpSetBGColor_set_red(OpSetBGColor *self, Op *r)
-{
-	OP_SET_OPERANDE(self, red, r);
-}
-
-void _OpSetBGColor_set_green(OpSetBGColor *self, Op *g)
-{
-	OP_SET_OPERANDE(self, green, g);
-}
-
-
-void _OpSetBGColor_set_blue(OpSetBGColor *self, Op *b)
-{
-	OP_SET_OPERANDE(self, blue, b);
-}
-
-
-void _OpSetBGColor_set_alpha(OpSetBGColor *self, Op *a)
-{
-	OP_SET_OPERANDE(self, alpha, a);
-}
-
-void _OpSetBGColor_set_params(OpSetBGColor *self, Op *p)
-{
-	OP_SET_OPERANDE(self, params, p);
-}
-
-#define OPSETBGCOLOR_RED 0
-#define OPSETBGCOLOR_GREEN 1
-#define OPSETBGCOLOR_BLUE 2
-#define OPSETBGCOLOR_ALPHA 3
-#define OPSETBGCOLOR_PARAMS 4
-
-void OpSetBGColor_set_red(OpSetBGColor *self, Op *r)
-{
-	OP_ADD_OPERANDE(self, r, OPSETBGCOLOR_RED);
-}
-
-void OpSetBGColor_set_green(OpSetBGColor *self, Op *g)
-{
-	OP_ADD_OPERANDE(self, g, OPSETBGCOLOR_GREEN);
-}
-
-
-void OpSetBGColor_set_blue(OpSetBGColor *self, Op *b)
-{
-	OP_ADD_OPERANDE(self, b, OPSETBGCOLOR_BLUE);
-}
-
-
-void OpSetBGColor_set_alpha(OpSetBGColor *self, Op *a)
-{
-	OP_ADD_OPERANDE(self, a, OPSETBGCOLOR_ALPHA);
-}
-
-void OpSetBGColor_set_params(OpSetBGColor *self, Op *p)
-{
-	OP_ADD_OPERANDE(self, p, OPSETBGCOLOR_PARAMS);
-}
-
-int OpSetBGColor_fix_operandes(OpSetBGColor *self, OpContext *ctx)
-{
-	int ret = -1;
-	if(self->super.nb_ops >= 4)
-	{
-		Op *r, *g, *b, *a, *params = NULL;
-		r = self->super.operandes[OPSETBGCOLOR_RED];
-		g = self->super.operandes[OPSETBGCOLOR_GREEN];
-		b = self->super.operandes[OPSETBGCOLOR_BLUE];
-		a = self->super.operandes[OPSETBGCOLOR_ALPHA];
-		if(self->super.nb_ops >= 5)
-			params = self->super.operandes[OPSETBGCOLOR_PARAMS];
-
-		if(r != NULL && g != NULL && b != NULL && a != NULL)
-		{
-			ret = 0;
-			_OpSetBGColor_set_red(self, r);
-			_OpSetBGColor_set_green(self, g);
-			_OpSetBGColor_set_blue(self, b);
-			_OpSetBGColor_set_alpha(self, a);
-		}
-		else if(params != NULL)
-		{
-			ret = 0;
-			_OpSetBGColor_set_params(self, params);
-		}
+		CanvaCtx_paint(canvactx->Canva);
 	}
 	return ret;
 }
@@ -997,27 +879,132 @@ Op *OpSetBGColor_new(void)
 
 
 
+OpIsa OpSetDefaultStrokeColor_isa = {
+		.name="SetDefaultStrokeColor",
+		.size=sizeof(OpColor),
+		.init = (void(*)(Op*))OpColor_init,
+		.terminate = (void(*)(Op*))OpColor_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpColor_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpSetDefaultStrokeColor_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpColor_check_args,
+};
+
+int OpSetDefaultStrokeColor_execute(OpColor *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double r = NAN, g = NAN, b = NAN, a = 255;
+	if(self->params != NULL)
+	{
+		double *d;
+		size_t size;
+		ret = Op_execute_get_doubles(self->params, (Op*)self, ctx, &d, &size, 3);
+		if(ret == 0)
+		{
+			r=d[0];
+			g=d[1];
+			b=d[2];
+			if(size > 3)
+				a=d[3];
+		}
+	}
+	else if(self->red != NULL)
+	{
+		ret = Op_execute_get_double(self->red, (Op*)self, ctx, &r);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->green, (Op*)self, ctx, &g);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->blue, (Op*)self, ctx, &b);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->alpha, (Op*)self, ctx, &a);
+
+	}
+	if(ret == 0)
+	{
+		int w, h;
+		w = OpCanvaContext_get_width(canvactx);
+		h = OpCanvaContext_get_height(canvactx);
+		fprintf(stderr, "Op Set Default Stroke Color %f %f %f %f\n", r, g, b, a);
+		CanvaCtx_set_default_stroke_color(canvactx->Canva, r, g, b, a);
+		CanvaCtx_paint(canvactx->Canva);
+	}
+	return ret;
+}
+
+Op *OpSetDefaultStrokeColor_new(void)
+{
+	return Op_new(&OpSetDefaultStrokeColor_isa);
+}
+
+
+OpIsa OpSetDefaultFillColor_isa = {
+		.name="SetDefaultFillColor",
+		.size=sizeof(OpColor),
+		.init = (void(*)(Op*))OpColor_init,
+		.terminate = (void(*)(Op*))OpColor_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpColor_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpSetDefaultFillColor_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpColor_check_args,
+};
+
+int OpSetDefaultFillColor_execute(OpColor *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double r = NAN, g = NAN, b = NAN, a = 255;
+	if(self->params != NULL)
+	{
+		double *d;
+		size_t size;
+		ret = Op_execute_get_doubles(self->params, (Op*)self, ctx, &d, &size, 3);
+		if(ret == 0)
+		{
+			r=d[0];
+			g=d[1];
+			b=d[2];
+			if(size > 3)
+				a=d[3];
+		}
+	}
+	else if(self->red != NULL)
+	{
+		ret = Op_execute_get_double(self->red, (Op*)self, ctx, &r);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->green, (Op*)self, ctx, &g);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->blue, (Op*)self, ctx, &b);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->alpha, (Op*)self, ctx, &a);
+
+	}
+	if(ret == 0)
+	{
+		int w, h;
+		w = OpCanvaContext_get_width(canvactx);
+		h = OpCanvaContext_get_height(canvactx);
+		fprintf(stderr, "Op Set Default Fill Color %f %f %f %f\n", r, g, b, a);
+		CanvaCtx_set_default_fill_color(canvactx->Canva, r, g, b, a);
+	}
+	return ret;
+}
+
+Op *OpSetDefaultFillColor_new(void)
+{
+	return Op_new(&OpSetDefaultFillColor_isa);
+}
+
+
 OpIsa OpStroke_isa = {
 		.name="Stroke",
-		.size=sizeof(OpStroke),
-		.init = (void(*)(Op*))OpStroke_init,
-		.terminate = (void(*)(Op*))OpStroke_terminate,
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpStroke_execute,
 		.check_args = NULL,
 };
 
-void OpStroke_init(OpStroke *self)
-{
-	Op_init(&self->super);
-}
-
-void OpStroke_terminate(OpStroke *self)
-{
-	Op_terminate(&self->super);
-}
-
-int OpStroke_execute(OpStroke *self, OpCanvaContext *ctx)
+int OpStroke_execute(Op *self, OpCanvaContext *ctx)
 {
 	CanvaCtx_stroke(ctx->Canva);
 	return 0;
@@ -1030,25 +1017,15 @@ Op *OpStroke_new(void)
 
 OpIsa OpStrokePreserve_isa = {
 		.name="StrokePreserve",
-		.size=sizeof(OpStrokePreserve),
-		.init = (void(*)(Op*))OpStrokePreserve_init,
-		.terminate = (void(*)(Op*))OpStrokePreserve_terminate,
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpStrokePreserve_execute,
 		.check_args = NULL,
 };
 
-void OpStrokePreserve_init(OpStrokePreserve *self)
-{
-	Op_init(&self->super);
-}
-
-void OpStrokePreserve_terminate(OpStrokePreserve *self)
-{
-	Op_terminate(&self->super);
-}
-
-int OpStrokePreserve_execute(OpStrokePreserve *self, OpCanvaContext *ctx)
+int OpStrokePreserve_execute(Op *self, OpCanvaContext *ctx)
 {
 	CanvaCtx_stroke_preserve(ctx->Canva);
 	return 0;
@@ -1057,6 +1034,133 @@ int OpStrokePreserve_execute(OpStrokePreserve *self, OpCanvaContext *ctx)
 Op *OpStrokePreserve_new(void)
 {
 	return Op_new(&OpStrokePreserve_isa);
+}
+
+
+OpIsa OpFill_isa = {
+		.name="Fill",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpFill_execute,
+		.check_args = NULL,
+};
+
+int OpFill_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_fill(ctx->Canva);
+	return 0;
+}
+
+Op *OpFill_new(void)
+{
+	return Op_new(&OpFill_isa);
+}
+
+
+OpIsa OpFillPreserve_isa = {
+		.name="FillPreserve",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpFillPreserve_execute
+};
+
+int OpFillPreserve_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_fill_preserve(ctx->Canva);
+	return 0;
+}
+
+Op *OpFillPreserve_new(void)
+{
+	return Op_new(&OpFillPreserve_isa);
+}
+
+OpIsa OpSetAutoFill_isa = {
+		.name="SetAutoFill",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpSetAutoFill_execute,
+		.check_args = NULL,
+};
+
+int OpSetAutoFill_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_set_default_stroke_mode(ctx->Canva, Fill);
+	return 0;
+}
+
+Op *OpSetAutoFill_new(void)
+{
+	return Op_new(&OpSetAutoFill_isa);
+}
+
+OpIsa OpSetAutoFillStroke_isa = {
+		.name="SetAutoFillStroke",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpSetAutoFillStroke_execute,
+		.check_args = NULL,
+};
+
+int OpSetAutoFillStroke_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_set_default_stroke_mode(ctx->Canva, FillStroke);
+	return 0;
+}
+
+Op *OpSetAutoFillStroke_new(void)
+{
+	return Op_new(&OpSetAutoFillStroke_isa);
+}
+
+OpIsa OpSetAutoStroke_isa = {
+		.name="SetAutoStroke",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpSetAutoStroke_execute,
+		.check_args = NULL,
+};
+
+int OpSetAutoStroke_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_set_default_stroke_mode(ctx->Canva, Stroke);
+	return 0;
+}
+
+Op *OpSetAutoStroke_new(void)
+{
+	return Op_new(&OpSetAutoStroke_isa);
+}
+
+OpIsa OpSetAutoStrokeFill_isa = {
+		.name="SetAutoStrokeFill",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpSetAutoStrokeFill_execute,
+		.check_args = NULL,
+};
+
+int OpSetAutoStrokeFill_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_set_default_stroke_mode(ctx->Canva, StrokeFill);
+	return 0;
+}
+
+Op *OpSetAutoStrokeFill_new(void)
+{
+	return Op_new(&OpSetAutoStrokeFill_isa);
 }
 
 
@@ -1854,69 +1958,6 @@ Op *OpDrawLineTo_new(void)
 }
 
 
-OpIsa OpFill_isa = {
-		.name="Fill",
-		.size=sizeof(OpFill),
-		.init = (void(*)(Op*))OpFill_init,
-		.terminate = (void(*)(Op*))OpFill_terminate,
-		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
-		.execute = (int(*)(Op*, OpContext*))OpFill_execute,
-		.check_args = NULL,
-};
-
-void OpFill_init(OpFill *self)
-{
-	Op_init(&self->super);
-}
-
-void OpFill_terminate(OpFill *self)
-{
-	Op_terminate(&self->super);
-}
-
-int OpFill_execute(OpFill *self, OpCanvaContext *ctx)
-{
-	CanvaCtx_fill(ctx->Canva);
-	return 0;
-}
-
-Op *OpFill_new(void)
-{
-	return Op_new(&OpFill_isa);
-}
-
-
-OpIsa OpFillPreserve_isa = {
-		.name="FillPreserve",
-		.size=sizeof(OpFillPreserve),
-		.init = (void(*)(Op*))OpFillPreserve_init,
-		.terminate = (void(*)(Op*))OpFillPreserve_terminate,
-		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
-		.execute = (int(*)(Op*, OpContext*))OpFillPreserve_execute
-};
-
-void OpFillPreserve_init(OpFillPreserve *self)
-{
-	Op_init(&self->super);
-}
-
-void OpFillPreserve_terminate(OpFillPreserve *self)
-{
-	Op_terminate(&self->super);
-}
-
-int OpFillPreserve_execute(OpFillPreserve *self, OpCanvaContext *ctx)
-{
-	CanvaCtx_fill_preserve(ctx->Canva);
-	return 0;
-}
-
-Op *OpFillPreserve_new(void)
-{
-	return Op_new(&OpFillPreserve_isa);
-}
-
-
 OpIsa OpCanvaBloc_isa = {
 		.name="CanvaBloc",
 		.size=sizeof(OpCanvaBloc),
@@ -1943,19 +1984,25 @@ void OpCanvaBloc_set_auto_stroke(OpCanvaBloc *self)
 	self->auto_stroke = true;
 }
 
-int OpCanvaBloc_execute(OpCanvaBloc *self, OpCanvaContext *ctx)
+int OpCanvaBloc_execute(OpCanvaBloc *self, OpCanvaContext *canvactx)
 {
 	int ret = 0;
-	fprintf(stderr, "Canva %p Save\n", ctx->Canva);
-	CanvaCtx_save(ctx->Canva);
+	OpContext *ctx = (OpContext*)canvactx;
+	OpRunningState state = OpContext_get_running_state(ctx);
+	if(state == PreRun)//PreRun ? Musn't play Canva part !
+		return OpBloc_execute(&self->super, (OpContext*)ctx);
+
+	fprintf(stderr, "Canva %p Save\n", canvactx->Canva);
+	CanvaCtx_save(canvactx->Canva);
 	ret = OpBloc_execute(&self->super, (OpContext*)ctx);
 	if(ret == 0)
 	{
 		if(self->auto_stroke == true)
-			CanvaCtx_auto_stroke(ctx->Canva);
+			CanvaCtx_auto_stroke(canvactx->Canva);
+
+		fprintf(stderr, "Canva %p Restore\n", canvactx->Canva);
+		CanvaCtx_restore(canvactx->Canva);
 	}
-	fprintf(stderr, "Canva %p Restore\n", ctx->Canva);
-	CanvaCtx_restore(ctx->Canva);
 	return ret;
 }
 
