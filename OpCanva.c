@@ -926,7 +926,6 @@ int OpSetDefaultStrokeColor_execute(OpColor *self, OpCanvaContext *canvactx)
 		h = OpCanvaContext_get_height(canvactx);
 		fprintf(stderr, "Op Set Default Stroke Color %f %f %f %f\n", r, g, b, a);
 		CanvaCtx_set_default_stroke_color(canvactx->Canva, r, g, b, a);
-		CanvaCtx_paint(canvactx->Canva);
 	}
 	return ret;
 }

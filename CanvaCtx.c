@@ -253,6 +253,7 @@ void CanvaCtx_paint(CanvaCtx *self)
 	fprintf(stderr, "colors at paint %f %f %f %f\n", r, g, b, a);
 	fprintf(stderr, "Cairo paint %p\n", self->cr);
 	cairo_paint(self->cr);
+	self->color_set_up = false;
 }
 
 void CanvaCtx_rotate(CanvaCtx *self, double a)
@@ -293,30 +294,52 @@ void CanvaCtx_set_default_stroke_mode(CanvaCtx *self, CanvaCtxStrokeMode m)
 
 void CanvaCtx_auto_stroke(CanvaCtx *self)
 {
+	fprintf(stderr, "AutoStroke ?\n");
 	if(self->pending_path == false)
+	{
+		fprintf(stderr, "No need AutoStroke !\n");
 		return;
+	}
+	fprintf(stderr, "Need AutoStroke !\n");
 	switch(self->default_stroke_mode)
 	{
 	case Fill :			if(self->color_set_up == false)
-								_CanvaCtx_send_default_fill_color(self);
+						{
+							fprintf(stderr, "No Color Set up, sending default Fill Color\n");
+							_CanvaCtx_send_default_fill_color(self);
+						}
 						CanvaCtx_fill(self);
 						break;
 	case Stroke :		if(self->color_set_up == false)
+						{
+							fprintf(stderr, "No Color Set up, sending default Stroke Color\n");
 							_CanvaCtx_send_default_stroke_color(self);
+						}
 						CanvaCtx_stroke(self);
 						break;
 	case FillStroke :	if(self->color_set_up == false)
+						{
+							fprintf(stderr, "No Color Set up, sending default Fill Color\n");
 							_CanvaCtx_send_default_fill_color(self);
+						}
 						CanvaCtx_fill_preserve(self);
-						if(self->color_set_up == false)
+						{
+							fprintf(stderr, "No Color Set up, sending default Stroke Color\n");
 							_CanvaCtx_send_default_stroke_color(self);
+						}
 						CanvaCtx_stroke(self);
 						break;
 	case StrokeFill :	if(self->color_set_up == false)
+						{
+							fprintf(stderr, "No Color Set up, sending default Stroke Color\n");
 							_CanvaCtx_send_default_stroke_color(self);
+						}
 						CanvaCtx_stroke_preserve(self);
 						if(self->color_set_up == false)
+						{
+							fprintf(stderr, "No Color Set up, sending default Fill Color\n");
 							_CanvaCtx_send_default_fill_color(self);
+						}
 						CanvaCtx_fill(self);
 						break;
 	case None :
