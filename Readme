@@ -16,12 +16,12 @@ make <= Un 2e make est actuellement nécessaire la premiere fois a cause d'un pr
 Tester mode bash :
 
 Avec SDL2
-./CairoTest < fichier
+./CairoInterpreter < fichier
 
 Sans SDL2
-./CairoTest < fichier > output
+./CairoInterpreter < fichier > output
 
 Tester mode serveur :
 
 export CONTENT_LENGTH=$(wc -c fichier);
-./CairoTest < fichier
+./CairoInterpreter < fichier

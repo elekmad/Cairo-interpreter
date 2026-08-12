@@ -17,7 +17,7 @@ add_definitions(-ggdb3)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
-project(CairoTest LANGUAGES C)
+project(CairoInterpreter LANGUAGES C)
 
 
 file(GLOB CPP_SOURCE
@@ -51,19 +51,19 @@ ADD_FLEX_BISON_DEPENDENCY(
 )
 
 
-add_executable(CairoTest
+add_executable(CairoInterpreter
 	${CPP_SOURCE}
     ${BISON_Parser_OUTPUTS}
     ${FLEX_Lexer_OUTPUTS}
 )
 
-#target_link_libraries(CairoTest PRIVATE fl)
-target_link_libraries(CairoTest PRIVATE m)
+#target_link_libraries(CairoInterpreter PRIVATE fl)
+target_link_libraries(CairoInterpreter PRIVATE m)
 find_library(B64_LIBRARY
     NAMES libb64.a
 )
 
-target_link_libraries(CairoTest PRIVATE ${B64_LIBRARY})
+target_link_libraries(CairoInterpreter PRIVATE ${B64_LIBRARY})
 
 include(FetchContent)
 
@@ -76,8 +76,8 @@ if( UPDISTANT )
 	FetchContent_MakeAvailable(LinkedLists)
 endif()
 
-target_link_libraries(CairoTest PRIVATE LinkedLists)
-target_include_directories(CairoTest PRIVATE ${LinkedLists_SOURCE_DIR})
+target_link_libraries(CairoInterpreter PRIVATE LinkedLists)
+target_include_directories(CairoInterpreter PRIVATE ${LinkedLists_SOURCE_DIR})
 
 FetchContent_Declare(
 	Strings
@@ -88,8 +88,8 @@ if( UPDISTANT )
 	FetchContent_MakeAvailable(Strings)
 endif()
 
-target_link_libraries(CairoTest PRIVATE Strings)
-target_include_directories(CairoTest PRIVATE ${Strings_SOURCE_DIR})
+target_link_libraries(CairoInterpreter PRIVATE Strings)
+target_include_directories(CairoInterpreter PRIVATE ${Strings_SOURCE_DIR})
 
 find_package(Python3 REQUIRED)
 
@@ -97,16 +97,16 @@ message(STATUS "top cproto includes : ${CPROTO_INCLUDES}")
 add_custom_target(proto
     COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/proto.py ${CPROTO_INCLUDES}
-#    DEPENDS CairoTest
+#    DEPENDS CairoInterpreter
 )
-add_dependencies(CairoTest proto)
+add_dependencies(CairoInterpreter proto)
 add_dependencies(Strings proto)
 
 find_package(PkgConfig REQUIRED)
 
 #Cairo
 find_package(Cairo)
-target_link_libraries(CairoTest PRIVATE Cairo::Cairo)
+target_link_libraries(CairoInterpreter PRIVATE Cairo::Cairo)
 message(STATUS "Cairo include: ${Cairo_INCLUDE_DIR}")
 message(STATUS "Cairo lib: ${Cairo_LIBRARY}")
 
@@ -122,7 +122,7 @@ endif()
 
 if( WITHSDL)
 find_package(SDL2 REQUIRED CONFIG)
-target_link_libraries(CairoTest PRIVATE SDL2::SDL2)
+target_link_libraries(CairoInterpreter PRIVATE SDL2::SDL2)
 endif()
 
 
