@@ -31,6 +31,7 @@ int yycolumn = 1;
 (?i:"setbgcolor")	{ return SETBGCOLOR; }
 (?i:"setautostrokecolor")	{ return SETAUTOSTROKECOLOR; }
 (?i:"setautofillcolor")	{ return SETAUTOFILLCOLOR; }
+(?i:"settextcolor")	{ return SETTEXTCOLOR; }
 (?i:"setautofill")	{ return SETAUTOFILL; }
 (?i:"setautostroke")	{ return SETAUTOSTROKE; }
 (?i:"setautofillstroke")	{ return SETAUTOFILLSTROKE; }

@@ -43,6 +43,9 @@ void CanvaCtx_init(CanvaCtx *self, int width, int height, int pitch)
 	        self->height,
 	        self->pitch
 	    );
+	self->pat = NULL;
+	self->text_color_is_set = false;
+	CanvaCtx_set_text_color(self, 0, 0, 0, 255);
 	self->cr = cairo_create (self->surface);
 }
 
@@ -69,6 +72,9 @@ void CanvaCtx_init_for_svg(CanvaCtx *self, int width, int height)
 	        self->width,
 	        self->height
 	    );
+	self->pat = NULL;
+	self->text_color_is_set = false;
+	CanvaCtx_set_text_color(self, 0, 0, 0, 255);
 	self->cr = cairo_create (self->surface);
 }
 
@@ -93,6 +99,9 @@ void CanvaCtx_init_for_png(CanvaCtx *self, int width, int height)
 	        self->width,
 	        self->height
 	    );
+	self->pat = NULL;
+	self->text_color_is_set = false;
+	CanvaCtx_set_text_color(self, 0, 0, 0, 255);
 	self->cr = cairo_create (self->surface);
 }
 
@@ -139,6 +148,15 @@ void CanvaCtx_set_default_fill_color(CanvaCtx *self, unsigned char red, unsigned
 	self->default_fill_color[3] = (double)alpha / 255.0;
 }
 
+void CanvaCtx_set_text_color(CanvaCtx *self, unsigned char red, unsigned char green, unsigned char blue, unsigned char alpha)
+{
+	self->text_color[0] = (double)red / 255.0;
+	self->text_color[1] = (double)green / 255.0;
+	self->text_color[2] = (double)blue / 255.0;
+	self->text_color[3] = (double)alpha / 255.0;
+	self->text_color_is_set = true;
+}
+
 void CanvaCtx_set_color(CanvaCtx *self, unsigned char red, unsigned char green, unsigned char blue, unsigned char alpha)
 {
 	double r, g, b, a;
@@ -180,6 +198,26 @@ void _CanvaCtx_send_default_fill_color(CanvaCtx *self)
 			self->default_fill_color[1],
 			self->default_fill_color[2],
 			self->default_fill_color[3]);
+}
+
+void CanvaCtx_send_text_color(CanvaCtx *self)
+{
+	if(self->text_color_is_set == false)
+	{
+		fprintf(stderr, "Text Color not set !\n");
+		return;
+	}
+	fprintf(stderr, "Sending Text olor %f %f %f %f\n",
+			self->text_color[0],
+			self->text_color[1],
+			self->text_color[2],
+			self->text_color[3]);
+
+	_CanvaCtx_set_color(self,
+			self->text_color[0],
+			self->text_color[1],
+			self->text_color[2],
+			self->text_color[3]);
 }
 
 void _CanvaCtx_set_color(CanvaCtx *self, double r, double g, double b, double a)
@@ -254,6 +292,22 @@ void CanvaCtx_paint(CanvaCtx *self)
 	fprintf(stderr, "Cairo paint %p\n", self->cr);
 	cairo_paint(self->cr);
 	self->color_set_up = false;
+}
+
+void CanvaCtx_save_source(CanvaCtx *self)
+{
+	if(self->pat != NULL)
+		cairo_pattern_destroy(self->pat);
+	self->pat = cairo_pattern_reference(cairo_get_source(self->cr));
+}
+
+void CanvaCtx_restore_source(CanvaCtx *self)
+{
+	if(self->pat == NULL)
+		return;
+	cairo_set_source(self->cr, self->pat);
+	cairo_pattern_destroy(self->pat);
+	self->pat = NULL;
 }
 
 void CanvaCtx_rotate(CanvaCtx *self, double a)

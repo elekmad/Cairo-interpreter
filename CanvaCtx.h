@@ -66,10 +66,13 @@ typedef struct {
     String output_buffer;
 
     cairo_surface_t *surface;
+    cairo_pattern_t *pat;
     cairo_t *cr;
     double default_line_with;
     double default_stroke_color[4];
     double default_fill_color[4];
+    double text_color[4];
+    bool text_color_is_set;
     CanvaCtxStrokeMode default_stroke_mode;
     bool pending_path;
     bool color_set_up;

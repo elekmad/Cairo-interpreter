@@ -39,6 +39,7 @@ Op *root;
 %token SETBGCOLOR
 %token SETAUTOSTROKECOLOR
 %token SETAUTOFILLCOLOR
+%token SETTEXTCOLOR
 %token SETAUTOFILL
 %token SETAUTOSTROKE
 %token SETAUTOFILLSTROKE
@@ -528,6 +529,28 @@ statement:
       | SETAUTOFILLCOLOR '(' expression ')' ';'
       {
       	OpColor *op = (OpColor*)OpSetDefaultFillColor_new();
+      	$$ = (Op*)op;
+		OpColor_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | SETTEXTCOLOR '(' expression ','
+                 expression ','
+                 expression ','
+                 expression ')' ';'
+      {
+      	OpColor *op = (OpColor*)OpSetTextColor_new();
+      	$$ = (Op*)op;
+		OpColor_set_red(op, $3);
+      	OpColor_set_green(op, $5);
+      	OpColor_set_blue(op, $7);
+      	OpColor_set_alpha(op, $9);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | SETTEXTCOLOR '(' expression ')' ';'
+      {
+      	OpColor *op = (OpColor*)OpSetTextColor_new();
       	$$ = (Op*)op;
 		OpColor_set_params(op, $3);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);

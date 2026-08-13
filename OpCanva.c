@@ -936,6 +936,64 @@ Op *OpSetDefaultStrokeColor_new(void)
 }
 
 
+
+OpIsa OpSetTextColor_isa = {
+		.name="SetTextColor",
+		.size=sizeof(OpColor),
+		.init = (void(*)(Op*))OpColor_init,
+		.terminate = (void(*)(Op*))OpColor_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpColor_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpSetTextColor_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpColor_check_args,
+};
+
+int OpSetTextColor_execute(OpColor *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double r = NAN, g = NAN, b = NAN, a = 255;
+	if(self->params != NULL)
+	{
+		double *d;
+		size_t size;
+		ret = Op_execute_get_doubles(self->params, (Op*)self, ctx, &d, &size, 3);
+		if(ret == 0)
+		{
+			r=d[0];
+			g=d[1];
+			b=d[2];
+			if(size > 3)
+				a=d[3];
+		}
+	}
+	else if(self->red != NULL)
+	{
+		ret = Op_execute_get_double(self->red, (Op*)self, ctx, &r);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->green, (Op*)self, ctx, &g);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->blue, (Op*)self, ctx, &b);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->alpha, (Op*)self, ctx, &a);
+
+	}
+	if(ret == 0)
+	{
+		int w, h;
+		w = OpCanvaContext_get_width(canvactx);
+		h = OpCanvaContext_get_height(canvactx);
+		fprintf(stderr, "Op Set Text Color %f %f %f %f\n", r, g, b, a);
+		CanvaCtx_set_text_color(canvactx->Canva, r, g, b, a);
+	}
+	return ret;
+}
+
+Op *OpSetTextColor_new(void)
+{
+	return Op_new(&OpSetTextColor_isa);
+}
+
+
 OpIsa OpSetDefaultFillColor_isa = {
 		.name="SetDefaultFillColor",
 		.size=sizeof(OpColor),
@@ -2150,7 +2208,10 @@ int OpDrawText_execute(OpDrawText *self, OpCanvaContext *canvactx)
 	{
 		switch(self->mode)
 		{
-		case show : CanvaCtx_draw_text(canvactx->Canva, text);
+		case show : CanvaCtx_save_source(canvactx->Canva);
+					CanvaCtx_send_text_color(canvactx->Canva);
+					CanvaCtx_draw_text(canvactx->Canva, text);
+					CanvaCtx_restore_source(canvactx->Canva);
 					break;
 		case path : CanvaCtx_draw_text_path(canvactx->Canva, text);
 					break;
