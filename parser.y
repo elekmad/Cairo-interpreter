@@ -97,6 +97,7 @@ Op *root;
 %token SIN
 %token ASIN
 %token CONCAT
+%token UNSET
 %token STRTOD
 %token DTOSTR
 %token TAN
@@ -189,6 +190,22 @@ statement:
       		OpSetVariable_set_value(op, (Op*)$3);
       		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       		free($1);
+      }
+
+      | UNSET '(' IDENTIFIER ')' ';'
+      {
+      		size_t var_num = OpContext_get_variable_number(Ctx, $3);
+      		OpSetVariable *op = (OpSetVariable*)OpSetVariable_new() ;
+      		$$ = (Op*)op;
+      		OpGetValue *g = (OpGetValue*)OpGetValue_new();
+      		OpVariable empty;
+      		OpVariable_init(&empty);
+      		OpGetValue_copy_variable(g, &empty);//Not really needed as Internal Variable of GetValue is init to empty, but cleaner !
+      		OpVariable_terminate(&empty);
+      		OpSetVariable_set_variable_number(op, var_num);
+      		OpSetVariable_set_value(op, (Op*)g);
+      		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      		free($3);
       }
       	| SETOUTPUTSIZE '(' expression ',' expression ')' ';'
       {

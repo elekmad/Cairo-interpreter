@@ -69,6 +69,7 @@ int yycolumn = 1;
 (?i:"getfirst")		{ return GETFIRST; }
 (?i:"getlast")		{ return GETLAST; }
 (?i:"concat")		{ return CONCAT; }
+(?i:"unset")		{ return UNSET; }
 (?i:"strtod")		{ return STRTOD; }
 (?i:"dtostr")		{ return DTOSTR; }
 (?i:"pi")			{ return PI; }
