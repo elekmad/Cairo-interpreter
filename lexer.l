@@ -80,6 +80,10 @@ int yycolumn = 1;
 (?i:"white")		{ return WHITE; }
 (?i:"radians")		{ return RADIANS; }
 (?i:"degrees")		{ return DEGREES; }
+(?i:"and")			{ return AND; }
+(?i:"or")			{ return OR; }
+(?i:"xor")			{ return XOR; }
+(?i:"not")			{ return NOT; }
 (?i:"cos")			{ return COS; }
 (?i:"acos")			{ return ACOS; }
 (?i:"sin")			{ return SIN; }
@@ -118,7 +122,6 @@ int yycolumn = 1;
 "!="    return NEQ;
 "<"     return '<';
 ">"     return '>';
-"!"     return '!';
 
 [+\-*/=;,(){}\[\]:] {
     return yytext[0];

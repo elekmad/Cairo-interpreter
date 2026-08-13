@@ -1553,7 +1553,7 @@ int OpForLoop_execute(OpForLoop *self, OpContext *ctx)
 
 	bool stop = false;
 	double c = NAN, v;
-	fprintf(stderr, "ForLoop %p Start\n", self);
+	fprintf(stderr, "ForLoop %p Start @%zu From %f TO %f STEP %f\n", self, self->variable_number, start, condition, step);
 	v = start;
 	fprintf(stderr, "ForLoop %p start op : @%zu = %f\n", self, self->variable_number, v);
 	OpContext_set_variable_value_double(ctx, self->variable_number, v);
@@ -2208,10 +2208,16 @@ int check_args_add(OpVariable *v1, OpVariable *v2)
 						if(t2 == DOUBLES)
 						{
 							if(OpVariable_get_number_elements(v1) != OpVariable_get_number_elements(v2))
+							{
+								fprintf(stderr, "Differents size of DOUBLES : %zu <> %zu\n", OpVariable_get_number_elements(v1), OpVariable_get_number_elements(v2));
 								ret = -1;
+							}
 						}
 						else
+						{
+							fprintf(stderr, "Type 1 is %d, type 2 not : %d !\n", t1, t2);
 							ret = -1;
+						}
 					}
 					break;
 	case STRING :	if(t2 != STRING)
@@ -3141,6 +3147,138 @@ Op *OpConcat_new(void)
 	return Op_new(&OpConcat_isa.super);
 }
 
+int compute_and(OpVariable *res, OpVariable *v1, OpVariable *v2)
+{
+	double d1, d2;
+	bool b1, b2;
+	d1 = OpVariable_get_double(v1);
+	d2 = OpVariable_get_double(v2);
+
+	if(!isfinite(d1) || !isfinite(d2))
+		return -1;
+	b1 = double_eq(d1, 0) ? false : true;
+	b2 = double_eq(d2, 0) ? false : true;
+
+	OpVariable_set_double(res, b1 && b2 ? 1.0 : 0.0);
+	return 0;
+}
+
+int check_args_and(OpVariable *v1, OpVariable *v2)
+{
+	OpVarType t1 = OpVariable_get_type(v1), t2 = OpVariable_get_type(v2);
+	if(t1 == t2)
+	{
+		if(t1 == DOUBLE)
+			return 0;
+	}
+	return -1;
+}
+
+OpIsaTwoOp OpAnd_isa = {
+		.super.name="And",
+		.super.size=sizeof(Op2),
+		.super.init = (void(*)(Op*))Op2_init,
+		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
+		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
+		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
+		.check_args = check_args_and,
+		.compute = compute_and
+};
+
+Op *OpAnd_new(void)
+{
+	return Op_new(&OpAnd_isa.super);
+}
+
+int compute_or(OpVariable *res, OpVariable *v1, OpVariable *v2)
+{
+	double d1, d2;
+	bool b1, b2;
+	d1 = OpVariable_get_double(v1);
+	d2 = OpVariable_get_double(v2);
+
+	if(!isfinite(d1) || !isfinite(d2))
+		return -1;
+	b1 = double_eq(d1, 0) ? false : true;
+	b2 = double_eq(d2, 0) ? false : true;
+
+	OpVariable_set_double(res, b1 || b2 ? 1.0 : 0.0);
+	return 0;
+}
+
+int check_args_or(OpVariable *v1, OpVariable *v2)
+{
+	OpVarType t1 = OpVariable_get_type(v1), t2 = OpVariable_get_type(v2);
+	if(t1 == t2)
+	{
+		if(t1 == DOUBLE)
+			return 0;
+	}
+	return -1;
+}
+
+OpIsaTwoOp OpOr_isa = {
+		.super.name="Or",
+		.super.size=sizeof(Op2),
+		.super.init = (void(*)(Op*))Op2_init,
+		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
+		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
+		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
+		.check_args = check_args_or,
+		.compute = compute_or
+};
+
+Op *OpOr_new(void)
+{
+	return Op_new(&OpOr_isa.super);
+}
+
+int compute_xor(OpVariable *res, OpVariable *v1, OpVariable *v2)
+{
+	double d1, d2;
+	bool b1, b2;
+	d1 = OpVariable_get_double(v1);
+	d2 = OpVariable_get_double(v2);
+
+	if(!isfinite(d1) || !isfinite(d2))
+		return -1;
+	b1 = double_eq(d1, 0) ? false : true;
+	b2 = double_eq(d2, 0) ? false : true;
+
+	OpVariable_set_double(res, b1 != b2 ? 1.0 : 0.0);
+	return 0;
+}
+
+int check_args_xor(OpVariable *v1, OpVariable *v2)
+{
+	OpVarType t1 = OpVariable_get_type(v1), t2 = OpVariable_get_type(v2);
+	if(t1 == t2)
+	{
+		if(t1 == DOUBLE)
+			return 0;
+	}
+	return -1;
+}
+
+OpIsaTwoOp OpXor_isa = {
+		.super.name="Xor",
+		.super.size=sizeof(Op2),
+		.super.init = (void(*)(Op*))Op2_init,
+		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
+		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
+		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
+		.check_args = check_args_xor,
+		.compute = compute_xor
+};
+
+Op *OpXor_new(void)
+{
+	return Op_new(&OpXor_isa.super);
+}
+
 OpIsaOneOp Op1_isa = {
 		.super.name="Op1",
 		.super.size=sizeof(Op1),
@@ -3404,7 +3542,7 @@ Op *OpNegValue_new(void)
 	return Op_new(&OpNegValue_isa.super);
 }
 
-int compute_logical_neg(OpVariable *res, OpVariable *v)
+int compute_not(OpVariable *res, OpVariable *v)
 {
 	switch(OpVariable_get_type(v))
 	{
@@ -3429,7 +3567,7 @@ int compute_logical_neg(OpVariable *res, OpVariable *v)
 	return 0;
 }
 
-int check_args_logical_neg(OpVariable *v)
+int check_args_not(OpVariable *v)
 {
 	int ret = 0;
 	OpVarType t1 = OpVariable_get_type(v);
@@ -3438,21 +3576,21 @@ int check_args_logical_neg(OpVariable *v)
 	return ret;
 }
 
-OpIsaOneOp OpLogicalNegValue_isa = {
-		.super.name="LogicalNegValue",
+OpIsaOneOp OpNot_isa = {
+		.super.name="Not",
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
 		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
 		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
 		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
-		.check_arg = check_args_logical_neg,
-		.compute = compute_logical_neg
+		.check_arg = check_args_not,
+		.compute = compute_not
 };
 
-Op *OpLogicalNegValue_new(void)
+Op *OpNot_new(void)
 {
-	return Op_new(&OpLogicalNegValue_isa.super);
+	return Op_new(&OpNot_isa.super);
 }
 
 int compute_floor(OpVariable *res, OpVariable *v)

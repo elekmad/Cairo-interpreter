@@ -88,6 +88,10 @@ Op *root;
 %token WHITE
 %token RADIANS
 %token DEGREES
+%token AND
+%token OR
+%token XOR
+%token NOT
 %token COS
 %token ACOS
 %token SIN
@@ -111,13 +115,17 @@ Op *root;
 %type <node> program block expression statements statement
 %type <var> number_list string_list
 
+%left OR
+%left XOR
+%left AND
+
 %left EQ NEQ
 %left '<' '>' LEQ GEQ
 %left '+' '-'
 %left '*' '/'
 %right APPEND
 %right UMINUS
-%right '!'
+%right NOT
 
 %nonassoc IFX
 %nonassoc ELSE
@@ -1059,9 +1067,36 @@ expression:
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @2.last_line, @2.last_column);
       }
 
-    | '!' expression
+    | expression AND expression
       {
-      	Op1 *op = (Op1*)OpLogicalNegValue_new();
+      	Op2 *op = (Op2*)OpAnd_new();
+      	$$ = (Op*)op;
+      	Op2_set_operande1(op, $1);
+      	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @3.last_line, @3.last_column);
+      }
+
+    | expression OR expression
+      {
+      	Op2 *op = (Op2*)OpOr_new();
+      	$$ = (Op*)op;
+      	Op2_set_operande1(op, $1);
+      	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @3.last_line, @3.last_column);
+      }
+
+    | expression XOR expression
+      {
+      	Op2 *op = (Op2*)OpXor_new();
+      	$$ = (Op*)op;
+      	Op2_set_operande1(op, $1);
+      	Op2_set_operande2(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @3.last_line, @3.last_column);
+      }
+
+    | NOT expression
+      {
+      	Op1 *op = (Op1*)OpNot_new();
       	$$ = (Op*)op;
       	Op1_set_operande(op, $2);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @2.last_line, @2.last_column);
