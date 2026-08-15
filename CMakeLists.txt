@@ -93,14 +93,39 @@ target_include_directories(CairoInterpreter PRIVATE ${Strings_SOURCE_DIR})
 
 find_package(Python3 REQUIRED)
 
+foreach(source ${CPP_SOURCE})
+	if(${source} MATCHES "\\.c$")
+		message(STATUS ${source}" must gen proto")
+		string(REGEX REPLACE "\\.c$" ".h" header "${source}")
+		if(NOT EXISTS "${header}")
+		message(STATUS ${header}" do not exist")
+	        continue()
+    	endif()
+    	file(READ "${header}" HEADER_CONTENT)
+
+    	if(HEADER_CONTENT MATCHES "#[ \t]*include[ \t]*<[^<]*\\.proto\\.h>")
+    		string(REGEX REPLACE "\\.c$" ".proto.h" pheader "${source}")
+    		message(STATUS ${pheader}" must be gen produced")
+         	add_custom_command(
+			    	OUTPUT
+    				${pheader}
+					COMMAND ${Python3_EXECUTABLE}
+            			${CMAKE_SOURCE_DIR}/proto.py ${CPROTO_INCLUDES} --source ${source} --compile ${CMAKE_SOURCE_DIR}
+    				DEPENDS ${source}
+					)
+			set_source_files_properties(
+    				${source}
+    				PROPERTIES
+        			OBJECT_DEPENDS ${pheader}
+			)
+		else()
+			message(STATUS ${header}" do not contain proto")
+    	endif()
+	endif()
+endforeach()
+
+
 message(STATUS "top cproto includes : ${CPROTO_INCLUDES}")
-add_custom_target(proto
-    COMMAND ${Python3_EXECUTABLE}
-            ${CMAKE_SOURCE_DIR}/proto.py ${CPROTO_INCLUDES}
-#    DEPENDS CairoInterpreter
-)
-add_dependencies(CairoInterpreter proto)
-add_dependencies(Strings proto)
 
 find_package(PkgConfig REQUIRED)
 

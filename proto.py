@@ -4,6 +4,8 @@ import os
 
 import argparse
 
+#print("Proto Start\n")
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
@@ -13,26 +15,35 @@ parser.add_argument(
     help="Répertoire d'inclusion"
 )
 
+parser.add_argument(
+    "--source",
+    action="append",
+    default=[],
+    help="Répertoire d'inclusion"
+)
+
+parser.add_argument(
+    "--compile",
+    action="append",
+    default=[],
+    help="Répertoire d'inclusion"
+)
+
 args = parser.parse_args()
 #print(args.include)
 
 #with open("build/compile_commands.json") as f:
-with open("compile_commands.json") as f:
+with open(args.compile[0]+"/build/compile_commands.json") as f:
     db = json.load(f)
+    
+#print("source : "+os.path.basename(args.source[0]))
 
 for entry in db:
     src = entry["file"]
-
-    if os.path.basename(src) == "main.c":
-        continue
-
-    if os.path.basename(src) == "lex.yy.c":
-        continue
-
-    if os.path.basename(src) == "parser.tab.c":
-        continue
-
-    if "build/" in os.path.dirname(src) and not os.path.dirname(src) in args.include :
+    
+    #print("liste : "+os.path.basename(src))
+    
+    if os.path.basename(src) != os.path.basename(args.source[0]):
         continue
 
     if not src.endswith(".c"):
@@ -63,3 +74,5 @@ for entry in db:
         stdout=open(proto, "w"), stderr=open("/dev/null", "w")
     )
 #    print(["cproto", *compiler_flags, src])
+
+#print("Proto End\n")
