@@ -77,7 +77,7 @@ if( UPDISTANT )
 endif()
 
 target_link_libraries(CairoInterpreter PRIVATE LinkedLists)
-target_include_directories(CairoInterpreter PRIVATE ${LinkedLists_SOURCE_DIR})
+target_include_directories(CairoInterpreter PRIVATE ${linkedlists_SOURCE_DIR})
 
 FetchContent_Declare(
 	Strings
@@ -89,7 +89,7 @@ if( UPDISTANT )
 endif()
 
 target_link_libraries(CairoInterpreter PRIVATE Strings)
-target_include_directories(CairoInterpreter PRIVATE ${Strings_SOURCE_DIR})
+target_include_directories(CairoInterpreter PRIVATE ${strings_SOURCE_DIR})
 
 find_package(Python3 REQUIRED)
 
