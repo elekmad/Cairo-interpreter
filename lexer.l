@@ -1,6 +1,7 @@
 %option header-file="lexer.h"
 %option noyywrap
 %option yylineno
+
 %{
 #include "parser.tab.h"
 #include <stdlib.h>
@@ -19,13 +20,15 @@ int yycolumn = 1;
 /* %option debug */
 %%
 
-\/\/[^\n]*				;
- 
+\/\/[^\n]* ;
+
 \n {
     yycolumn = 1;
 }
 
-[ \t\r\n]+          ;
+[ \t\r]+ {
+    ;
+}
 
 (?i:"rectangle")	{ return RECTANGLE; }
 (?i:"setbgcolor")	{ return SETBGCOLOR; }
