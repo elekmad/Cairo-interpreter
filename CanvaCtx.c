@@ -166,7 +166,7 @@ void CanvaCtx_set_color(CanvaCtx *self, unsigned char red, unsigned char green, 
 	b = (double)blue / 255.0;
 	a = (double)alpha / 255.0;
 
-	_CanvaCtx_set_color(self, r, b, g, a);
+	_CanvaCtx_set_color(self, r, g, b, a);
 	self->color_set_up = true;
 }
 
