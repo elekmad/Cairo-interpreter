@@ -107,6 +107,8 @@ Op *root;
 %token CEIL
 %token POWER
 %token SQRT
+%token RANDINIT
+%token RAND
 %token MESSAGE
 %token PREMESSAGE
 %token SETOUTPUTSIZE
@@ -317,6 +319,21 @@ statement:
     	OpWhile_set_bloc(op, $5);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
     }
+      	| RANDINIT '(' expression ')' ';'
+      {
+		OpInitRandom *op = (OpInitRandom *)OpInitRandom_new();
+      	$$ = (Op*)op;
+    	OpInitRandom_set_value(op, $3);
+      	Op_set_for_prerunning($$);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| RANDINIT '(' ')' ';'
+      {
+		OpInitRandom *op = (OpInitRandom *)OpInitRandom_new();
+      	$$ = (Op*)op;
+      	Op_set_for_prerunning($$);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
 
     | RECTANGLE '(' expression ','
                     expression ','
@@ -823,7 +840,20 @@ expression:
       	$$ = (Op*)op;
       	OpGetValue_set_value(op, $1);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
-      }
+      } 
+      | RAND '(' expression ')'
+      {
+		OpRandom *op = (OpRandom *)OpRandom_new();
+      	$$ = (Op*)op;
+    	OpRandom_set_value(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| RAND '(' ')'
+      {
+		OpRandom *op = (OpRandom *)OpRandom_new();
+      	$$ = (Op*)op;
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
       
       | TEXTCONTENT
       {
@@ -1055,6 +1085,11 @@ expression:
       	Op2_set_operande1(op, $1);
       	Op2_set_operande2(op, $3);
   		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
+  		          fprintf(stderr,
+                  "PLUS : L%d C%d-C%d\n",
+                  @2.first_line,
+                  @2.first_column,
+                  @2.last_column);
       }
 
     | expression '-' expression

@@ -8,7 +8,10 @@
 
 #include <Op.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <time.h>
 #include <math.h>
 #include <string.h>
 
@@ -1094,6 +1097,159 @@ void OpPrintMessage_terminate(OpPrintMessage *self)
 Op *OpPrintMessage_new(void)
 {
 	return Op_new(&OpPrintMessage_isa);
+}
+
+OpIsa OpInitRandom_isa = {
+		.name="InitRandom",
+		.size=sizeof(OpInitRandom),
+		.init = (void(*)(Op*))OpInitRandom_init,
+		.terminate = (void(*)(Op*))OpInitRandom_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpInitRandom_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpInitRandom_execute,
+		.check_args = (int(*)(Op*, OpContext*))NULL,
+};
+
+void OpInitRandom_init(OpInitRandom *self)
+{
+	Op_init(&self->super);
+	self->value = NULL;
+}
+
+#define OPINITRANDOM_VAUE 0
+
+void OpInitRandom_set_value(OpInitRandom *self, Op *op)
+{
+	OP_ADD_OPERANDE(self, op, OPINITRANDOM_VAUE);
+}
+
+void _OpInitRandom_set_value(OpInitRandom *self, Op *op)
+{
+	OP_SET_OPERANDE(self, value, op);
+}
+
+int OpInitRandom_fix_operandes(OpInitRandom *self, OpContext *ctx)
+{
+	int ret = 0;
+	if(self->super.nb_ops > OPINITRANDOM_VAUE)
+	{
+		Op *v = ((Op*)self)->operandes[OPINITRANDOM_VAUE];
+		_OpInitRandom_set_value(self, v);
+	}
+	return ret;
+}
+
+int OpInitRandom_execute(OpInitRandom *self, OpContext *ctx)
+{
+	int ret = 0;
+	double v;
+
+	if(self->value != NULL)
+	{
+		ret = Op_execute_get_double(self->value, (Op*)self, ctx, &v);
+		if(ret == 0)
+		{
+			unsigned int s = (unsigned int)v;
+			srandom(s);
+			fprintf(stderr, "Init Random Seed with %u\n", s);
+		}
+	}
+	else
+	{
+		unsigned int s = (unsigned int)time(NULL) ^ (unsigned int)getpid();
+		srandom(s);
+		fprintf(stderr, "Init Random Seed with %u\n", s);
+	}
+
+	return ret;
+}
+
+void OpInitRandom_terminate(OpInitRandom *self)
+{
+	Op_terminate(&self->super);
+	_OpInitRandom_set_value(self, NULL);
+}
+
+Op *OpInitRandom_new(void)
+{
+	return Op_new(&OpInitRandom_isa);
+}
+
+OpIsa OpRandom_isa = {
+		.name="Random",
+		.size=sizeof(OpRandom),
+		.init = (void(*)(Op*))OpRandom_init,
+		.terminate = (void(*)(Op*))OpRandom_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpRandom_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpRandom_execute,
+		.check_args = (int(*)(Op*, OpContext*))NULL,
+};
+
+void OpRandom_init(OpRandom *self)
+{
+	Op_init(&self->super);
+	self->value = NULL;
+}
+
+#define OPRANDOM_VAUE 0
+
+void OpRandom_set_value(OpRandom *self, Op *op)
+{
+	OP_ADD_OPERANDE(self, op, OPRANDOM_VAUE);
+}
+
+void _OpRandom_set_value(OpRandom *self, Op *op)
+{
+	OP_SET_OPERANDE(self, value, op);
+}
+
+int OpRandom_fix_operandes(OpRandom *self, OpContext *ctx)
+{
+	int ret = 0;
+	if(self->super.nb_ops > OPRANDOM_VAUE)
+	{
+		Op *v = ((Op*)self)->operandes[OPINITRANDOM_VAUE];
+		_OpRandom_set_value(self, v);
+	}
+	return ret;
+}
+
+int OpRandom_execute(OpRandom *self, OpContext *ctx)
+{
+	int ret = 0;
+	double max, v = NAN;
+
+	if(self->value != NULL)
+	{
+		ret = Op_execute_get_double(self->value, (Op*)self, ctx, &max);
+		if(ret == 0)
+		{
+			v = (double)(random() % 10000) * max /10000 ;
+			fprintf(stderr, "Random value in [0; %f] : %f\n", max, v);
+		}
+	}
+	else
+	{
+		v = (double)(random() % 10000) / 10000;
+		fprintf(stderr, "Random value in [0; 1] : %f\n", v);
+	}
+
+	if(ret == 0 && isnan(v) == false)
+	{
+		OpContext_set_current_value_double(ctx, v);
+	}
+
+	return ret;
+}
+
+void OpRandom_terminate(OpRandom *self)
+{
+	Op_terminate(&self->super);
+	_OpRandom_set_value(self, NULL);
+}
+
+Op *OpRandom_new(void)
+{
+	return Op_new(&OpRandom_isa);
 }
 
 

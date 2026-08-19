@@ -99,6 +99,8 @@ int yycolumn = 1;
 (?i:"ceil")			{ return CEIL; }
 (?i:"power")		{ return POWER; }
 (?i:"sqrt")			{ return SQRT; }
+(?i:"#randinit")		{ return RANDINIT; }
+(?i:"rand")			{ return RAND; }
 (?i:"message")		{ return MESSAGE; } 
 ^(?i:"#initmessage")	{ return PREMESSAGE; }
 ^(?i:"#setoutputsize")	{ return SETOUTPUTSIZE; } 
