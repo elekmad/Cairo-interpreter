@@ -16,14 +16,14 @@
 #include <String.h>
 #include <stdbool.h>
 
-typedef enum canva_ctx_stroke_mode
+typedef enum canva_ctx_auto_draw_mode
 {
 	None = 0,
 	Fill,
 	Stroke,
 	FillStroke,
 	StrokeFill
-} CanvaCtxStrokeMode;
+} CanvaCtxAutoDrawMode;
 
 typedef enum canva_ctx_output_mode
 {
@@ -73,7 +73,7 @@ typedef struct {
     double default_fill_color[4];
     double text_color[4];
     bool text_color_is_set;
-    CanvaCtxStrokeMode default_stroke_mode;
+    CanvaCtxAutoDrawMode default_auto_draw_mode;
     bool pending_path;
     bool color_set_up;
 

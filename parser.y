@@ -141,7 +141,7 @@ program:
 			OpBloc *op = (OpBloc*)OpCanvaBloc_new();
           *root = (Op*)op;
           Op_set_for_prerunning(*root);//Must be done before append because is recursive
-          OpCanvaBloc_set_auto_stroke((OpCanvaBloc*)op);
+          OpCanvaBloc_set_auto_draw((OpCanvaBloc*)op);
           $$ = (Op*)op;
           OpBloc_append_Op(op, $1);
       		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
@@ -467,7 +467,7 @@ statement:
       	OpColor_set_alpha(opc, $9);
         OpBloc_append_Op(op, (Op*)opc);
         OpBloc_append_Op(op, $11);
-        OpCanvaBloc_set_auto_stroke((OpCanvaBloc*)op);
+        OpCanvaBloc_set_auto_draw((OpCanvaBloc*)op);
   		Op_set_source_pos($$, @11.first_line, @11.first_column, @11.last_line, @11.last_column);
   		Op_set_source_pos((Op*)opc, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
@@ -480,7 +480,7 @@ statement:
 		OpColor_set_params(opc, $3);
         OpBloc_append_Op(op, (Op*)opc);
         OpBloc_append_Op(op, $5);
-        OpCanvaBloc_set_auto_stroke((OpCanvaBloc*)op);
+        OpCanvaBloc_set_auto_draw((OpCanvaBloc*)op);
   		Op_set_source_pos($$, @5.first_line, @5.first_column, @5.last_line, @5.last_column);
   		Op_set_source_pos((Op*)opc, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }

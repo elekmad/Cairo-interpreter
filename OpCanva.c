@@ -1148,7 +1148,7 @@ OpIsa OpSetAutoFill_isa = {
 
 int OpSetAutoFill_execute(Op *self, OpCanvaContext *ctx)
 {
-	CanvaCtx_set_default_stroke_mode(ctx->Canva, Fill);
+	CanvaCtx_set_default_draw_mode(ctx->Canva, Fill);
 	return 0;
 }
 
@@ -1169,7 +1169,7 @@ OpIsa OpSetAutoFillStroke_isa = {
 
 int OpSetAutoFillStroke_execute(Op *self, OpCanvaContext *ctx)
 {
-	CanvaCtx_set_default_stroke_mode(ctx->Canva, FillStroke);
+	CanvaCtx_set_default_draw_mode(ctx->Canva, FillStroke);
 	return 0;
 }
 
@@ -1190,7 +1190,7 @@ OpIsa OpSetAutoStroke_isa = {
 
 int OpSetAutoStroke_execute(Op *self, OpCanvaContext *ctx)
 {
-	CanvaCtx_set_default_stroke_mode(ctx->Canva, Stroke);
+	CanvaCtx_set_default_draw_mode(ctx->Canva, Stroke);
 	return 0;
 }
 
@@ -1211,7 +1211,7 @@ OpIsa OpSetAutoStrokeFill_isa = {
 
 int OpSetAutoStrokeFill_execute(Op *self, OpCanvaContext *ctx)
 {
-	CanvaCtx_set_default_stroke_mode(ctx->Canva, StrokeFill);
+	CanvaCtx_set_default_draw_mode(ctx->Canva, StrokeFill);
 	return 0;
 }
 
@@ -2028,7 +2028,7 @@ OpIsa OpCanvaBloc_isa = {
 void OpCanvaBloc_init(OpCanvaBloc *self)
 {
 	OpBloc_init(&self->super);
-	self->auto_stroke = false;
+	self->auto_draw = false;
 }
 
 void OpCanvaBloc_terminate(OpCanvaBloc *self)
@@ -2036,9 +2036,9 @@ void OpCanvaBloc_terminate(OpCanvaBloc *self)
 	OpBloc_terminate(&self->super);
 }
 
-void OpCanvaBloc_set_auto_stroke(OpCanvaBloc *self)
+void OpCanvaBloc_set_auto_draw(OpCanvaBloc *self)
 {
-	self->auto_stroke = true;
+	self->auto_draw = true;
 }
 
 int OpCanvaBloc_execute(OpCanvaBloc *self, OpCanvaContext *canvactx)
@@ -2054,8 +2054,8 @@ int OpCanvaBloc_execute(OpCanvaBloc *self, OpCanvaContext *canvactx)
 	ret = OpBloc_execute(&self->super, (OpContext*)ctx);
 	if(ret == 0)
 	{
-		if(self->auto_stroke == true)
-			CanvaCtx_auto_stroke(canvactx->Canva);
+		if(self->auto_draw == true)
+			CanvaCtx_auto_draw(canvactx->Canva);
 
 		fprintf(stderr, "Canva %p Restore\n", canvactx->Canva);
 		CanvaCtx_restore(canvactx->Canva);

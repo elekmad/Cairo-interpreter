@@ -21,7 +21,7 @@ void CanvaCtx_init(CanvaCtx *self, int width, int height, int pitch)
 	self->width = width;
 	self->height = height;
 	self->pitch = pitch;
-	self->default_stroke_mode = Stroke;
+	self->default_auto_draw_mode = Stroke;
 	CanvaCtx_set_default_fill_color(self, 0, 0, 0, 255);
 	CanvaCtx_set_default_stroke_color(self, 0, 0, 0, 255);
 	self->pending_path = false;
@@ -55,7 +55,7 @@ void CanvaCtx_init_for_svg(CanvaCtx *self, int width, int height)
 	memset(self, sizeof(self), 0);
 	self->width = width;
 	self->height = height;
-	self->default_stroke_mode = Stroke;
+	self->default_auto_draw_mode = Stroke;
 	CanvaCtx_set_default_fill_color(self, 0, 0, 0, 255);
 	CanvaCtx_set_default_stroke_color(self, 0, 0, 0, 255);
 	self->pending_path = false;
@@ -83,7 +83,7 @@ void CanvaCtx_init_for_png(CanvaCtx *self, int width, int height)
 	memset(self, sizeof(self), 0);
 	self->width = width;
 	self->height = height;
-	self->default_stroke_mode = Stroke;
+	self->default_auto_draw_mode = Stroke;
 	CanvaCtx_set_default_fill_color(self, 0, 0, 0, 255);
 	CanvaCtx_set_default_stroke_color(self, 0, 0, 0, 255);
 	self->pending_path = false;
@@ -341,12 +341,12 @@ void CanvaCtx_set_default_line_width(CanvaCtx *self, double w)
 }
 
 
-void CanvaCtx_set_default_stroke_mode(CanvaCtx *self, CanvaCtxStrokeMode m)
+void CanvaCtx_set_default_draw_mode(CanvaCtx *self, CanvaCtxAutoDrawMode m)
 {
-	self->default_stroke_mode = m;
+	self->default_auto_draw_mode = m;
 }
 
-void CanvaCtx_auto_stroke(CanvaCtx *self)
+void CanvaCtx_auto_draw(CanvaCtx *self)
 {
 	fprintf(stderr, "AutoStroke ?\n");
 	if(self->pending_path == false)
@@ -355,7 +355,7 @@ void CanvaCtx_auto_stroke(CanvaCtx *self)
 		return;
 	}
 	fprintf(stderr, "Need AutoStroke !\n");
-	switch(self->default_stroke_mode)
+	switch(self->default_auto_draw_mode)
 	{
 	case Fill :			if(self->color_set_up == false)
 						{

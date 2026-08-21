@@ -133,7 +133,7 @@ typedef struct op_draw_line_to
 typedef struct op_canva_bloc
 {
 	OpBloc super;
-	bool auto_stroke;
+	bool auto_draw;
 }OpCanvaBloc;
 
 
