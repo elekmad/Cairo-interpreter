@@ -1,0 +1,1997 @@
+```html
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Cairo DSL Editor</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        body {
+            display: flex;
+            background: #202124;
+            color: #eee;
+        }
+
+
+        /* =========================================================
+           PANNEAU GAUCHE : EDITEUR
+           ========================================================= */
+
+        #editor-panel {
+            width: 50%;
+            height: 100%;
+
+            display: flex;
+            flex-direction: column;
+
+            border-right: 3px solid #444;
+
+            min-width: 250px;
+        }
+
+
+        #editor-header {
+            height: 45px;
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+
+            padding: 0 10px;
+
+            background: #292a2d;
+            border-bottom: 1px solid #444;
+        }
+
+
+        #editor-title {
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+
+        #editor-filename {
+            flex: 1;
+
+            color: #aaa;
+
+            font-family: monospace;
+            font-size: 12px;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+
+        .toolbar-button {
+            margin-left: 5px;
+
+            padding: 6px 12px;
+
+            border: none;
+            border-radius: 4px;
+
+            background: #555;
+            color: white;
+
+            cursor: pointer;
+        }
+
+
+        .toolbar-button:hover {
+            background: #666;
+        }
+
+
+        .toolbar-button:disabled {
+            background: #444;
+            color: #888;
+            cursor: default;
+        }
+
+
+        #send-button {
+            background: #4caf50;
+            font-weight: bold;
+        }
+
+
+        #send-button:hover {
+            background: #5bc660;
+        }
+
+
+        #send-button:disabled {
+            background: #666;
+            cursor: wait;
+        }
+
+
+        #editor {
+            flex: 1;
+
+            width: 100%;
+
+            resize: none;
+            border: none;
+            outline: none;
+
+            padding: 12px;
+
+            background: #1e1f22;
+            color: #eee;
+
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.5;
+
+            tab-size: 4;
+        }
+
+
+        /* =========================================================
+           PANNEAU DROIT
+           ========================================================= */
+
+        #right-panel {
+            width: 50%;
+            height: 100%;
+
+            display: flex;
+            flex-direction: column;
+
+            min-width: 300px;
+        }
+
+
+        /* =========================================================
+           RESULTAT
+           ========================================================= */
+
+        #output-panel {
+            height: 65%;
+            min-height: 100px;
+
+            display: flex;
+            flex-direction: column;
+
+            border-bottom: 3px solid #444;
+        }
+
+
+        #output-header,
+        #messages-header {
+            height: 40px;
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+
+            padding: 0 10px;
+
+            background: #292a2d;
+            border-bottom: 1px solid #444;
+
+            font-weight: bold;
+        }
+
+
+        #output-title {
+            flex: 1;
+        }
+
+
+        #output {
+            flex: 1;
+
+            overflow: auto;
+
+            background: #fff;
+            color: #000;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            padding: 10px;
+        }
+
+
+        #output svg {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+
+        #output img {
+            max-width: 100%;
+            max-height: 100%;
+
+            object-fit: contain;
+        }
+
+
+        #output-placeholder {
+            color: #777;
+            font-style: italic;
+        }
+
+
+        /* =========================================================
+           MESSAGES
+           ========================================================= */
+
+        #messages-panel {
+            flex: 1;
+            min-height: 100px;
+
+            display: flex;
+            flex-direction: column;
+        }
+
+
+        #messages {
+            flex: 1;
+
+            overflow: auto;
+
+            padding: 5px;
+
+            background: #1e1f22;
+        }
+
+
+        .message {
+            display: flex;
+            gap: 8px;
+
+            padding: 7px 8px;
+            margin-bottom: 3px;
+
+            border-radius: 3px;
+
+            cursor: pointer;
+
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+
+        .message:hover {
+            background: #383a40;
+        }
+
+
+        .message-icon {
+            width: 20px;
+            flex-shrink: 0;
+
+            text-align: center;
+        }
+
+
+        .message-content {
+            flex: 1;
+        }
+
+
+        .message-state {
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+
+        .message-position {
+            color: #aaa;
+            font-size: 11px;
+        }
+
+
+        .message-text {
+            margin-top: 3px;
+
+            white-space: pre-wrap;
+        }
+
+
+        /* =========================================================
+           ETATS
+           ========================================================= */
+
+        .state-init,
+        .state-prerun,
+        .state-run {
+            border-left: 3px solid #777;
+        }
+
+
+        .state-ready,
+        .state-finished {
+            border-left: 3px solid #4caf50;
+        }
+
+
+        .state-error,
+        .state-parseerror {
+            border-left: 3px solid #f44336;
+            background: #351f20;
+        }
+
+
+        /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
+        @media (max-width: 700px) {
+
+            body {
+                flex-direction: column;
+                overflow: auto;
+            }
+
+
+            #editor-panel,
+            #right-panel {
+                width: 100%;
+                height: 50vh;
+            }
+
+
+            #editor-panel {
+                border-right: none;
+                border-bottom: 3px solid #444;
+            }
+
+
+            #output-panel {
+                height: 60%;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- =============================================================
+     EDITEUR
+     ============================================================= -->
+
+<section id="editor-panel">
+
+    <header id="editor-header">
+
+        <span id="editor-title">
+            Cairo DSL
+        </span>
+
+
+        <span id="editor-filename">
+            Aucun fichier
+        </span>
+
+
+        <button
+            id="open-button"
+            class="toolbar-button"
+            type="button"
+        >
+            Ouvrir
+        </button>
+
+
+        <button
+            id="save-button"
+            class="toolbar-button"
+            type="button"
+        >
+            Enregistrer
+        </button>
+
+
+        <button
+            id="send-button"
+            class="toolbar-button"
+            type="button"
+        >
+            Envoyer
+        </button>
+
+    </header>
+
+
+    <textarea
+        id="editor"
+        spellcheck="false"
+        placeholder="Entrez votre code ici..."
+    ></textarea>
+
+
+    <input
+        id="file-input"
+        type="file"
+        accept=".cairo,text/plain"
+        hidden
+    >
+
+</section>
+
+
+<!-- =============================================================
+     PANNEAU DROIT
+     ============================================================= -->
+
+<section id="right-panel">
+
+
+    <!-- RESULTAT -->
+
+    <section id="output-panel">
+
+        <header id="output-header">
+
+            <span id="output-title">
+                Résultat
+            </span>
+
+
+            <button
+                id="save-output-button"
+                class="toolbar-button"
+                type="button"
+                disabled
+            >
+                Enregistrer
+            </button>
+
+        </header>
+
+
+        <div id="output">
+
+            <span id="output-placeholder">
+                Aucun résultat
+            </span>
+
+        </div>
+
+    </section>
+
+
+    <!-- MESSAGES -->
+
+    <section id="messages-panel">
+
+        <header id="messages-header">
+            Messages
+        </header>
+
+
+        <div id="messages"></div>
+
+    </section>
+
+</section>
+
+
+<script>
+
+"use strict";
+
+
+/* =============================================================
+   CONFIGURATION
+   ============================================================= */
+
+const CGI_URL = URL_DE_LA_CGI;
+
+
+/* =============================================================
+   ELEMENTS DOM
+   ============================================================= */
+
+const editor =
+    document.getElementById("editor");
+
+const openButton =
+    document.getElementById("open-button");
+
+const saveButton =
+    document.getElementById("save-button");
+
+const sendButton =
+    document.getElementById("send-button");
+
+const fileInput =
+    document.getElementById("file-input");
+
+const filenameDisplay =
+    document.getElementById("editor-filename");
+
+const output =
+    document.getElementById("output");
+
+const messages =
+    document.getElementById("messages");
+
+const saveOutputButton =
+    document.getElementById("save-output-button");
+
+
+/* =============================================================
+   ETAT COURANT
+   ============================================================= */
+
+let currentFilename = null;
+
+let currentOutput = null;
+
+let currentOutputType = null;
+
+
+/* =============================================================
+   INITIALISATION
+   ============================================================= */
+
+openButton.addEventListener(
+    "click",
+    () => fileInput.click()
+);
+
+
+fileInput.addEventListener(
+    "change",
+    openFile
+);
+
+
+saveButton.addEventListener(
+    "click",
+    saveSource
+);
+
+
+sendButton.addEventListener(
+    "click",
+    sendCode
+);
+
+
+saveOutputButton.addEventListener(
+    "click",
+    saveOutput
+);
+
+
+/* =============================================================
+   RACCOURCIS
+   ============================================================= */
+
+document.addEventListener(
+    "keydown",
+    function(event)
+    {
+        const modifier =
+            event.ctrlKey || event.metaKey;
+
+
+        if (
+            modifier &&
+            event.key.toLowerCase() === "o"
+        ) {
+
+            event.preventDefault();
+
+            fileInput.click();
+
+            return;
+        }
+
+
+        if (
+            modifier &&
+            event.key.toLowerCase() === "s"
+        ) {
+
+            event.preventDefault();
+
+            saveSource();
+
+            return;
+        }
+
+
+        if (
+            modifier &&
+            event.key === "Enter"
+        ) {
+
+            event.preventDefault();
+
+            sendCode();
+
+            return;
+        }
+    }
+);
+
+
+/* =============================================================
+   OUVERTURE SOURCE
+   ============================================================= */
+
+async function openFile()
+{
+    const file =
+        fileInput.files[0];
+
+
+    if (!file)
+        return;
+
+
+    try {
+
+        editor.value =
+            await file.text();
+
+
+        currentFilename =
+            file.name;
+
+
+        updateFilename();
+
+
+        /*
+         * Le résultat précédent ne correspond plus
+         * forcément au contenu actuel.
+         */
+
+        clearOutput();
+
+    }
+    catch (error) {
+
+        addLocalMessage(
+            "Error",
+            "Impossible de lire le fichier : " +
+            error.message
+        );
+    }
+
+
+    /*
+     * Permet de rouvrir immédiatement le même fichier.
+     */
+
+    fileInput.value = "";
+}
+
+
+/* =============================================================
+   ENREGISTREMENT SOURCE
+   ============================================================= */
+
+async function saveSource()
+{
+    let filename =
+        currentFilename ||
+        "untitled.cairo";
+
+
+    if (
+        !filename
+            .toLowerCase()
+            .endsWith(".cairo")
+    ) {
+
+        filename += ".cairo";
+    }
+
+
+    /*
+     * API File System Access.
+     *
+     * Disponible notamment dans Chromium.
+     */
+
+    if (
+        "showSaveFilePicker" in window
+    ) {
+
+        try {
+
+            const handle =
+                await window.showSaveFilePicker({
+                    suggestedName: filename,
+
+                    types: [
+                        {
+                            description:
+                                "Fichier Cairo",
+
+                            accept: {
+                                "text/plain":
+                                    [".cairo"]
+                            }
+                        }
+                    ]
+                });
+
+
+            const writable =
+                await handle.createWritable();
+
+
+            await writable.write(
+                editor.value
+            );
+
+
+            await writable.close();
+
+
+            /*
+             * Le nom choisi devient le nouveau
+             * nom du document courant.
+             */
+
+            currentFilename =
+                handle.name;
+
+
+            updateFilename();
+
+
+            return;
+
+        }
+        catch (error) {
+
+            /*
+             * Annulation de la boîte de dialogue :
+             * rien à faire.
+             */
+
+            if (
+                error.name ===
+                "AbortError"
+            ) {
+                return;
+            }
+
+
+            /*
+             * Pour une autre erreur, on tombe
+             * sur le téléchargement classique.
+             */
+        }
+    }
+
+
+    /*
+     * Fallback Firefox / navigateurs ne supportant
+     * pas showSaveFilePicker().
+     */
+
+    const blob =
+        new Blob(
+            [editor.value],
+            {
+                type:
+                    "text/plain;charset=utf-8"
+            }
+        );
+
+
+    downloadBlob(
+        blob,
+        filename
+    );
+}
+
+
+/* =============================================================
+   ENVOI CGI
+   ============================================================= */
+
+async function sendCode()
+{
+    const code =
+        editor.value;
+
+
+    sendButton.disabled = true;
+
+    sendButton.textContent =
+        "Envoi...";
+
+
+    clearMessages();
+
+
+    addLocalMessage(
+        "Run",
+        "Envoi du code à la CGI..."
+    );
+
+
+    try {
+
+        const response =
+            await fetch(
+                CGI_URL,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "text/plain"
+                    },
+
+                    body: code
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "La CGI a répondu avec HTTP " +
+                response.status
+            );
+        }
+
+
+        const xmlText =
+            await response.text();
+
+
+        processXML(
+            xmlText
+        );
+
+    }
+    catch (error) {
+
+        clearOutput();
+
+
+        addLocalMessage(
+            "Error",
+            error.message
+        );
+
+    }
+    finally {
+
+        sendButton.disabled = false;
+
+        sendButton.textContent =
+            "Envoyer";
+    }
+}
+
+
+/* =============================================================
+   TRAITEMENT XML
+   ============================================================= */
+
+function processXML(xmlText)
+{
+    let xml;
+
+
+    try {
+
+        const parser =
+            new DOMParser();
+
+
+        xml =
+            parser.parseFromString(
+                xmlText,
+                "application/xml"
+            );
+
+
+        if (
+            xml.querySelector(
+                "parsererror"
+            )
+        ) {
+
+            throw new Error(
+                "XML invalide retourné par la CGI."
+            );
+        }
+
+    }
+    catch (error) {
+
+        clearOutput();
+
+
+        addLocalMessage(
+            "ParseError",
+            error.message
+        );
+
+
+        return;
+    }
+
+
+    /* ---------------------------------------------------------
+       SORTIE
+       --------------------------------------------------------- */
+
+    const out =
+        xml.querySelector("out");
+
+
+    if (out) {
+
+        const content =
+            out.textContent.trim();
+
+
+        displayOutput(
+            content
+        );
+
+    }
+    else {
+
+        clearOutput();
+    }
+
+
+    /* ---------------------------------------------------------
+       MESSAGES
+       --------------------------------------------------------- */
+
+    clearMessages();
+
+
+    const msgNodes =
+        xml.querySelectorAll(
+            "msgs > msg"
+        );
+
+
+    for (
+        const msgNode
+        of msgNodes
+    ) {
+
+        const state =
+            getText(
+                msgNode,
+                "running-state"
+            );
+
+
+        const text =
+            getText(
+                msgNode,
+                "text"
+            );
+
+
+        const firstLine =
+            getInteger(
+                msgNode,
+                "first_line"
+            );
+
+
+        const firstColumn =
+            getInteger(
+                msgNode,
+                "first_column"
+            );
+
+
+        const lastLine =
+            getInteger(
+                msgNode,
+                "last_line"
+            );
+
+
+        const lastColumn =
+            getInteger(
+                msgNode,
+                "last_column"
+            );
+
+
+        addMessage({
+            state,
+            text,
+            firstLine,
+            firstColumn,
+            lastLine,
+            lastColumn
+        });
+    }
+}
+
+
+/* =============================================================
+   AFFICHAGE SVG / PNG
+   ============================================================= */
+
+function displayOutput(content)
+{
+    output.innerHTML = "";
+
+
+    currentOutput = null;
+    currentOutputType = null;
+
+    saveOutputButton.disabled = true;
+
+
+    if (!content) {
+
+        showOutputPlaceholder(
+            "Résultat vide"
+        );
+
+        return;
+    }
+
+
+    const trimmed =
+        content.trim();
+
+
+    /*
+     * Détection SVG.
+     *
+     * Accepte :
+     *
+     * <svg ...>
+     *
+     * et :
+     *
+     * <?xml version="1.0"?>
+     * <svg ...>
+     */
+
+    const svgRegex =
+        /^\s*(?:<\?xml[\s\S]*?\?>\s*)?<svg(?:\s|>)/i;
+
+
+    if (
+        svgRegex.test(trimmed)
+    ) {
+
+        const parser =
+            new DOMParser();
+
+
+        const svgDocument =
+            parser.parseFromString(
+                trimmed,
+                "image/svg+xml"
+            );
+
+
+        const svg =
+            svgDocument.documentElement;
+
+
+        if (
+            svg &&
+            svg.tagName &&
+            svg.tagName.toLowerCase() ===
+                "svg"
+        ) {
+
+            const imported =
+                document.importNode(
+                    svg,
+                    true
+                );
+
+
+            output.appendChild(
+                imported
+            );
+
+
+            currentOutput =
+                trimmed;
+
+
+            currentOutputType =
+                "svg";
+
+
+            saveOutputButton.disabled =
+                false;
+
+
+            return;
+        }
+
+
+        addLocalMessage(
+            "ParseError",
+            "Le contenu de <out> contient un SVG invalide."
+        );
+
+
+        return;
+    }
+
+
+    /*
+     * Sinon :
+     * PNG Base64.
+     */
+
+    const image =
+        document.createElement("img");
+
+
+    image.alt =
+        "Résultat PNG";
+
+
+    image.src =
+        "data:image/png;base64," +
+        trimmed;
+
+
+    image.onload =
+        function()
+        {
+            currentOutput =
+                trimmed;
+
+
+            currentOutputType =
+                "png";
+
+
+            saveOutputButton.disabled =
+                false;
+        };
+
+
+    image.onerror =
+        function()
+        {
+            currentOutput = null;
+            currentOutputType = null;
+
+
+            saveOutputButton.disabled =
+                true;
+
+
+            addLocalMessage(
+                "Error",
+                "Impossible d'afficher le PNG retourné par la CGI."
+            );
+        };
+
+
+    output.appendChild(
+        image
+    );
+}
+
+
+/* =============================================================
+   ENREGISTREMENT RESULTAT
+   ============================================================= */
+
+async function saveOutput()
+{
+    if (!currentOutput)
+        return;
+
+
+    const extension =
+        currentOutputType === "svg"
+            ? "svg"
+            : "png";
+
+
+    const filename =
+        outputFilename(
+            extension
+        );
+
+
+    /*
+     * SVG
+     */
+
+    if (
+        currentOutputType === "svg"
+    ) {
+
+        const blob =
+            new Blob(
+                [currentOutput],
+                {
+                    type:
+                        "image/svg+xml;charset=utf-8"
+                }
+            );
+
+
+        await saveBlob(
+            blob,
+            filename,
+            "image/svg+xml",
+            ".svg"
+        );
+
+
+        return;
+    }
+
+
+    /*
+     * PNG
+     */
+
+    if (
+        currentOutputType === "png"
+    ) {
+
+        try {
+
+            const binary =
+                atob(currentOutput);
+
+
+            const bytes =
+                new Uint8Array(
+                    binary.length
+                );
+
+
+            for (
+                let i = 0;
+                i < binary.length;
+                ++i
+            ) {
+
+                bytes[i] =
+                    binary.charCodeAt(i);
+            }
+
+
+            const blob =
+                new Blob(
+                    [bytes],
+                    {
+                        type:
+                            "image/png"
+                    }
+                );
+
+
+            await saveBlob(
+                blob,
+                filename,
+                "image/png",
+                ".png"
+            );
+
+        }
+        catch (error) {
+
+            addLocalMessage(
+                "Error",
+                "Impossible de décoder le PNG : " +
+                error.message
+            );
+        }
+    }
+}
+
+
+/* =============================================================
+   SAUVEGARDE GENERIQUE AVEC BOITE DE DIALOGUE
+   ============================================================= */
+
+async function saveBlob(
+    blob,
+    filename,
+    mimeType,
+    extension
+)
+{
+    /*
+     * API moderne.
+     */
+
+    if (
+        "showSaveFilePicker" in window
+    ) {
+
+        try {
+
+            const handle =
+                await window.showSaveFilePicker({
+                    suggestedName: filename,
+
+                    types: [
+                        {
+                            description:
+                                "Fichier " +
+                                extension.toUpperCase(),
+
+                            accept: {
+                                [mimeType]:
+                                    [extension]
+                            }
+                        }
+                    ]
+                });
+
+
+            const writable =
+                await handle.createWritable();
+
+
+            await writable.write(
+                blob
+            );
+
+
+            await writable.close();
+
+
+            return;
+
+        }
+        catch (error) {
+
+            /*
+             * L'utilisateur a annulé.
+             */
+
+            if (
+                error.name ===
+                "AbortError"
+            ) {
+                return;
+            }
+
+
+            /*
+             * Sinon on poursuit vers
+             * le fallback.
+             */
+        }
+    }
+
+
+    /*
+     * Fallback pour Firefox et autres navigateurs.
+     */
+
+    downloadBlob(
+        blob,
+        filename
+    );
+}
+
+
+/* =============================================================
+   NOM DU FICHIER RESULTAT
+   ============================================================= */
+
+function outputFilename(
+    extension
+)
+{
+    let filename =
+        currentFilename ||
+        "untitled.cairo";
+
+
+    if (
+        filename
+            .toLowerCase()
+            .endsWith(".cairo")
+    ) {
+
+        filename =
+            filename.substring(
+                0,
+                filename.length - 6
+            );
+    }
+
+
+    return (
+        filename +
+        "." +
+        extension
+    );
+}
+
+
+/* =============================================================
+   TELECHARGEMENT FALLBACK
+   ============================================================= */
+
+function downloadBlob(
+    blob,
+    filename
+)
+{
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement("a");
+
+
+    link.href =
+        url;
+
+
+    link.download =
+        filename;
+
+
+    document.body.appendChild(
+        link
+    );
+
+
+    link.click();
+
+
+    link.remove();
+
+
+    setTimeout(
+        () =>
+            URL.revokeObjectURL(url),
+        1000
+    );
+}
+
+
+/* =============================================================
+   MESSAGES
+   ============================================================= */
+
+function addMessage(
+    message
+)
+{
+    const element =
+        document.createElement("div");
+
+
+    element.className =
+        "message " +
+        stateClass(
+            message.state
+        );
+
+
+    const icon =
+        document.createElement("div");
+
+
+    icon.className =
+        "message-icon";
+
+
+    icon.textContent =
+        stateIcon(
+            message.state
+        );
+
+
+    const content =
+        document.createElement("div");
+
+
+    content.className =
+        "message-content";
+
+
+    const state =
+        document.createElement("span");
+
+
+    state.className =
+        "message-state";
+
+
+    state.textContent =
+        message.state ||
+        "Unknown";
+
+
+    const position =
+        document.createElement("span");
+
+
+    position.className =
+        "message-position";
+
+
+    if (
+        message.firstLine !== null
+    ) {
+
+        position.textContent =
+            formatPosition(
+                message
+            );
+    }
+
+
+    const text =
+        document.createElement("div");
+
+
+    text.className =
+        "message-text";
+
+
+    text.textContent =
+        message.text;
+
+
+    content.appendChild(
+        state
+    );
+
+
+    content.appendChild(
+        position
+    );
+
+
+    content.appendChild(
+        text
+    );
+
+
+    element.appendChild(
+        icon
+    );
+
+
+    element.appendChild(
+        content
+    );
+
+
+    if (
+        message.firstLine !== null
+    ) {
+
+        element.addEventListener(
+            "click",
+            function()
+            {
+                selectEditorPosition(
+                    message
+                );
+            }
+        );
+    }
+
+
+    messages.appendChild(
+        element
+    );
+}
+
+
+/* =============================================================
+   MESSAGE LOCAL
+   ============================================================= */
+
+function addLocalMessage(
+    state,
+    text
+)
+{
+    addMessage({
+        state: state,
+        text: text,
+
+        firstLine: null,
+        firstColumn: null,
+        lastLine: null,
+        lastColumn: null
+    });
+}
+
+
+/* =============================================================
+   POSITION DANS L'EDITEUR
+   ============================================================= */
+
+function selectEditorPosition(
+    message
+)
+{
+    const lines =
+        editor.value.split("\n");
+
+
+    let start = 0;
+
+
+    for (
+        let i = 0;
+        i < message.firstLine - 1;
+        ++i
+    ) {
+
+        start +=
+            lines[i].length + 1;
+    }
+
+
+    start +=
+        Math.max(
+            0,
+            message.firstColumn - 1
+        );
+
+
+    let end =
+        start;
+
+
+    if (
+        message.lastLine !== null &&
+        message.lastColumn !== null
+    ) {
+
+        end = 0;
+
+
+        for (
+            let i = 0;
+            i < message.lastLine - 1;
+            ++i
+        ) {
+
+            end +=
+                lines[i].length + 1;
+        }
+
+
+        end +=
+            Math.max(
+                0,
+                message.lastColumn - 1
+            );
+    }
+
+
+    editor.focus();
+
+
+    editor.setSelectionRange(
+        start,
+        end
+    );
+
+
+    scrollEditorToSelection();
+}
+
+
+/* =============================================================
+   SCROLL EDITEUR
+   ============================================================= */
+
+function scrollEditorToSelection()
+{
+    const textBefore =
+        editor.value.substring(
+            0,
+            editor.selectionStart
+        );
+
+
+    const lineCount =
+        textBefore.split("\n").length;
+
+
+    const lineHeight =
+        parseFloat(
+            getComputedStyle(
+                editor
+            ).lineHeight
+        );
+
+
+    editor.scrollTop =
+        Math.max(
+            0,
+            (lineCount - 5) * lineHeight
+        );
+}
+
+
+/* =============================================================
+   XML
+   ============================================================= */
+
+function getText(
+    parent,
+    selector
+)
+{
+    const node =
+        parent.querySelector(
+            selector
+        );
+
+
+    if (!node)
+        return "";
+
+
+    return node.textContent.trim();
+}
+
+
+function getInteger(
+    parent,
+    selector
+)
+{
+    const value =
+        getText(
+            parent,
+            selector
+        );
+
+
+    if (value === "")
+        return null;
+
+
+    const number =
+        parseInt(
+            value,
+            10
+        );
+
+
+    return Number.isNaN(number)
+        ? null
+        : number;
+}
+
+
+/* =============================================================
+   ETATS
+   ============================================================= */
+
+function normalizedState(
+    state
+)
+{
+    return state
+        .toLowerCase()
+        .replace(
+            /[^a-z]/g,
+            ""
+        );
+}
+
+
+function stateClass(
+    state
+)
+{
+    switch (
+        normalizedState(state)
+    ) {
+
+        case "init":
+            return "state-init";
+
+        case "prerun":
+            return "state-prerun";
+
+        case "ready":
+            return "state-ready";
+
+        case "run":
+            return "state-run";
+
+        case "finished":
+            return "state-finished";
+
+        case "error":
+            return "state-error";
+
+        case "parseerror":
+            return "state-parseerror";
+
+        default:
+            return "state-init";
+    }
+}
+
+
+function stateIcon(
+    state
+)
+{
+    switch (
+        normalizedState(state)
+    ) {
+
+        case "init":
+            return "○";
+
+        case "prerun":
+            return "→";
+
+        case "ready":
+            return "✓";
+
+        case "run":
+            return "▶";
+
+        case "finished":
+            return "✓";
+
+        case "error":
+        case "parseerror":
+            return "✗";
+
+        default:
+            return "•";
+    }
+}
+
+
+/* =============================================================
+   POSITION
+   ============================================================= */
+
+function formatPosition(
+    message
+)
+{
+    if (
+        message.lastLine === null
+    ) {
+
+        return (
+            "ligne " +
+            message.firstLine +
+            ":" +
+            message.firstColumn
+        );
+    }
+
+
+    return (
+        "L" +
+        message.firstLine +
+        ":" +
+        message.firstColumn +
+        " → L" +
+        message.lastLine +
+        ":" +
+        message.lastColumn
+    );
+}
+
+
+/* =============================================================
+   NETTOYAGE
+   ============================================================= */
+
+function clearOutput()
+{
+    output.innerHTML = "";
+
+
+    showOutputPlaceholder(
+        "Aucun résultat"
+    );
+
+
+    currentOutput = null;
+    currentOutputType = null;
+
+
+    saveOutputButton.disabled =
+        true;
+}
+
+
+function showOutputPlaceholder(
+    text
+)
+{
+    const placeholder =
+        document.createElement("span");
+
+
+    placeholder.id =
+        "output-placeholder";
+
+
+    placeholder.textContent =
+        text;
+
+
+    output.appendChild(
+        placeholder
+    );
+}
+
+
+function clearMessages()
+{
+    messages.innerHTML = "";
+}
+
+
+/* =============================================================
+   NOM FICHIER AFFICHÉ
+   ============================================================= */
+
+function updateFilename()
+{
+    filenameDisplay.textContent =
+        currentFilename ||
+        "Aucun fichier";
+}
+
+</script>
+
+</body>
+
+</html>
+```
+
