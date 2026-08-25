@@ -59,7 +59,7 @@ void OpVariable_terminate(OpVariable *self)
 	{
 		free(self->name);
 		self->name = NULL;
-}
+	}
 	OpVariables_empty(self);
 }
 
@@ -131,12 +131,10 @@ int OpVariable_copy(OpVariable *self, OpVariable *other)
 					}
 					memcpy(self->string, other->string, sizeof(char) * other->number_of_elements);
 					break;
-	case STRINGS :	if(self->number_of_elements != other->number_of_elements)
-					{
-						OpVariables_empty(self);
-						self->vs = malloc(sizeof(char*) * other->number_of_elements);
-						self->number_of_elements = other->number_of_elements;
-					}
+	case STRINGS :
+					OpVariables_empty(self);
+					self->vs = malloc(sizeof(char*) * other->number_of_elements);
+					self->number_of_elements = other->number_of_elements;
 					int cmpt;
 					for(cmpt = 0; cmpt < self->number_of_elements; cmpt++)
 					{
@@ -352,7 +350,8 @@ void OpMessage_terminate(OpMessage *self)
 
 void OpMessage_set_params(OpMessage *self, SourcePos *pos, OpRunningState state, String *msg)
 {
-	memcpy(&self->pos, pos, sizeof(SourcePos));
+	if(pos != NULL)
+		memcpy(&self->pos, pos, sizeof(SourcePos));
 	self->state = state;
 	String_cpy(&self->msg, msg);
 }
@@ -375,6 +374,14 @@ void OpMessage_free(OpMessage *self)
 		OpMessage_terminate(self);
 		free(self);
 	}
+}
+
+OpContext *OpContext_new(void)
+{
+	OpContext *self = malloc(sizeof(OpContext));
+	if(self != NULL)
+		OpContext_init(self);
+	return self;
 }
 
 void OpContext_init(OpContext *self)
@@ -402,8 +409,18 @@ void OpContext_terminate(OpContext *self)
 			self->variables = NULL;
 		}
 	}
+	OpVariable_terminate(&self->current_value);
 	LinkedList_do_to_all(&self->messages, (void(*)(void*,void*))OpMessage_free, NULL);
 	LinkedList_finalize(&self->messages);
+}
+
+void OpContext_free(OpContext *self)
+{
+	if(self != NULL)
+	{
+		OpContext_terminate(self);
+		free(self);
+	}
 }
 
 void OpContext_export_messages_to_xml(OpContext *self, String *xml)
@@ -418,10 +435,16 @@ void OpContext_set_running_state(OpContext *self, Op *sender, OpRunningState sta
 	String s;
 	String_init(&s);
 	String_append_char_string(&s, message);
-	fprintf(stderr, "Context %p setting state %d '%s' @%d:%d\n", self, state, message, sender->pos.first_line, sender->pos.first_column);
+	if(sender != NULL)
+		fprintf(stderr, "Context %p setting state %d '%s' @%d:%d\n", self, state, message, sender->pos.first_line, sender->pos.first_column);
+	else
+		fprintf(stderr, "Context %p setting state %d '%s'\n", self, state, message);
 	self->state = state;
 	OpMessage *msg = OpMessage_new();
-	OpMessage_set_params(msg, &sender->pos, state, &s);
+	if(sender != NULL)
+		OpMessage_set_params(msg, &sender->pos, state, &s);
+	else
+		OpMessage_set_params(msg, NULL, state, &s);
 	String_finalize(&s);
 
 	LinkedList_append(&self->messages, msg);
@@ -622,6 +645,16 @@ double OpContext_get_variable_value(OpContext *self, size_t variable_number)
 	val = OpVariable_get_double(var);
 	fprintf(stderr, "Getting variable '%s' number %zu = %f\n", OpVariable_get_name(var), variable_number, val);
 	return val;
+}
+
+void OpContext_reset_variables(OpContext *self)
+{
+	size_t i;
+	for(i = 0; i < self->number_of_variables; i++)
+	{
+		OpVariable *var = self->variables[i];
+		OpVariable_set_type(var, NONE);
+	}
 }
 
 void Op_init(Op *self)
@@ -2059,7 +2092,7 @@ int OpGetVariable_execute(OpGetVariable *self, OpContext *ctx)
 {
 	int ret = 0;
 	OpVariable *var = OpContext_get_variable(ctx, self->variable_number);
-	fprintf(stderr, "OP %p Getting variable number %zu\n", self, self->variable_number);
+	fprintf(stderr, "OP %p Getting variable number %zu in context %p\n", self, self->variable_number, ctx);
 	OpContext_copy_variable_to_current_value(ctx, var);
 	OpVariable_print(OpContext_get_current_value(ctx));
 	return ret;

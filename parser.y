@@ -1,19 +1,24 @@
 // %locations
 %define parse.error verbose
-// %define parse.trace
+//%define parse.trace
 %locations
 %code requires
 {
 	#include <OpCanva.h>
+	#include <OpProgram.h>
+	#include <OpModule.h>
 }
 %{
 
 #include <stdio.h>
 #include <OpCanva.h>
+#include <OpProgram.h>
+#include <OpModule.h>
+#include <String.h>
 
 extern int yylex();
 
-void yyerror(Op **root, OpContext *Ctx, const char *s);
+void yyerror(Op **root, OpParser *p, const char *s);
 
 
 Op *root;
@@ -26,10 +31,11 @@ Op *root;
     char *string;
     Op *node;
     OpVariable *var;
+    LinkedList *list;
 }
 
 %parse-param { Op **root }
-%parse-param { OpContext *Ctx }
+%parse-param { OpParser *p }
 
 %token <number> NUMBER
 %token <string> IDENTIFIER
@@ -115,8 +121,11 @@ Op *root;
 %token GETOUTPUTSIZE
 %token SETPNGOUTPUT
 %token SETSVGOUTPUT
+%token DEFMODULE
+%token CHILDS
 
 %type <node> program block expression statements statement
+%type <list> call_args def_args
 %type <var> number_list string_list
 
 %left OR
@@ -154,6 +163,32 @@ program:
       }
 ;
 
+call_args:
+	expression
+	{
+		LinkedList *list = LinkedList_new();
+		LinkedList_append(list, $1);
+		$$ = list;
+	}
+	| call_args ',' expression
+	{
+		LinkedList_append($$, $3);
+	}
+;
+
+def_args:
+	IDENTIFIER
+	{
+		LinkedList *list = LinkedList_new();
+		LinkedList_append(list, $1);
+		$$ = list;
+	}
+	| def_args ',' IDENTIFIER
+	{
+		LinkedList_append($$, $3);
+	}
+;
+
 block:
 		'{' statements '}'
 		{
@@ -179,14 +214,15 @@ statements:
 		| statements statement
 		{
 			$$ = $1;
-			OpBloc_append_Op((OpBloc*)$$, $2);
+			if($2 != NULL)
+				OpBloc_append_Op((OpBloc*)$$, $2);
 		}
 
 statement:
 
       IDENTIFIER '=' expression ';'
       {
-      		size_t var_num = OpContext_get_variable_number(Ctx, $1);
+      		size_t var_num = OpContext_get_variable_number(OpParser_get_current_context(p), $1);
       		OpSetVariable *op = (OpSetVariable*)OpSetVariable_new() ;
       		$$ = (Op*)op;
       		OpSetVariable_set_variable_number(op, var_num);
@@ -194,10 +230,98 @@ statement:
       		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       		free($1);
       }
+      
+      | IDENTIFIER '(' call_args ')' ';'
+      {
+      		OpLaunchModule *op = (OpLaunchModule*)OpLaunchModule_new();
+      		$$ = (Op*)op;
+      		ssize_t module_num = OpProgram_check_module_number(OpParser_get_program(p), $1);
+      		if(module_num >= 0)
+      		{
+	      		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
+	      		OpLaunchModule_set_module(op, m);
+	      		OpLaunchModule_set_call_arguments(op, $3);
+	      		LinkedList_free($3);
+      			free($1);
+      		}
+      		else
+      		{
+      			LinkedList_free($3);
+      			String s;
+      			String_init(&s);
+      			String_append_printf(&s, "Module '%s' not found", $1);
+      			yyerror(root, p, String_get_char_string(&s));
+      			String_finalize(&s);
+      			free($1);
+      			YYERROR;
+  			}
+      		
+      }
+      	| CHILDS '(' ')' ';'
+      {
+		OpLaunchModuleChilds *op = (OpLaunchModuleChilds *)OpLaunchModuleChilds_new();
+      	$$ = (Op*)op;
+      	OpModule *current = OpParser_get_current_module(p);
+      	if(current == NULL)
+		{
+	        yyerror(root, p, "Use of 'children' outside module");
+	        YYERROR;
+    	}
+      	OpLaunchModuleChilds_set_module(op, current);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      
+      | IDENTIFIER '(' call_args ')' block
+      {
+      		OpLaunchModule *op = (OpLaunchModule*)OpLaunchModule_new();
+      		$$ = (Op*)op;
+      		ssize_t module_num = OpProgram_check_module_number(OpParser_get_program(p), $1);
+      		if(module_num >= 0)
+      		{
+	      		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
+	      		OpLaunchModule_set_module(op, m);
+	      		OpLaunchModule_set_call_arguments(op, $3);
+	      		OpLaunchModule_set_parent(op, (OpCanvaContext*)OpParser_get_current_context(p));
+	      		OpLaunchModule_set_childs(op, $5);
+	      		LinkedList_free($3);
+	      		free($1);
+      		}
+      		else
+      		{
+      			LinkedList_free($3);
+      			String s;
+      			String_init(&s);
+      			String_append_printf(&s, "Module '%s' not found", $1);
+      			yyerror(root, p, String_get_char_string(&s));
+      			String_finalize(&s);
+      			free($1);
+      			YYERROR;
+  			}
+      }
+      
+      | DEFMODULE IDENTIFIER
+      {
+      		size_t module_num = OpProgram_get_module_number(OpParser_get_program(p), $2);
+      		free($2);
+      		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
+      		OpParser_set_current_module(p, m);
+      		OpParser_set_current_context(p, (OpContext*)OpModule_get_context(m));
+      }
+      '(' def_args ')' block
+      {
+      		OpModule *m = OpParser_get_current_module(p);
+      		OpModule_add_to_root(m, $7);
+      		OpModule_add_arguments(m, $5);
+      		LinkedList_do_to_all($5, (void(*)(void*, void*))free, NULL);
+      		LinkedList_free($5);
+      		OpParser_set_current_context(p, OpProgram_get_context(OpParser_get_program(p)));
+      		OpParser_set_current_module(p, NULL);
+      		$$ = (Op*)NULL;
+      }
 
       | UNSET '(' IDENTIFIER ')' ';'
       {
-      		size_t var_num = OpContext_get_variable_number(Ctx, $3);
+      		size_t var_num = OpContext_get_variable_number(OpProgram_get_context(OpParser_get_program(p)), $3);
       		OpSetVariable *op = (OpSetVariable*)OpSetVariable_new() ;
       		$$ = (Op*)op;
       		OpGetValue *g = (OpGetValue*)OpGetValue_new();
@@ -277,7 +401,7 @@ statement:
     }
     | FORLOOP '(' IDENTIFIER '=' '[' expression ':' expression ':' expression ']' ')' block
     {
-    	size_t var_num = OpContext_get_variable_number(Ctx, $3);
+    	size_t var_num = OpContext_get_variable_number(OpParser_get_current_context(p), $3);
     	OpForLoop *op = (OpForLoop*)OpForLoop_new();
     	$$ = (Op*)op;
     	OpForLoop_set_start(op, $6);
@@ -290,7 +414,7 @@ statement:
     }
     | FORLOOP '(' IDENTIFIER '=' '[' expression ':' expression ']' ')' block
     {
-    	size_t var_num = OpContext_get_variable_number(Ctx, $3);
+    	size_t var_num = OpContext_get_variable_number(OpParser_get_current_context(p), $3);
     	OpForLoop *op = (OpForLoop*)OpForLoop_new();
     	$$ = (Op*)op;
     	OpForLoop_set_start(op, $6);
@@ -302,7 +426,7 @@ statement:
     }
     | FOREACH '(' IDENTIFIER IN expression ')' block
     {
-    	size_t var_num = OpContext_get_variable_number(Ctx, $3);
+    	size_t var_num = OpContext_get_variable_number(OpParser_get_current_context(p), $3);
     	OpForEach *op = (OpForEach*)OpForEach_new();
     	$$ = (Op*)op;
     	OpForEach_set_value(op, $5);
@@ -1003,7 +1127,7 @@ expression:
 
     | IDENTIFIER
       {
-  		size_t var_num = OpContext_get_variable_number(Ctx, $1);
+  		size_t var_num = OpContext_get_variable_number(OpParser_get_current_context(p), $1);
       	OpGetVariable *op = (OpGetVariable*)OpGetVariable_new();
       	$$ = (Op*)op;
       	OpGetVariable_set_variable_number(op, var_num);
@@ -1017,7 +1141,7 @@ expression:
       	$$ = (Op*)op;
       	Op2_set_operande2(op, $3);
       	
-  		size_t var_num = OpContext_get_variable_number(Ctx, $1);
+  		size_t var_num = OpContext_get_variable_number(OpParser_get_current_context(p), $1);
       	OpGetVariable *opg = (OpGetVariable*)OpGetVariable_new();
       	OpGetVariable_set_variable_number(opg, var_num);
       	
@@ -1085,11 +1209,6 @@ expression:
       	Op2_set_operande1(op, $1);
       	Op2_set_operande2(op, $3);
   		Op_set_source_pos($$, @2.first_line, @2.first_column, @2.last_line, @2.last_column);
-  		          fprintf(stderr,
-                  "PLUS : L%d C%d-C%d\n",
-                  @2.first_line,
-                  @2.first_column,
-                  @2.last_column);
       }
 
     | expression '-' expression
@@ -1272,9 +1391,9 @@ expression:
 
 %%
 
-void yyerror(Op **root, OpContext *Ctx, const char *s)
+void yyerror(Op **root, OpParser *p, const char *s)
 {
-	if(Ctx != NULL)
+	if(p != NULL)
 	{
 		SourcePos Pos = {
 						.first_line = yylloc.first_line,
@@ -1282,7 +1401,7 @@ void yyerror(Op **root, OpContext *Ctx, const char *s)
 						.last_line = yylloc.last_line,
 						.last_column = yylloc.last_column
 						};
-		OpContext_report_parse_error(Ctx, s, &Pos);
+		OpContext_report_parse_error(OpParser_get_current_context(p), s, &Pos);
 	}
 	if(root != NULL && *root != NULL)
 		fprintf(stderr, "Problem during parsing %s %p : %s @%d:%d\n", Op_get_name(*root), *root, s, yylloc.first_line, yylloc.first_column);

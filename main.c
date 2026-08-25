@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <CanvaCtx.h>
 #include <OpCanva.h>
+#include <OpProgram.h>
 #include <parser.tab.h>
 #include <lexer.h>
 #include <unistd.h>
@@ -93,7 +94,14 @@ int main( int argc, char *argv[ ] )
 {
 	size_t readed;
 	OpCanvaContext Ctx;
+	OpProgram Prog;
 	OpCanvaContext_init(&Ctx);
+	OpProgram_init(&Prog);
+	OpParser Parser;
+	OpParser_init(&Parser);
+	OpProgram_set_context(&Prog, (OpContext*)&Ctx);
+	OpParser_set_program(&Parser, &Prog);
+	OpParser_set_current_context(&Parser, (OpContext*)&Ctx);
     Op *root = NULL;
     /*extern int yydebug, yy_flex_debug;
     yydebug = 1;
@@ -129,13 +137,13 @@ int main( int argc, char *argv[ ] )
     }
     YY_BUFFER_STATE state = yy_scan_bytes(String_get_data(&buffer), String_get_length(&buffer));
 #endif
-    if(yyparse(&root, (OpContext*)&Ctx) == 0 && root != NULL)
+    if(yyparse(&root, &Parser) == 0 && root != NULL)
     {
     	int w, h;
 
-		Op_fix_operandes(root, (OpContext*)&Ctx);
-
-		Op_prerun(root, (OpContext*)&Ctx);
+    	OpProgram_set_root(&Prog, root);
+    	OpProgram_fix_operandes(&Prog);
+    	OpProgram_prerun(&Prog);
 
 
 		w = OpCanvaContext_get_width(&Ctx);
@@ -186,8 +194,9 @@ int main( int argc, char *argv[ ] )
 			CanvaCtx_set_color(&Canva, 0, 0, 0, 255);
 
 			OpCanvaContext_set_Canva(&Ctx, &Canva);
+			OpProgram_set_Canva(&Prog, &Canva);
 
-			Op_launch(root, (OpContext*)&Ctx);
+			OpProgram_run(&Prog);
 			// Main loop
 
 
@@ -212,8 +221,9 @@ int main( int argc, char *argv[ ] )
 			CanvaCtx_set_color(&Canva, 0, 0, 0, 255);
 
 			OpCanvaContext_set_Canva(&Ctx, &Canva);
+			OpProgram_set_Canva(&Prog, &Canva);
 
-			Op_launch(root, (OpContext*)&Ctx);
+			OpProgram_run(&Prog);
 
 			CanvaCtx_write_to_png(&Canva);
 #ifdef CGIMODE
@@ -244,8 +254,9 @@ int main( int argc, char *argv[ ] )
 			CanvaCtx_set_color(&Canva, 0, 0, 0, 255);
 
 			OpCanvaContext_set_Canva(&Ctx, &Canva);
+			OpProgram_set_Canva(&Prog, &Canva);
 
-			Op_launch(root, (OpContext*)&Ctx);
+			OpProgram_run(&Prog);
 
 			CanvaCtx_finish(&Canva);
 #ifdef CGIMODE
@@ -294,6 +305,8 @@ int main( int argc, char *argv[ ] )
 #endif
 
     OpCanvaContext_terminate(&Ctx);
+    OpProgram_terminate(&Prog);
+    OpParser_terminate(&Parser);
 	Op_free(root);
 
     return EXIT_SUCCESS;

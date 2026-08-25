@@ -102,10 +102,12 @@ int yycolumn = 1;
 (?i:"#randinit")		{ return RANDINIT; }
 (?i:"rand")			{ return RAND; }
 (?i:"message")		{ return MESSAGE; } 
+(?i:"children")		{ return CHILDS; }
 ^(?i:"#initmessage")	{ return PREMESSAGE; }
 ^(?i:"#setoutputsize")	{ return SETOUTPUTSIZE; } 
 ^(?i:"#setpngoutput")	{ return SETPNGOUTPUT; }
 ^(?i:"#setsvgoutput")	{ return SETSVGOUTPUT; } 
+^(?i:"module")		{ return DEFMODULE; }  
 
 [0-9]+(\.[0-9]+)? {
     yylval.number = atof(yytext);

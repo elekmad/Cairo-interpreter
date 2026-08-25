@@ -12,6 +12,16 @@
 #include <math.h>
 #include <string.h>
 
+
+
+OpCanvaContext *OpCanvaContext_new(void)
+{
+	OpCanvaContext *self = malloc(sizeof(OpCanvaContext));
+	if(self != NULL)
+		OpCanvaContext_init(self);
+	return self;
+}
+
 void OpCanvaContext_init(OpCanvaContext *self)
 {
 	OpContext_init(&self->super);
@@ -78,6 +88,31 @@ void OpCanvaContext_terminate(OpCanvaContext *self)
 {
 	OpContext_terminate(&self->super);
 }
+
+void OpCanvaContext_free(OpCanvaContext *self)
+{
+	if(self != NULL)
+	{
+		OpCanvaContext_terminate(self);
+		free(self);
+	}
+}
+
+OpCanvaContext *OpCanvaContext_new_from_other(OpCanvaContext *other)
+{
+	OpCanvaContext *self = malloc(sizeof(OpCanvaContext));
+	if(self != NULL)
+	{
+		OpCanvaContext_init(self);
+		OpCanvaContext_set_Canva(self, other->Canva);
+		OpCanvaContext_set_width(self, OpCanvaContext_get_width(other));
+		OpCanvaContext_set_height(self, OpCanvaContext_get_height(other));
+		self->output_mode = other->output_mode;
+		OpContext_set_running_state(&self->super, NULL, OpContext_get_running_state(&other->super), "New Context for module");
+	}
+	return self;
+}
+
 
 OpIsa OpCircle_isa = {
 		.name="Circle",

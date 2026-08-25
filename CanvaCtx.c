@@ -126,10 +126,10 @@ void CanvaCtx_terminate(CanvaCtx *self)
 	String_finalize(&self->output_buffer);
     if(self->pixels != NULL)
     	free(self->pixels);
-    if(self->surface != NULL)
-    	cairo_surface_destroy(self->surface);
     if(self->cr != NULL)
     	cairo_destroy(self->cr);
+    if(self->surface != NULL)
+    	cairo_surface_destroy(self->surface);
 }
 
 void CanvaCtx_set_default_stroke_color(CanvaCtx *self, unsigned char red, unsigned char green, unsigned char blue, unsigned char alpha)
