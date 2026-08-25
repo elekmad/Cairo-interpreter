@@ -25,3 +25,5 @@ Tester mode serveur :
 
 export CONTENT_LENGTH=$(wc -c fichier);
 ./CairoInterpreter < fichier
+
+Le fichier Gui/Editor.html peut interroger la version cgi installée sur un server. Modifier URL_DE_LA_CGI dedans.
