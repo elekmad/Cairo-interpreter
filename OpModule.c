@@ -172,12 +172,10 @@ Op *OpLaunchModule_get_childs(OpLaunchModule *self)
 
 int OpLaunchModule_fix_operandes(OpLaunchModule *self, OpContext *ctx)
 {
-	int ret = -1;
 	size_t i;
 
 	if(self->super.nb_ops > OPLAUNCHMODULE_CHILDS)
 	{
-		ret = 0;
 		_OpLaunchModule_set_childs(self, self->super.operandes[OPLAUNCHMODULE_CHILDS]);
 	}
 	for(i = 0; i < self->number_of_call_args; i++)
@@ -186,7 +184,7 @@ int OpLaunchModule_fix_operandes(OpLaunchModule *self, OpContext *ctx)
 		if(arg != NULL)
 			Op_fix_operandes(arg, ctx);
 	}
-	return ret;
+	return 0;
 }
 
 int OpLaunchModule_check_args(OpLaunchModule *self, OpContext *ctx)
