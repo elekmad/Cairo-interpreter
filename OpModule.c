@@ -13,7 +13,6 @@ void OpModule_init(OpModule *self)
 	self->ctx = NULL;
 	self->root = (OpCanvaBloc*)OpCanvaBloc_new();
 	String_init(&self->name);
-	self->arguments = NULL;
 	self->number_of_arguments = 0;
 	self->current_launcher = NULL;
 }
@@ -65,8 +64,6 @@ void OpModule_add_arguments(OpModule *self, LinkedList *list)
 void OpModule_add_argument(OpModule *self, OpVariable *arg)
 {
 	self->number_of_arguments++;
-	self->arguments = realloc(self->arguments, sizeof(OpVariable*) * self->number_of_arguments);
-	self->arguments[self->number_of_arguments - 1] = arg;
 }
 
 void OpModule_add_to_root(OpModule *self, Op *op)
@@ -110,8 +107,6 @@ void OpModule_terminate(OpModule *self)
 	OpModule_set_context(self, NULL);
 	Op_free((Op*)self->root);
 	String_finalize(&self->name);
-	if(self->number_of_arguments > 0)
-		free(self->arguments);
 }
 
 void OpModule_free(OpModule *self)
@@ -219,20 +214,20 @@ int OpLaunchModule_execute(OpLaunchModule *self, OpContext *ctx)
 	int ret = 0;
 	size_t i;
 	OpModule_set_current_launcher(self->module, self);
-	OpContext_reset_variables((OpContext*)OpModule_get_context(self->module));
+	OpCanvaContext *c = OpCanvaContext_new_from_other(OpModule_get_context(self->module));
 
 	for(i = 0; i < self->number_of_call_args; i++)
 	{
 		Op *call_arg;
 		OpVariable *arg;
 		call_arg = self->call_args[i];
-		arg = self->module->arguments[i];
+		arg = OpContext_get_variable((OpContext*)c, i);
 		Op_execute(call_arg, ctx);
 		OpVariable_copy(arg, OpContext_get_current_value(ctx));
 	}
-	OpContext_set_running_state((OpContext*)OpModule_get_context(self->module), (Op*)self, Run, "Ready to run module");
-	ret = Op_execute((Op*)OpModule_get_root(self->module), (OpContext*)OpModule_get_context(self->module));
-	if(ret != 0 || OpContext_get_running_state((OpContext*)OpModule_get_context(self->module)) == Error)
+	OpContext_set_running_state((OpContext*)c, (Op*)self, Run, "Ready to run module");
+	ret = Op_execute((Op*)OpModule_get_root(self->module), (OpContext*)c);
+	if(ret != 0 || OpContext_get_running_state((OpContext*)c) == Error)
 	{
 		String msg;
 		String_init(&msg);
@@ -241,6 +236,7 @@ int OpLaunchModule_execute(OpLaunchModule *self, OpContext *ctx)
 		String_finalize(&msg);
 	}
 	OpModule_set_current_launcher(self->module, NULL);
+	OpCanvaContext_free(c);
 
 	return ret;
 }

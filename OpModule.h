@@ -19,7 +19,6 @@ typedef struct op_module
 	String name;
 	OpCanvaContext *ctx;
 	OpCanvaBloc *root;
-	OpVariable **arguments;//Copy of Variables arguments here
 	size_t number_of_arguments;
 	OpLaunchModule *current_launcher;
 }OpModule;

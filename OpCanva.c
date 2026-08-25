@@ -108,6 +108,8 @@ OpCanvaContext *OpCanvaContext_new_from_other(OpCanvaContext *other)
 		OpCanvaContext_set_width(self, OpCanvaContext_get_width(other));
 		OpCanvaContext_set_height(self, OpCanvaContext_get_height(other));
 		self->output_mode = other->output_mode;
+		OpContext_copy_variables((OpContext*)self, (OpContext*)other);
+		OpContext_reset_variables((OpContext*)self);
 		OpContext_set_running_state(&self->super, NULL, OpContext_get_running_state(&other->super), "New Context for module");
 	}
 	return self;

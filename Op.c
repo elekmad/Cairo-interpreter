@@ -653,7 +653,28 @@ void OpContext_reset_variables(OpContext *self)
 	for(i = 0; i < self->number_of_variables; i++)
 	{
 		OpVariable *var = self->variables[i];
-		OpVariable_set_type(var, NONE);
+		if(var != NULL)
+			OpVariable_set_type(var, NONE);
+	}
+}
+
+void OpContext_copy_variables(OpContext *self, OpContext *other)
+{
+	size_t i;
+	if(self->number_of_variables < other->number_of_variables)
+	{
+		self->variables = realloc(self->variables, sizeof(OpVariable*) * other->number_of_variables);
+		for(i = self->number_of_variables; i < other->number_of_variables; i++)
+		{
+			if(other->variables[i] != NULL)
+			{
+				OpVariable *v = OpVariable_new();
+				self->variables[i] = v;
+			}
+			else
+				self->variables[i] = NULL;
+		}
+		self->number_of_variables = other->number_of_variables;
 	}
 }
 
