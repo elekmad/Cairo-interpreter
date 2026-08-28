@@ -984,23 +984,35 @@ int Op_execute(Op *self, OpContext *ctx)
 		fprintf(stderr, "Op %p : %s\n", self, self->isa->name);
 		if(state == Run)
 		{
+			fprintf(stderr, "Op %p status Run check args\n", self);
 			if(self->isa->check_args != NULL)
 			{
 				ret = self->isa->check_args(self, ctx);
 				fprintf(stderr, "Checking Args of %p %p : %d\n", self, ctx, ret);
 			}
 			if(ret == 0)
+			{
+				fprintf(stderr, "Op %p execute\n", self);
 				ret = self->isa->execute(self, ctx);
+			}
 		}
 		else if(state == PreRun && self->for_prerunning == true)
 		{
+			fprintf(stderr, "Op %p status PreRun check args\n", self);
 			if(self->isa->check_args != NULL)
 			{
 				ret = self->isa->check_args(self, ctx);
 				fprintf(stderr, "Checking Args of %p %p : %d\n", self, ctx, ret);
 			}
 			if(ret == 0)
+			{
+				fprintf(stderr, "Op %p execute\n", self);
 				ret = self->isa->execute(self, ctx);
+			}
+		}
+		else if(state == Break || state == Continue)
+		{
+			fprintf(stderr, "Op %p Not executed because Ctx state %d, Lauching Break or Continue\n", self, state);
 		}
 		else
 			fprintf(stderr, "Op %p Not executed because Ctx state %d\n", self, state);
@@ -1031,6 +1043,7 @@ void OpBloc_append_Op(OpBloc *self, Op *op)
 	size_t n = s->nb_ops;
 	Op_set_nb_ops(s, n + 1);
 	s->operandes[n] = op;
+	fprintf(stderr, "Append Op %p (%s) in bloc %p (%s)\n", op, op->isa->name, self, self->super.isa->name);
 
 }
 
@@ -1619,6 +1632,18 @@ int OpWhile_execute(OpWhile *self, OpContext *ctx)
 		{
 			fprintf(stderr, "While %p Execute bloc\n", self);
 			ret = Op_execute(self->bloc, ctx);
+			OpRunningState state = OpContext_get_running_state(ctx);
+			if(state == Break)
+			{
+				fprintf(stderr, "Catching Break\n");
+				OpContext_set_running_state(ctx, (Op*)self, Run, "Break Caught");
+				break;
+			}
+			else if(state == Continue)
+			{
+				fprintf(stderr, "Catching Continue\n");
+				OpContext_set_running_state(ctx, (Op*)self, Run, "Continue Caught");
+			}
 			ret = Op_execute(self->condition, ctx);
 			c = OpContext_get_current_value_double(ctx);
 			fprintf(stderr, "While %p Condition = %f\n", self, c);
@@ -1779,6 +1804,18 @@ int OpForLoop_execute(OpForLoop *self, OpContext *ctx)
 			fprintf(stderr, "ForLoop %p Loop\n", self);
 			ret = Op_execute(self->loop, ctx);
 			fprintf(stderr, "ForLoop %p End Loop\n", self);
+			OpRunningState state = OpContext_get_running_state(ctx);
+			if(state == Break)
+			{
+				fprintf(stderr, "Catching Break\n");
+				OpContext_set_running_state(ctx, (Op*)self, Run, "Break Caught");
+				break;
+			}
+			else if(state == Continue)
+			{
+				fprintf(stderr, "Catching Continue\n");
+				OpContext_set_running_state(ctx, (Op*)self, Run, "Continue Caught");
+			}
 			fprintf(stderr, "ForLoop %p Step\n", self);
 			v = v + step;
 			OpContext_set_variable_value_double(ctx, self->variable_number, v);
@@ -1905,6 +1942,18 @@ int OpForEach_execute(OpForEach *self, OpContext *ctx)
 				fprintf(stderr, "Evaluation of ForEach Loop Failed\n");
 				break;
 			}
+			OpRunningState state = OpContext_get_running_state(ctx);
+			if(state == Break)
+			{
+				fprintf(stderr, "Catching Break\n");
+				OpContext_set_running_state(ctx, (Op*)self, Run, "Break Caught");
+				break;
+			}
+			else if(state == Continue)
+			{
+				fprintf(stderr, "Catching Continue\n");
+				OpContext_set_running_state(ctx, (Op*)self, Run, "Continue Caught");
+			}
 		}
 
 		OpVariable_terminate(&v);
@@ -1926,6 +1975,18 @@ int OpForEach_execute(OpForEach *self, OpContext *ctx)
 				fprintf(stderr, "Evaluation of ForEach Loop Failed\n");
 				break;
 			}
+			OpRunningState state = OpContext_get_running_state(ctx);
+			if(state == Break)
+			{
+				fprintf(stderr, "Catching Break\n");
+				OpContext_set_running_state(ctx, (Op*)self, Run, "Break Caught");
+				break;
+			}
+			else if(state == Continue)
+			{
+				fprintf(stderr, "Catching Continue\n");
+				OpContext_set_running_state(ctx, (Op*)self, Run, "Continue Caught");
+			}
 		}
 
 		OpVariable_terminate(&v);
@@ -1945,6 +2006,48 @@ int OpForEach_execute(OpForEach *self, OpContext *ctx)
 Op *OpForEach_new(void)
 {
 	return Op_new(&OpForEach_isa);
+}
+
+OpIsa OpBreak_isa = {
+		.name="Break",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpBreak_execute,
+		.check_args = NULL,
+};
+
+int OpBreak_execute(Op *self, OpContext *ctx)
+{
+	OpContext_set_running_state(ctx, self, Break, "Lauching Break");
+	return 0;
+}
+
+Op *OpBreak_new(void)
+{
+	return Op_new(&OpBreak_isa);
+}
+
+OpIsa OpContinue_isa = {
+		.name="Continue",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpContinue_execute,
+		.check_args = NULL,
+};
+
+int OpContinue_execute(Op *self, OpContext *ctx)
+{
+	OpContext_set_running_state(ctx, self, Continue, "Lauching Continue");
+	return 0;
+}
+
+Op *OpContinue_new(void)
+{
+	return Op_new(&OpContinue_isa);
 }
 
 OpIsa OpIntervalGen_isa = {

@@ -71,6 +71,8 @@ int yycolumn = 1;
 (?i:"foreach")		{ return FOREACH; }
 (?i:"in")			{ return IN; }
 (?i:"while")		{ return WHILETRUE; }
+(?i:"break")		{ return BREAK; }
+(?i:"continue")		{ return CONTINUE; }
 (?i:"setfontsize")	{ return FONTSIZE; }
 (?i:"setfont")		{ return FONT; }
 (?i:"text")			{ return TEXT; }

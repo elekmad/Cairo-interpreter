@@ -77,6 +77,8 @@ Op *root;
 %token FOREACH
 %token IN
 %token WHILETRUE
+%token BREAK
+%token CONTINUE
 %token EQ
 %token NEQ
 %token LEQ
@@ -460,6 +462,18 @@ statement:
     	OpWhile_set_bloc(op, $5);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
     }
+      
+      | BREAK ';'
+      {
+      	$$ = OpBreak_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | CONTINUE ';'
+      {
+      	$$ = OpContinue_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
       	| RANDINIT '(' expression ')' ';'
       {
 		OpInitRandom *op = (OpInitRandom *)OpInitRandom_new();

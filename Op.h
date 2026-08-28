@@ -42,6 +42,8 @@ typedef enum op_running_state
 	PreRun,
 	Ready,
 	Run,
+	Break,
+	Continue,
 	Finished,
 	Error,
 	ParseError
