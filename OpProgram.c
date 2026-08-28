@@ -7,6 +7,11 @@
 
 
 #include <OpProgram.h>
+#include <parser.tab.h>
+#include <lexer.h>
+#include <String.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 
 OpProgram *OpProgram_new(void)
@@ -152,12 +157,86 @@ OpParser *OpParser_new(void)
 
 void OpParser_init(OpParser *self)
 {
+	self->files = NULL;
+	self->files_size = 0;
+	self->depth = 0;
+	String_init(&self->filename_prefix);
+}
 
+int OpParser_parse(OpParser *self, String *s, Op **root)
+{
+	OpParserFile *f = OpParserFile_new();
+	f->state = yy_scan_bytes(String_get_data(s), String_get_length(s));
+    f->file_content = s;
+    OpParser_push_stream(self, f);
+
+    if(yyparse(root, self) == 0 && *root != NULL)
+    	return 0;
+    return -1;
+}
+
+void OpParser_parse_include(OpParser *self, const char *name)
+{
+	String filename;
+	String_init(&filename);
+	String_append_String(&filename, &self->filename_prefix);
+	String_append_char_string(&filename, name);
+	String *new_stream = String_new();
+	char buf[100];
+	int fd = open(String_get_char_string(&filename), O_RDONLY);
+	ssize_t readed;
+    while((readed = read(fd, buf, 100)) > 0)
+    {
+    	String_append_data(new_stream, readed, (const void*)buf);
+    }
+    close(fd);
+    String_finalize(&filename);
+    YY_BUFFER_STATE state = yy_scan_bytes(String_get_data(new_stream), String_get_length(new_stream));
+
+    OpParserFile *f = OpParserFile_new();
+    f->file_content = new_stream;
+    f->state = state;
+
+    OpParser_push_stream(self, f);
+}
+
+void OpParser_push_stream(OpParser *self, OpParserFile *s)
+{
+	self->depth++;
+	if(self->depth > self->files_size)
+	{
+		self->files = realloc(self->files, self->depth * sizeof(OpParserFile*));
+		self->files_size = self->depth;
+	}
+	self->files[self->depth - 1] = s;
+	fprintf(stderr, "Parser push : depth = %d\n", self->depth);
+}
+
+int OpParser_pop_stream(OpParser *self)
+{
+	OpParserFile *f = self->files[self->depth - 1];
+	if(f != NULL)
+	{
+		OpParserFile_free(f);
+		self->files[self->depth - 1] = NULL;
+	}
+	self->depth--;
+	if(self->depth > 0)
+		yy_switch_to_buffer(self->files[self->depth - 1]->state);
+	fprintf(stderr, "Parser pop : depth = %d\n", self->depth);
+	return self->depth;
 }
 
 void OpParser_terminate(OpParser *self)
 {
-
+	int i;
+	for(i = 0; i < self->files_size; i++)
+	{
+		if(self->files[i] != NULL)
+			OpParserFile_free(self->files[i]);
+	}
+	free(self->files);
+	String_finalize(&self->filename_prefix);
 }
 
 void OpParser_free(OpParser *self)
@@ -197,4 +276,32 @@ OpProgram *OpParser_get_program(OpParser *self)
 void OpParser_set_program(OpParser *self, OpProgram *p)
 {
 	self->program = p;
+}
+
+void OpParserFile_init(OpParserFile *self)
+{
+	self->state = NULL;
+	self->file_content = NULL;
+}
+
+OpParserFile *OpParserFile_new(void)
+{
+	OpParserFile *self = malloc(sizeof(OpParserFile));
+	if(self != NULL)
+		OpParserFile_init(self);
+	return self;
+}
+
+void OpParserFile_terminate(OpParserFile *self)
+{
+	if(self->state != NULL)
+		yy_delete_buffer(self->state);
+	if(self->file_content != NULL)
+		String_free(self->file_content);
+}
+
+void OpParserFile_free(OpParserFile *self)
+{
+	OpParserFile_terminate(self);
+	free(self);
 }

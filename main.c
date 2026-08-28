@@ -106,8 +106,10 @@ int main( int argc, char *argv[ ] )
     /*extern int yydebug, yy_flex_debug;
     yydebug = 1;
     yy_flex_debug = 1;*/
+    String *buffer;
+    buffer = String_new();
 #ifdef CGIMODE
-    char *buffer;
+    char *cbuffer;
     char *length_env = getenv("CONTENT_LENGTH");
     if(length_env == NULL)
     {
@@ -115,29 +117,24 @@ int main( int argc, char *argv[ ] )
     	return -1;
     }
     size_t length = strtoul(length_env, NULL, 10);
-    fprintf(stderr, "about to read %zu from stdin\n", length);
-    buffer = malloc(length);
-    readed = read(0, buffer, length);
+    cbuffer = malloc(length);
+    readed = read(0, cbuffer, length);
     if(readed != length)
     {
     	fprintf(stderr, "read %zu != %zu\n", readed, length);
     	return -1;
     }
-
-    fprintf(stderr, "stdin read, creating buffer\n");
-    YY_BUFFER_STATE state = yy_scan_bytes(buffer, length);
-    fprintf(stderr, "now parse\n");
+    String_append_data(buffer, length, (void*)cbuffer);
 #else
-    String buffer;
-    String_init(&buffer);
+
     char buf[100];
     while((readed = read(0, buf, 100)) > 0)
     {
-    	String_append_data(&buffer, readed, (const void*)buf);
+    	String_append_data(buffer, readed, (const void*)buf);
     }
-    YY_BUFFER_STATE state = yy_scan_bytes(String_get_data(&buffer), String_get_length(&buffer));
 #endif
-    if(yyparse(&root, &Parser) == 0 && root != NULL)
+
+    if(OpParser_parse(&Parser, buffer, &root) == 0)
     {
     	int w, h;
 
@@ -296,12 +293,9 @@ int main( int argc, char *argv[ ] )
 			String_finalize(&out);
 #endif
     }
-    yy_delete_buffer(state);
 
 #ifdef CGIMODE
-    free(buffer);
-#else
-    String_finalize(&buffer);
+    free(cbuffer);
 #endif
 
     OpCanvaContext_terminate(&Ctx);

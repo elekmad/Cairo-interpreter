@@ -10,6 +10,8 @@
 
 #include <Op.h>
 #include <OpModule.h>
+#include <LinkedList.h>
+#include <String.h>
 
 typedef struct op_program
 {
@@ -19,11 +21,23 @@ typedef struct op_program
 	size_t number_of_modules;
 }OpProgram;
 
+typedef struct yy_buffer_state *YY_BUFFER_STATE;
+
+typedef struct op_parser_file
+{
+	YY_BUFFER_STATE state;
+	String *file_content;
+}OpParserFile;
+
 typedef struct op_parser
 {
 	OpContext *current_c;
 	OpModule *current_m;
 	OpProgram *program;
+	OpParserFile **files;
+	size_t files_size;
+	String filename_prefix;
+	int depth;
 }OpParser;
 
 

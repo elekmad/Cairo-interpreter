@@ -1,3 +1,6 @@
+%{
+#define YY_DECL int yylex(OpParser *p)
+%}
 %option header-file="lexer.h"
 %option noyywrap
 %option yylineno
@@ -5,7 +8,9 @@
 %{
 #include "parser.tab.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include "OpProgram.h"
 
 int yycolumn = 1;
 
@@ -15,6 +20,7 @@ int yycolumn = 1;
     yylloc.first_column = yycolumn;       \
     yylloc.last_column  = yycolumn + yyleng - 1; \
     yycolumn += yyleng;
+    
 %}
 
 /* %option debug */
@@ -107,6 +113,7 @@ int yycolumn = 1;
 ^(?i:"#setoutputsize")	{ return SETOUTPUTSIZE; } 
 ^(?i:"#setpngoutput")	{ return SETPNGOUTPUT; }
 ^(?i:"#setsvgoutput")	{ return SETSVGOUTPUT; } 
+^(?i:"#include")	{ return INCLUDE; } 
 ^(?i:"module")		{ return DEFMODULE; }  
 
 [0-9]+(\.[0-9]+)? {
@@ -140,6 +147,18 @@ int yycolumn = 1;
     fprintf(stderr,
             "Caractere inconnu '%c'\n",
             yytext[0]);
+}
+
+<<EOF>> {
+	if(OpParser_pop_stream(p) >= 1)
+	{
+		fprintf(stderr, "Pop exiting include\n");
+	}
+	else
+	{
+		fprintf(stderr, "Pop exiting parsing\n");
+		return 0;
+	}
 }
 
 %%

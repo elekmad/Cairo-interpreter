@@ -14,7 +14,6 @@
 #include <OpCanva.h>
 #include <OpProgram.h>
 #include <OpModule.h>
-#include <String.h>
 
 extern int yylex();
 
@@ -36,6 +35,7 @@ Op *root;
 
 %parse-param { Op **root }
 %parse-param { OpParser *p }
+%lex-param { OpParser *p }
 
 %token <number> NUMBER
 %token <string> IDENTIFIER
@@ -123,10 +123,12 @@ Op *root;
 %token SETSVGOUTPUT
 %token DEFMODULE
 %token CHILDS
+%token INCLUDE
 
 %type <node> program block expression statements statement
 %type <list> call_args def_args
 %type <var> number_list string_list
+%destructor { free($$); } <string>
 
 %left OR
 %left XOR
@@ -148,17 +150,19 @@ program:
 		statement
 		{
 			OpBloc *op = (OpBloc*)OpCanvaBloc_new();
-          *root = (Op*)op;
-          Op_set_for_prerunning(*root);//Must be done before append because is recursive
-          OpCanvaBloc_set_auto_draw((OpCanvaBloc*)op);
-          $$ = (Op*)op;
-          OpBloc_append_Op(op, $1);
-      		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+          	*root = (Op*)op;
+          	Op_set_for_prerunning(*root);//Must be done before append because is recursive
+          	OpCanvaBloc_set_auto_draw((OpCanvaBloc*)op);
+          	$$ = (Op*)op;
+          	if($1 != NULL)
+          		OpBloc_append_Op(op, $1);
+  			Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 		}
       | program statement
         {
         	$$ = $1;
-          OpBloc_append_Op((OpBloc*)$$, $2);
+        	if($2 != NULL)
+          		OpBloc_append_Op((OpBloc*)$$, $2);
       		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 ;
@@ -255,6 +259,7 @@ statement:
       			free($1);
       			YYERROR;
   			}
+  			fprintf(stderr, "CALL MODULE WITHOUT BLOCK\n");
       		
       }
       	| CHILDS '(' ')' ';'
@@ -297,6 +302,7 @@ statement:
       			free($1);
       			YYERROR;
   			}
+  			fprintf(stderr, "CALL MODULE WITH BLOCK\n");
       }
       
       | DEFMODULE IDENTIFIER
@@ -317,6 +323,12 @@ statement:
       		OpParser_set_current_context(p, OpProgram_get_context(OpParser_get_program(p)));
       		OpParser_set_current_module(p, NULL);
       		$$ = (Op*)NULL;
+      }
+      | INCLUDE TEXTCONTENT ';'
+      {
+			OpParser_parse_include(p, $2);
+			free($2);
+			$$ = NULL;
       }
 
       | UNSET '(' IDENTIFIER ')' ';'
@@ -859,6 +871,9 @@ statement:
 		OpFontSelector_set_font_slant(op, $5);
 		OpFontSelector_set_font_weight(op, $7);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		free($3);
+  		free($5);
+  		free($7);
 	  }
       	| TEXT '(' expression ')' ';'
       {
@@ -882,6 +897,7 @@ statement:
 		OpPrintMessage_set_message(op, $3);
 		OpPrintMessage_set_value(op, $5);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		free($3);
 	  }
       	| PREMESSAGE '(' TEXTCONTENT ',' expression ')' ';'
       {
@@ -891,6 +907,7 @@ statement:
 		OpPrintMessage_set_value(op, $5);
       	Op_set_for_prerunning($$);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		free($3);
 	  }
       
       | FILLPRESERVE '(' ')' ';'
@@ -949,10 +966,12 @@ string_list:
 		OpVariable *var = OpVariable_new();
 		OpVariable_append_string(var, $1);
       	$$ = var;
+      	free($1);
 	}
 	| string_list ',' TEXTCONTENT
 	{
 		OpVariable_append_string((OpVariable*)$$, $3);
+		free($3);
 	}
 ;
 
