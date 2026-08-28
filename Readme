@@ -1,4 +1,4 @@
-Interpeteur au dessus de la lib cairo.
+ouiInterpeteur au dessus de la lib cairo.
 
 Nécessite la lib cairo dev, la lib sdl2 dev si compilé avec sdl2, ainsi que flex et bison, et b64 pour le png via serveur
 
@@ -26,4 +26,4 @@ Tester mode serveur :
 export CONTENT_LENGTH=$(wc -c fichier);
 ./CairoInterpreter < fichier
 
-Le fichier Gui/Editor.html peut interroger la version cgi installée sur un server. Modifier URL_DE_LA_CGI dedans.
+Le fichier Gui/Editor.html peut interroger la version cgi installée sur un server. Modifier URL_DE_LA_CGI dedans. Fichier généré par L'IA.
