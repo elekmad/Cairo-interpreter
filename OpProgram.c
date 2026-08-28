@@ -161,6 +161,7 @@ void OpParser_init(OpParser *self)
 	self->files_size = 0;
 	self->depth = 0;
 	String_init(&self->filename_prefix);
+	LinkedList_init(&self->filenames);
 }
 
 int OpParser_parse(OpParser *self, String *s, Op **root)
@@ -175,12 +176,36 @@ int OpParser_parse(OpParser *self, String *s, Op **root)
     return -1;
 }
 
+int OpParser_check_if_include_exist(OpParser *self, const char *name)
+{
+	int ret = 0;
+	LinkedListIterator ite;
+	LinkedListIterator_init(&ite, &self->filenames);
+    while(!LinkedListIterator_is_eol(&ite))
+    {
+    	LinkedListIterator_go_to_next(&ite);
+    	String *f = LinkedListIterator_get_current_value(&ite);
+    	if(f != NULL && String_compare_with_char_string(f, name) == 0)
+    	{
+    		ret = 1;
+    		break;
+    	}
+    }
+    LinkedListIterator_finalize(&ite);
+	return ret;
+}
+
 void OpParser_parse_include(OpParser *self, const char *name)
 {
+	if(OpParser_check_if_include_exist(self, name) == 1)
+		return;
+	String *Sname = String_new();
+	String_append_char_string(Sname, name);
+	LinkedList_append(&self->filenames, Sname);
 	String filename;
 	String_init(&filename);
 	String_append_String(&filename, &self->filename_prefix);
-	String_append_char_string(&filename, name);
+	String_append_String(&filename, Sname);
 	String *new_stream = String_new();
 	char buf[100];
 	int fd = open(String_get_char_string(&filename), O_RDONLY);
@@ -190,12 +215,13 @@ void OpParser_parse_include(OpParser *self, const char *name)
     	String_append_data(new_stream, readed, (const void*)buf);
     }
     close(fd);
-    String_finalize(&filename);
+
     YY_BUFFER_STATE state = yy_scan_bytes(String_get_data(new_stream), String_get_length(new_stream));
 
     OpParserFile *f = OpParserFile_new();
     f->file_content = new_stream;
     f->state = state;
+    String_finalize(&filename);
 
     OpParser_push_stream(self, f);
 }
@@ -237,6 +263,8 @@ void OpParser_terminate(OpParser *self)
 	}
 	free(self->files);
 	String_finalize(&self->filename_prefix);
+	LinkedList_do_to_all(&self->filenames, (void(*)(void*,void*))String_free, NULL);
+	LinkedList_finalize(&self->filenames);
 }
 
 void OpParser_free(OpParser *self)

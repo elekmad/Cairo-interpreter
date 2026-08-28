@@ -35,6 +35,7 @@ typedef struct op_parser
 	OpModule *current_m;
 	OpProgram *program;
 	OpParserFile **files;
+	LinkedList filenames;
 	size_t files_size;
 	String filename_prefix;
 	int depth;
