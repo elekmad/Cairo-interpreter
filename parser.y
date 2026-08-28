@@ -50,6 +50,8 @@ Op *root;
 %token SETAUTOSTROKE
 %token SETAUTOFILLSTROKE
 %token SETAUTOSTROKEFILL
+%token SAVE
+%token RESTORE
 %token ARC
 %token ARCNEG
 %token CURVE
@@ -60,6 +62,9 @@ Op *root;
 %token GETLINEWIDTH
 %token FILL
 %token FILLPRESERVE
+%token CLIP
+%token CLIPPRESERVE
+%token RESETCLIP
 %token ROTATE
 %token TRANSLATE
 %token MOVETO
@@ -910,6 +915,24 @@ statement:
   		free($3);
 	  }
       
+      | CLIP '(' ')' ';'
+      {
+      	$$ = OpClip_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | CLIPPRESERVE '(' ')' ';'
+      {
+      	$$ = OpClipPreserve_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | RESETCLIP '(' ')' ';'
+      {
+      	$$ = OpResetClip_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
       | FILLPRESERVE '(' ')' ';'
       {
       	$$ = OpFillPreserve_new();
@@ -931,6 +954,18 @@ statement:
       | STROKE '(' ')' ';'
       {
       	$$ = OpStroke_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | SAVE '(' ')' ';'
+      {
+      	$$ = OpSave_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | RESTORE '(' ')' ';'
+      {
+      	$$ = OpRestore_new();
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 ;

@@ -261,6 +261,25 @@ void CanvaCtx_draw_bezier(CanvaCtx *self, double x, double y, double m1x, double
 	self->pending_path = true;
 }
 
+void CanvaCtx_clip(CanvaCtx *self)
+{
+	fprintf(stderr, "Cairo clip %p\n", self->cr);
+	cairo_clip(self->cr);
+	self->pending_path = false;
+}
+
+void CanvaCtx_clip_preserve(CanvaCtx *self)
+{
+	fprintf(stderr, "Cairo clip preserve %p\n", self->cr);
+	cairo_clip_preserve(self->cr);
+}
+
+void CanvaCtx_reset_clip(CanvaCtx *self)
+{
+	fprintf(stderr, "Cairo reset clip %p\n", self->cr);
+	cairo_reset_clip(self->cr);
+}
+
 void CanvaCtx_fill(CanvaCtx *self)
 {
 	cairo_pattern_t *pat = cairo_get_source(self->cr);

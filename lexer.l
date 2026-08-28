@@ -45,11 +45,16 @@ int yycolumn = 1;
 (?i:"setautostroke")	{ return SETAUTOSTROKE; }
 (?i:"setautofillstroke")	{ return SETAUTOFILLSTROKE; }
 (?i:"setautostrokefill")	{ return SETAUTOSTROKEFILL; }
+(?i:"save")			{ return SAVE; }
+(?i:"restore")		{ return RESTORE; }
 (?i:"arc")			{ return ARC; }
 (?i:"arcneg")		{ return ARCNEG; }
 (?i:"curve")		{ return CURVE; }
 (?i:"stroke")		{ return STROKE; }
 (?i:"strokepreserve")		{ return STROKEPRESERVE; }
+(?i:"clip")			{ return CLIP; }
+(?i:"clippreserve")	{ return CLIPPRESERVE; }
+(?i:"resetclip")	{ return RESETCLIP; }
 (?i:"color")		{ return COLOR; }
 (?i:"setlinewidth")	{ return SETLINEWIDTH; }
 (?i:"getlinewidth")	{ return GETLINEWIDTH; }

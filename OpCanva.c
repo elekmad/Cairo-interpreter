@@ -1268,6 +1268,117 @@ OpIsa OpSetOutputSize_isa = {
 		.check_args = (int(*)(Op*, OpContext*))OpSetOutputSize_check_args,
 };
 
+
+OpIsa OpClip_isa = {
+		.name="Clip",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpClip_execute,
+		.check_args = NULL,
+};
+
+int OpClip_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_clip(ctx->Canva);
+	return 0;
+}
+
+Op *OpClip_new(void)
+{
+	return Op_new(&OpClip_isa);
+}
+
+
+OpIsa OpClipPreserve_isa = {
+		.name="ClipPreserve",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpClipPreserve_execute,
+		.check_args = NULL,
+};
+
+int OpClipPreserve_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_clip_preserve(ctx->Canva);
+	return 0;
+}
+
+Op *OpClipPreserve_new(void)
+{
+	return Op_new(&OpClipPreserve_isa);
+}
+
+
+OpIsa OpResetClip_isa = {
+		.name="ResetClip",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpResetClip_execute,
+		.check_args = NULL,
+};
+
+int OpResetClip_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_reset_clip(ctx->Canva);
+	return 0;
+}
+
+Op *OpResetClip_new(void)
+{
+	return Op_new(&OpResetClip_isa);
+}
+
+
+OpIsa OpSave_isa = {
+		.name="Save",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpSave_execute,
+		.check_args = NULL,
+};
+
+int OpSave_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_save(ctx->Canva);
+	return 0;
+}
+
+Op *OpSave_new(void)
+{
+	return Op_new(&OpSave_isa);
+}
+
+
+OpIsa OpRestore_isa = {
+		.name="Restore",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpRestore_execute,
+		.check_args = NULL,
+};
+
+int OpRestore_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_restore(ctx->Canva);
+	return 0;
+}
+
+Op *OpRestore_new(void)
+{
+	return Op_new(&OpRestore_isa);
+}
+
+
 void OpSetOutputSize_init(OpSetOutputSize *self)
 {
 	Op_init(&self->super);
