@@ -111,6 +111,7 @@ int yycolumn = 1;
 (?i:"floor")		{ return FLOOR; }
 (?i:"ceil")			{ return CEIL; }
 (?i:"power")		{ return POWER; }
+(?i:"mod")			{ return MODULO; }
 (?i:"sqrt")			{ return SQRT; }
 (?i:"#randinit")		{ return RANDINIT; }
 (?i:"rand")			{ return RAND; }

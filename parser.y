@@ -119,6 +119,7 @@ Op *root;
 %token FLOOR
 %token CEIL
 %token POWER
+%token MODULO
 %token SQRT
 %token RANDINIT
 %token RAND
@@ -1309,6 +1310,15 @@ expression:
     | POWER '(' expression ',' expression ')'
       {
     	Op2 *op = (Op2*)OpPower_new();
+      	$$ = (Op*)op;
+      	Op2_set_operande1(op, $3);
+      	Op2_set_operande2(op, $5);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+
+    | MODULO '(' expression ',' expression ')'
+      {
+    	Op2 *op = (Op2*)OpModulo_new();
       	$$ = (Op*)op;
       	Op2_set_operande1(op, $3);
       	Op2_set_operande2(op, $5);

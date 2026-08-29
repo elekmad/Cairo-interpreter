@@ -3255,6 +3255,54 @@ Op *OpPower_new(void)
 	return Op_new(&OpPower_isa.super);
 }
 
+int compute_modulo(OpVariable *res, OpVariable *v1, OpVariable *v2)
+{
+	if(OpVariable_get_type(v1) == DOUBLE)
+	{
+		if(OpVariable_get_type(v2) == DOUBLE)
+		{
+			double d1 = OpVariable_get_double(v1), d2 = OpVariable_get_double(v2), r;
+			r = fmod(d1, d2);
+			if(double_eq(r, 0) == 0 && r < 0)
+				r += fabs(d2);
+			OpVariable_set_double(res, r);
+			return 0;
+		}
+		else
+			return -1;
+	}
+	else
+		return -1;
+}
+
+int check_args_modulo(OpVariable *v1, OpVariable *v2)
+{
+	int ret = 0;
+	OpVarType t1 = OpVariable_get_type(v1), t2 = OpVariable_get_type(v2);
+	if(t1 != DOUBLE)
+		return -1;
+	if(t2 != DOUBLE)
+		return -1;
+	return ret;
+}
+
+OpIsaTwoOp OpModulo_isa = {
+		.super.name="Modulo",
+		.super.size=sizeof(Op2),
+		.super.init = (void(*)(Op*))Op2_init,
+		.super.terminate = (void(*)(Op*))Op2_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op2_fix_operandes,
+		.super.execute = (int(*)(Op*, OpContext*))Op2_execute,
+		.super.check_args = (int(*)(Op*,OpContext*))Op2_check_args,
+		.check_args = check_args_modulo,
+		.compute = compute_modulo
+};
+
+Op *OpModulo_new(void)
+{
+	return Op_new(&OpModulo_isa.super);
+}
+
 int compute_crochets(OpVariable *res, OpVariable *v1, OpVariable *v2)
 {
 	int ret = -1;
