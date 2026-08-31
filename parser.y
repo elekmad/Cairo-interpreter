@@ -274,12 +274,13 @@ statement:
       {
 		OpLaunchModuleChilds *op = (OpLaunchModuleChilds *)OpLaunchModuleChilds_new();
       	$$ = (Op*)op;
-      	OpModule *current = OpParser_get_current_module(p);
-      	if(current == NULL)
+      	int m = OpParser_get_inside_module(p);
+      	if(m == 0)
 		{
 	        yyerror(root, p, "Use of 'children' outside module");
 	        YYERROR;
     	}
+    	OpModule *current = OpParser_get_current_module(p);
       	OpLaunchModuleChilds_set_module(op, current);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
@@ -315,10 +316,16 @@ statement:
       
       | DEFMODULE IDENTIFIER
       {
+		  	if(OpParser_get_inside_module(p) > 0)
+			{
+		        yyerror(root, p, "Definition of a module inside another module");
+		        YYERROR;
+			}
       		size_t module_num = OpProgram_get_module_number(OpParser_get_program(p), $2);
       		free($2);
       		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
       		OpParser_set_current_module(p, m);
+      		OpParser_set_inside_module(p);
       		OpParser_set_current_context(p, (OpContext*)OpModule_get_context(m));
       }
       '(' def_args ')' block
@@ -330,6 +337,7 @@ statement:
       		LinkedList_free($5);
       		OpParser_set_current_context(p, OpProgram_get_context(OpParser_get_program(p)));
       		OpParser_set_current_module(p, NULL);
+      		OpParser_unset_inside_module(p);
       		$$ = (Op*)NULL;
       }
       | INCLUDE TEXTCONTENT ';'
@@ -419,7 +427,10 @@ statement:
     	OpIf_set_false_branch(op, $7);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
     }
-    | FORLOOP '(' IDENTIFIER '=' '[' expression ':' expression ':' expression ']' ')' block
+    | FORLOOP '(' IDENTIFIER '=' '[' expression ':' expression ':' expression ']' ')'
+    {
+      	OpParser_set_inside_loop(p);
+    } block
     {
     	size_t var_num = OpContext_get_variable_number(OpParser_get_current_context(p), $3);
     	OpForLoop *op = (OpForLoop*)OpForLoop_new();
@@ -427,51 +438,78 @@ statement:
     	OpForLoop_set_start(op, $6);
     	OpForLoop_set_condition(op, $8);
     	OpForLoop_set_step(op, $10);
-    	OpForLoop_set_loop(op, $13);
+    	OpForLoop_set_loop(op, $14);
     	OpForLoop_set_variable_number(op, var_num);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      	OpParser_unset_inside_loop(p);
   		free($3);
     }
-    | FORLOOP '(' IDENTIFIER '=' '[' expression ':' expression ']' ')' block
+    | FORLOOP '(' IDENTIFIER '=' '[' expression ':' expression ']' ')' 
+    {
+      	OpParser_set_inside_loop(p);
+    } block
     {
     	size_t var_num = OpContext_get_variable_number(OpParser_get_current_context(p), $3);
     	OpForLoop *op = (OpForLoop*)OpForLoop_new();
     	$$ = (Op*)op;
     	OpForLoop_set_start(op, $6);
     	OpForLoop_set_condition(op, $8);
-    	OpForLoop_set_loop(op, $11);
+    	OpForLoop_set_loop(op, $12);
     	OpForLoop_set_variable_number(op, var_num);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      	OpParser_unset_inside_loop(p);
   		free($3);
     }
-    | FOREACH '(' IDENTIFIER IN expression ')' block
+    | FOREACH
     {
-    	size_t var_num = OpContext_get_variable_number(OpParser_get_current_context(p), $3);
+      	OpParser_set_inside_loop(p);
+    }
+      '(' IDENTIFIER IN expression ')' block
+    {
+    	size_t var_num = OpContext_get_variable_number(OpParser_get_current_context(p), $4);
     	OpForEach *op = (OpForEach*)OpForEach_new();
     	$$ = (Op*)op;
-    	OpForEach_set_value(op, $5);
-    	OpForEach_set_loop(op, $7);
+    	OpForEach_set_value(op, $6);
+    	OpForEach_set_loop(op, $8);
     	OpForEach_set_variable_number(op, var_num);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
-  		free($3);
+      	OpParser_unset_inside_loop(p);
+  		free($4);
     }
-    | WHILETRUE '(' expression ')' block
+    | WHILETRUE
+    {
+      	OpParser_set_inside_loop(p);
+    }
+      '(' expression ')' block
     {
     	OpWhile *op = (OpWhile*)OpWhile_new();
     	$$ = (Op*)op;
-    	OpWhile_set_condition(op, $3);
-    	OpWhile_set_bloc(op, $5);
+    	OpWhile_set_condition(op, $4);
+    	OpWhile_set_bloc(op, $6);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      	OpParser_unset_inside_loop(p);
     }
       
       | BREAK ';'
       {
+    	int m = OpParser_get_inside_loop(p);
+      	if(m == 0)
+		{
+	        yyerror(root, p, "Use of 'break' outside loop");
+	        YYERROR;
+    	}
       	$$ = OpBreak_new();
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       
       | CONTINUE ';'
       {
+      	int m = OpParser_get_inside_loop(p);
+      	if(m == 0)
+		{
+	        yyerror(root, p, "Use of 'continue' outside loop");
+	        YYERROR;
+    	}
       	$$ = OpContinue_new();
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }

@@ -162,6 +162,8 @@ void OpParser_init(OpParser *self)
 	self->depth = 0;
 	String_init(&self->filename_prefix);
 	LinkedList_init(&self->filenames);
+	self->inside_loop = 0;
+	self->inside_loop = 0;
 }
 
 int OpParser_parse(OpParser *self, String *s, Op **root)
@@ -294,6 +296,36 @@ OpModule *OpParser_get_current_module(OpParser *self)
 void OpParser_set_current_module(OpParser *self, OpModule *m)
 {
 	self->current_m = m;
+}
+
+int OpParser_get_inside_module(OpParser *self)
+{
+	return self->inside_module;
+}
+
+void OpParser_set_inside_module(OpParser *self)
+{
+	self->inside_module++;
+}
+
+void OpParser_unset_inside_module(OpParser *self)
+{
+	self->inside_module--;
+}
+
+int OpParser_get_inside_loop(OpParser *self)
+{
+	return self->inside_loop;
+}
+
+void OpParser_set_inside_loop(OpParser *self)
+{
+	self->inside_loop++;
+}
+
+void OpParser_unset_inside_loop(OpParser *self)
+{
+	self->inside_loop--;
 }
 
 OpProgram *OpParser_get_program(OpParser *self)

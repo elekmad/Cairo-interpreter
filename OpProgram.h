@@ -33,12 +33,14 @@ typedef struct op_parser
 {
 	OpContext *current_c;
 	OpModule *current_m;
+	int inside_module;
 	OpProgram *program;
 	OpParserFile **files;
 	LinkedList filenames;
 	size_t files_size;
 	String filename_prefix;
 	int depth;
+	int inside_loop;
 }OpParser;
 
 

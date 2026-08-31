@@ -15,17 +15,36 @@
 #include <cairo-svg.h>
 #include <b64/cencode.h>
 
-void CanvaCtx_init(CanvaCtx *self, int width, int height, int pitch)
+void _CanvaCtx_init(CanvaCtx *self)
 {
-	memset(self, sizeof(self), 0);
-	self->width = width;
-	self->height = height;
-	self->pitch = pitch;
+	self->width = 640;
+	self->height = 480;
+	self->pitch = 0;
 	self->default_auto_draw_mode = Stroke;
 	CanvaCtx_set_default_fill_color(self, 0, 0, 0, 255);
 	CanvaCtx_set_default_stroke_color(self, 0, 0, 0, 255);
+	self->default_line_with = 5.0;
 	self->pending_path = false;
 	self->color_set_up = false;
+
+	self->pixels = NULL;
+	self->texture = NULL;
+	self->output_mode = SVG;
+	String_init(&self->output_buffer);
+
+	self->surface = NULL;
+	self->pat = NULL;
+	self->text_color_is_set = false;
+	CanvaCtx_set_text_color(self, 0, 0, 0, 255);
+	self->cr = NULL;
+}
+
+void CanvaCtx_init(CanvaCtx *self, int width, int height, int pitch)
+{
+	_CanvaCtx_init(self);
+	self->width = width;
+	self->height = height;
+	self->pitch = pitch;
 #ifndef NOSDL
 	self->output_mode = SDL;
 #else
@@ -33,8 +52,6 @@ void CanvaCtx_init(CanvaCtx *self, int width, int height, int pitch)
 #endif
 
 	self->pixels = malloc(width * height * 4);
-	String_init(&self->output_buffer);
-
 	self->surface =
 	    cairo_image_surface_create_for_data(
 	        (unsigned char*)self->pixels,
@@ -43,27 +60,17 @@ void CanvaCtx_init(CanvaCtx *self, int width, int height, int pitch)
 	        self->height,
 	        self->pitch
 	    );
-	self->pat = NULL;
-	self->text_color_is_set = false;
-	CanvaCtx_set_text_color(self, 0, 0, 0, 255);
 	self->cr = cairo_create (self->surface);
 }
 
 
 void CanvaCtx_init_for_svg(CanvaCtx *self, int width, int height)
 {
-	memset(self, sizeof(self), 0);
+	_CanvaCtx_init(self);
 	self->width = width;
 	self->height = height;
-	self->default_auto_draw_mode = Stroke;
-	CanvaCtx_set_default_fill_color(self, 0, 0, 0, 255);
-	CanvaCtx_set_default_stroke_color(self, 0, 0, 0, 255);
-	self->pending_path = false;
-	self->color_set_up = false;
 
 	self->output_mode = SVG;
-
-	self->pixels = NULL;
 
 	self->surface =
 	    cairo_svg_surface_create_for_stream(
@@ -72,26 +79,16 @@ void CanvaCtx_init_for_svg(CanvaCtx *self, int width, int height)
 	        self->width,
 	        self->height
 	    );
-	self->pat = NULL;
-	self->text_color_is_set = false;
-	CanvaCtx_set_text_color(self, 0, 0, 0, 255);
 	self->cr = cairo_create (self->surface);
 }
 
 void CanvaCtx_init_for_png(CanvaCtx *self, int width, int height)
 {
-	memset(self, sizeof(self), 0);
+	_CanvaCtx_init(self);
 	self->width = width;
 	self->height = height;
-	self->default_auto_draw_mode = Stroke;
-	CanvaCtx_set_default_fill_color(self, 0, 0, 0, 255);
-	CanvaCtx_set_default_stroke_color(self, 0, 0, 0, 255);
-	self->pending_path = false;
-	self->color_set_up = false;
 
 	self->output_mode = PNG;
-
-	self->pixels = NULL;
 
 	self->surface =
 	    cairo_image_surface_create(
@@ -99,9 +96,7 @@ void CanvaCtx_init_for_png(CanvaCtx *self, int width, int height)
 	        self->width,
 	        self->height
 	    );
-	self->pat = NULL;
-	self->text_color_is_set = false;
-	CanvaCtx_set_text_color(self, 0, 0, 0, 255);
+
 	self->cr = cairo_create (self->surface);
 }
 
