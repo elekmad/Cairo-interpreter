@@ -28,7 +28,9 @@ void _CanvaCtx_init(CanvaCtx *self)
 	self->color_set_up = false;
 
 	self->pixels = NULL;
+#ifndef NOSDL
 	self->texture = NULL;
+#endif
 	self->output_mode = SVG;
 	String_init(&self->output_buffer);
 
