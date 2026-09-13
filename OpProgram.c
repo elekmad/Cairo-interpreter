@@ -162,12 +162,23 @@ void OpParser_init(OpParser *self)
 	self->depth = 0;
 	String_init(&self->filename_prefix);
 	LinkedList_init(&self->filenames);
+	self->inside_module = 0;
 	self->inside_loop = 0;
-	self->inside_loop = 0;
+}
+
+void OpParser_set_filename_prefix(OpParser *self, String *prefix)
+{
+	String_cpy(&self->filename_prefix, prefix);
+	if(String_get_char_at(&self->filename_prefix, String_get_length(&self->filename_prefix) - 1) != '/')
+		String_append_char(&self->filename_prefix, '/');
+	fprintf(stderr, "Filename Prefix : %s\n", String_get_char_string(&self->filename_prefix));
 }
 
 int OpParser_parse(OpParser *self, String *s, Op **root)
 {
+	int fd = open("/tmp/foo", O_CREAT|O_TRUNC|O_WRONLY, 0666);
+	write(fd, String_get_char_string(s), String_get_length(s));
+	close(fd);
 	OpParserFile *f = OpParserFile_new();
 	f->state = yy_scan_bytes(String_get_data(s), String_get_length(s));
     f->file_content = s;
@@ -209,6 +220,7 @@ void OpParser_parse_include(OpParser *self, const char *name)
 	String_append_String(&filename, &self->filename_prefix);
 	String_append_String(&filename, Sname);
 	String *new_stream = String_new();
+	fprintf(stderr, "Import include : %s => %s\n", name, String_get_char_string(&filename));
 	char buf[100];
 	int fd = open(String_get_char_string(&filename), O_RDONLY);
 	ssize_t readed;
