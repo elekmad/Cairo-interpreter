@@ -1,12 +1,16 @@
-ouiInterpeteur au dessus de la lib cairo.
+Petit Interpeteur au dessus de la lib cairo.
 
 Nécessite la lib cairo dev, la lib sdl2 dev si compilé avec sdl2, ainsi que flex et bison, et b64 pour le png via serveur
+
+sudo apt install build-essential cmake bison flex python3 libcairo2-dev libxml2-dev libsdl2-dev libb64-dev
 
 Option NOSDL : désative la prise en charge de SDL2 pour la sortie graphique. Fonctionne alors 100% bash, utile poru le CGI.
 
 option CGIMODE : active en plus la sortie totale xml avec les headers pour le serveur et prise en compte du CONTENT_LENGTH pour l'entrée.
 
 option QTGUI : compilation de l'interface graphique en Qt. Actuellement incompatible avec la compilation SDL2.
+
+sudo apt install qt6-base-dev qt6-svg-dev libqt6widgets6 libqt6xml6 libqt6svgwidgets6
 
 Pour compiler :
 mkdir build
