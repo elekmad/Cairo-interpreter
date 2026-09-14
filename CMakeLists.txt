@@ -167,6 +167,8 @@ if( QTGUI)
 	
 	
 	find_package(Qt6 REQUIRED COMPONENTS Widgets Xml SvgWidgets)
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(RSVG REQUIRED IMPORTED_TARGET librsvg-2.0)
 	
 	add_executable(CairoDSLEditor
 	    "${CMAKE_CURRENT_SOURCE_DIR}/Gui/QtGui/main.cpp"
@@ -189,6 +191,7 @@ if( QTGUI)
 	target_link_libraries(CairoDSLEditor PRIVATE m)
 	target_link_libraries(CairoDSLEditor PRIVATE ${B64_LIBRARY})
 	target_link_libraries(CairoDSLEditor PRIVATE Cairo::Cairo)
+	target_link_libraries(CairoDSLEditor PRIVATE PkgConfig::RSVG)
 	target_link_libraries(CairoDSLEditor PRIVATE LinkedLists)
 	target_link_libraries(CairoDSLEditor PRIVATE Strings)
 endif()

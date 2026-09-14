@@ -10,7 +10,7 @@ option CGIMODE : active en plus la sortie totale xml avec les headers pour le se
 
 option QTGUI : compilation de l'interface graphique en Qt. Actuellement incompatible avec la compilation SDL2.
 
-sudo apt install qt6-base-dev qt6-svg-dev libqt6widgets6 libqt6xml6 libqt6svgwidgets6
+sudo apt install qt6-base-dev qt6-svg-dev libqt6widgets6 libqt6xml6 libqt6svgwidgets6 librsvg2-dev
 
 Pour compiler :
 mkdir build

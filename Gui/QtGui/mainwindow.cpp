@@ -1,3 +1,6 @@
+
+#include <librsvg/rsvg.h>
+#include <cairo.h>
 #include "mainwindow.h"
 #include "CairoCompilerLib.h"
 
@@ -14,6 +17,55 @@
 #include <QKeyEvent>
 #include <QTextCursor>
 #include <QTextBlock>
+
+
+
+#include <QImage>
+
+extern "C"{
+
+QImage renderSVGWithLibrsvg(const QByteArray &svgData, int width, int height) {
+    GError *error = nullptr;
+    // 1. Charger le flux SVG en mémoire
+    RsvgHandle *handle = rsvg_handle_new_from_data(
+        reinterpret_cast<const guint8*>(svgData.constData()),
+        svgData.size(),
+        &error
+    );
+
+    if (!handle) {
+        // Gérer l'erreur si besoin
+        return QImage();
+    }
+
+    // 2. Créer la surface Cairo destination
+    cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+    cairo_t *cr = cairo_create(surface);
+
+    // 3. Rendu du SVG via librsvg (gestion complète des clipPath)
+    RsvgRectangle viewport = { 0.0, 0.0, static_cast<double>(width), static_cast<double>(height) };
+    rsvg_handle_render_document(handle, cr, &viewport, &error);
+
+    cairo_surface_flush(surface);
+
+    // 4. Conversion vers QImage (copie propre pour détruire la surface Cairo)
+    QImage result(
+        cairo_image_surface_get_data(surface),
+        width,
+        height,
+        cairo_image_surface_get_stride(surface),
+        QImage::Format_ARGB32_Premultiplied
+    );
+    QImage finalImage = result.copy(); // Copie indépendante du buffer C
+
+    // Nettoyage
+    cairo_destroy(cr);
+    cairo_surface_destroy(surface);
+    g_object_unref(handle);
+
+    return finalImage;
+}
+}
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setupUi();
@@ -308,7 +360,9 @@ void MainWindow::processXmlResponse(const QString &xmlText, const QByteArray &ou
 
 void MainWindow::displayOutputSvg(const QByteArray &svgData) {
 
-    QSvgRenderer renderer(svgData);
+	QImage image = renderSVGWithLibrsvg(svgData, width, height);
+
+    /*QSvgRenderer renderer(svgData);
     if (!renderer.isValid()) {
         addLocalMessage("ParseError", "Le contenu SVG est invalide.");
         return;
@@ -319,7 +373,9 @@ void MainWindow::displayOutputSvg(const QByteArray &svgData) {
     QPainter painter(&img);
     renderer.render(&painter);
 
-    outputDisplay->setPixmap(QPixmap::fromImage(img));
+    outputDisplay->setPixmap(QPixmap::fromImage(img));*/
+
+    outputDisplay->setPixmap(QPixmap::fromImage(image));
     currentOutputData = svgData;
     currentOutputType = "svg";
     saveOutputBtn->setEnabled(true);
