@@ -26,6 +26,7 @@ Sans SDL2
 Tester L'interface Graphique Qt :
 
 ./CairoDSLEditor
+=> Attention pour l'instant utilisation de QtSvg qui ne prend pas en compte toutes les fonctionnalités du SVG de cairo. Pour mieux savoir faites vos tests en png puis export final en svg !
 
 Tester mode serveur :
 
@@ -39,3 +40,5 @@ copier CairoInterpreter dans Gui/cgi-bin/cairo.cgi
 modifier URL_DE_LA_CGI par "http://localhost:8000/cgi-bin/cairo.cgi"
 lancez un petit serveur python depuis le dossier Gui : python3 -m http.server --cgi 8000
 Et enfin ouvrez l'adresse suivante dans votre navigateur : http://localhost:8000/Editor.html
+
+Fichier doc.odt ajouté pour expliquer le langage
