@@ -1,4 +1,4 @@
-Petit Interpeteur au dessus de la lib cairo.
+Petit interpeteur au dessus de la lib cairo.
 
 Nécessite la lib cairo dev, la lib sdl2 dev si compilé avec sdl2, ainsi que flex et bison, et b64 pour le png via serveur
 
@@ -27,7 +27,7 @@ Avec SDL2
 Sans SDL2
 ./CairoInterpreter < fichier > output
 
-Tester L'interface Graphique Qt :
+Tester L'interface Graphique Qt (partie qt générée par ia pour première base) :
 
 ./CairoDSLEditor
 => Attention pour l'instant utilisation de QtSvg qui ne prend pas en compte toutes les fonctionnalités du SVG de cairo. Pour mieux savoir faites vos tests en png puis export final en svg !
