@@ -548,6 +548,11 @@ void CanvaCtx_write_to_fd(CanvaCtx *self, int fd)
 	}
 }
 
+void CanvaCtx_fill_buffer_with_output(CanvaCtx *self, String *buffer)
+{
+	String_cpy(buffer, &self->output_buffer);
+}
+
 void CanvaCtx_write_to_png(CanvaCtx *self)
 {
 	cairo_surface_write_to_png_stream(self->surface, (cairo_status_t (*) (void *, const unsigned char *, unsigned int))CanvaCtx_write_into_buffer, self);

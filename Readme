@@ -6,10 +6,12 @@ Option NOSDL : désative la prise en charge de SDL2 pour la sortie graphique. Fo
 
 option CGIMODE : active en plus la sortie totale xml avec les headers pour le serveur et prise en compte du CONTENT_LENGTH pour l'entrée.
 
+option QTGUI : compilation de l'interface graphique en Qt. Actuellement incompatible avec la compilation SDL2.
+
 Pour compiler :
 mkdir build
 cd build
-cmake ../ -DCMAKE_VERBOSE_MAKEFILE=false  -DCMAKE_RELEASE_MODE=Debug  -DBUILD_UNITTESTS=true -DUPDISTANT=true -DNOSDL=false -DCGIMODE=false
+cmake ../ -DCMAKE_VERBOSE_MAKEFILE=false  -DCMAKE_RELEASE_MODE=Debug  -DBUILD_UNITTESTS=true -DUPDISTANT=true -DNOSDL=false -DCGIMODE=false -DQTGUI=false
 make
 make <= Un 2e make est actuellement nécessaire la premiere fois a cause d'un probleme de dépendances mal gérées avec cproto
 
@@ -21,9 +23,19 @@ Avec SDL2
 Sans SDL2
 ./CairoInterpreter < fichier > output
 
+Tester L'interface Graphique Qt :
+
+./CairoDSLEditor
+
 Tester mode serveur :
 
 export CONTENT_LENGTH=$(wc -c fichier);
 ./CairoInterpreter < fichier
 
 Le fichier Gui/Editor.html peut interroger la version cgi installée sur un server. Modifier URL_DE_LA_CGI dedans. Fichier généré par L'IA.
+Pour facilement l'utiliser avec le GUI en localhost sous linux :
+
+copier CairoInterpreter dans Gui/cgi-bin/cairo.cgi
+modifier URL_DE_LA_CGI par "http://localhost:8000/cgi-bin/cairo.cgi"
+lancez un petit serveur python depuis le dossier Gui : python3 -m http.server --cgi 8000
+Et enfin ouvrez l'adresse suivante dans votre navigateur : http://localhost:8000/Editor.html

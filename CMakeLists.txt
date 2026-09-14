@@ -17,13 +17,20 @@ add_definitions(-ggdb3)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
-project(CairoInterpreter LANGUAGES C)
+project(CairoInterpreter LANGUAGES C CXX)
 
 
 file(GLOB CPP_SOURCE
         ./*.h
         ./*.c
 )
+
+foreach(source ${CPP_SOURCE})
+	if(NOT ${source} MATCHES "\\main.c$")
+		set(LIB_SRC "${LIB_SRC}" ${source})
+	endif()
+endforeach()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/" FILES ${CPP_SOURCE})
@@ -58,6 +65,7 @@ add_executable(CairoInterpreter
 )
 
 #target_link_libraries(CairoInterpreter PRIVATE fl)
+target_link_libraries(CairoInterpreter PRIVATE xml2)
 target_link_libraries(CairoInterpreter PRIVATE m)
 find_library(B64_LIBRARY
     NAMES libb64.a
@@ -150,6 +158,40 @@ find_package(SDL2 REQUIRED CONFIG)
 target_link_libraries(CairoInterpreter PRIVATE SDL2::SDL2)
 endif()
 
+
+if( QTGUI)
+	set(CMAKE_CXX_STANDARD 17)
+	set(CMAKE_AUTOMOC ON)
+	set(CMAKE_AUTORCC ON)
+	set(CMAKE_AUTOUIC ON)
+	
+	
+	find_package(Qt6 REQUIRED COMPONENTS Widgets Xml SvgWidgets)
+	
+	add_executable(CairoDSLEditor
+	    "${CMAKE_CURRENT_SOURCE_DIR}/Gui/QtGui/main.cpp"
+	    "${CMAKE_CURRENT_SOURCE_DIR}/Gui/QtGui/mainwindow.cpp"
+	    "${CMAKE_CURRENT_SOURCE_DIR}/Gui/QtGui/mainwindow.h"
+	    "${CMAKE_CURRENT_SOURCE_DIR}/Gui/QtGui/CairoCompilerLib.h"
+	    ${LIB_SRC}
+	    ${BISON_Parser_OUTPUTS}
+	    ${FLEX_Lexer_OUTPUTS}
+	)
+	
+	include_directories(CairoDSLEditor "${CMAKE_CURRENT_SOURCE_DIR}/Gui/QtGui/" ${Cairo_INCLUDE_DIR} ${strings_SOURCE_DIR} ${linkedlists_SOURCE_DIR})
+	
+	target_link_libraries(CairoDSLEditor PRIVATE 
+	    Qt6::Widgets 
+	    Qt6::Xml 
+	    Qt6::SvgWidgets
+	)
+	target_link_libraries(CairoDSLEditor PRIVATE xml2)
+	target_link_libraries(CairoDSLEditor PRIVATE m)
+	target_link_libraries(CairoDSLEditor PRIVATE ${B64_LIBRARY})
+	target_link_libraries(CairoDSLEditor PRIVATE Cairo::Cairo)
+	target_link_libraries(CairoDSLEditor PRIVATE LinkedLists)
+	target_link_libraries(CairoDSLEditor PRIVATE Strings)
+endif()
 
 include_directories(./)
 
