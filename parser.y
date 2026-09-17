@@ -13,6 +13,9 @@
 #include <stdio.h>
 #include <OpCanva.h>
 #include <OpProgram.h>
+#include <Op.h>
+#include <OpMaths.h>
+#include <OpTime.h>
 #include <OpModule.h>
 
 extern int yylex();

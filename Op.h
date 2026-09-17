@@ -155,20 +155,6 @@ typedef struct op_print_message
 
 }OpPrintMessage;
 
-typedef struct op_init_random
-{
-	Op super;
-	Op *value;
-
-}OpInitRandom;
-
-typedef struct op_random
-{
-	Op super;
-	Op *value;
-
-}OpRandom;
-
 
 typedef struct op_if
 {
