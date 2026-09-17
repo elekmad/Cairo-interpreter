@@ -228,6 +228,13 @@ void MainWindow::applyDarkStyle() {
             padding: 5px 12px;
             margin-left: 4px;
         }
+
+		QPushButton:pressed {
+			background-color: #3d3d3d;
+			padding-top: 6px;
+			padding-bottom: 4px;
+		}
+
         QPushButton:hover { background-color: #666; }
         QPushButton:disabled { background-color: #444; color: #888; }
 
