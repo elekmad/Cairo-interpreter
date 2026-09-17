@@ -75,13 +75,11 @@ CanvaCtxOutputMode OpCanvaContext_get_output_mode(OpCanvaContext *self)
 	return self->output_mode;
 }
 
+
 void OpCanvaContext_export_messages_to_xml(OpCanvaContext *self, String *xml, bool with_output)
 {
-	String_append_char_string(xml, "<xml>");
 	if(with_output && self->Canva != NULL)
 		CanvaCtx_export_to_xml(self->Canva, xml);
-	OpContext_export_messages_to_xml(&self->super, xml);
-	String_append_char_string(xml, "</xml>");
 }
 
 void OpCanvaContext_terminate(OpCanvaContext *self)

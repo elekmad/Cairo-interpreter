@@ -228,13 +228,13 @@ int main( int argc, char *argv[ ] )
 			String_init(&out);
 			String_append_char_string(&out, "Content-Type: application/xml; charset=utf-8\r\n");
 			String_append_char_string(&out, "\r\n");
-			OpCanvaContext_export_messages_to_xml(&Ctx, &out, true);
+			OpProgram_export_to_xml(&Prog, &out, true);
 			printf("%s", String_get_char_string(&out));
 			String_finalize(&out);
 #else
 			String out;
 			String_init(&out);
-			OpCanvaContext_export_messages_to_xml(&Ctx, &out, false);
+			OpProgram_export_to_xml(&Prog, &out, false);
 			fprintf(stderr, "%s", String_get_char_string(&out));
 			String_finalize(&out);
 			CanvaCtx_write_to_fd(&Canva, 1);
@@ -261,13 +261,13 @@ int main( int argc, char *argv[ ] )
 			String_init(&out);
 			String_append_char_string(&out, "Content-Type: application/xml; charset=utf-8\r\n");
 			String_append_char_string(&out, "\r\n");
-			OpCanvaContext_export_messages_to_xml(&Ctx, &out, true);
+			OpProgram_export_to_xml(&Prog, &out, true);
 			printf("%s", String_get_char_string(&out));
 			String_finalize(&out);
 #else
 			String out;
 			String_init(&out);
-			OpCanvaContext_export_messages_to_xml(&Ctx, &out, false);
+			OpProgram_export_to_xml(&Prog, &out, false);
 			fprintf(stderr, "%s", String_get_char_string(&out));
 			String_finalize(&out);
 			CanvaCtx_write_to_fd(&Canva, 1);
@@ -282,13 +282,13 @@ int main( int argc, char *argv[ ] )
 			String_init(&out);
 			String_append_char_string(&out, "Content-Type: application/xml; charset=utf-8\r\n");
 			String_append_char_string(&out, "\r\n");
-			OpCanvaContext_export_messages_to_xml(&Ctx, &out, true);
+			OpProgram_export_to_xml(&Prog, &out, true);
 			printf("%s", String_get_char_string(&out));
 			String_finalize(&out);
 #else
 			String out;
 			String_init(&out);
-			OpCanvaContext_export_messages_to_xml(&Ctx, &out, false);
+			OpProgram_export_to_xml(&Prog, &out, false);
 			fprintf(stderr, "%s", String_get_char_string(&out));
 			String_finalize(&out);
 #endif

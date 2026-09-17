@@ -425,9 +425,7 @@ void OpContext_free(OpContext *self)
 
 void OpContext_export_messages_to_xml(OpContext *self, String *xml)
 {
-	String_append_char_string(xml, "<msgs>");
 	LinkedList_do_to_all(&self->messages, (void(*)(void*, void*))OpMessage_append_to_string_xml, xml);
-	String_append_char_string(xml, "</msgs>");
 }
 
 void OpContext_set_running_state(OpContext *self, Op *sender, OpRunningState state, const char *message)
@@ -656,6 +654,21 @@ void OpContext_reset_variables(OpContext *self)
 		if(var != NULL)
 			OpVariable_set_type(var, NONE);
 	}
+}
+
+void OpContext_transfert_messages_to_other(OpContext *self, OpContext *other)
+{
+	LinkedListIterator ite;
+	LinkedListIterator_init(&ite, &self->messages);
+    while(!LinkedListIterator_is_eol(&ite))
+    {
+    	LinkedListIterator_go_to_next(&ite);
+    	OpMessage *m = LinkedListIterator_get_current_value(&ite);
+    	if(m != NULL)
+    		LinkedList_append(&other->messages, m);
+    }
+    LinkedListIterator_finalize(&ite);
+    LinkedList_empty(&self->messages);
 }
 
 void OpContext_copy_variables(OpContext *self, OpContext *other)

@@ -67,7 +67,7 @@ int cairo_parse(String *buffer, String *prefix, String *out, String *msgs, int *
 			OpProgram_run(&Prog);
 
 			CanvaCtx_write_to_png(&Canva);
-			OpCanvaContext_export_messages_to_xml(&Ctx, msgs, false);
+			OpProgram_export_to_xml(&Prog, msgs, false);
 			CanvaCtx_fill_buffer_with_output(&Canva, out);
 			*is_xml = 0;
 
@@ -87,7 +87,7 @@ int cairo_parse(String *buffer, String *prefix, String *out, String *msgs, int *
 			OpProgram_run(&Prog);
 
 			CanvaCtx_finish(&Canva);
-			OpCanvaContext_export_messages_to_xml(&Ctx, msgs, false);
+			OpProgram_export_to_xml(&Prog, msgs, false);
 			CanvaCtx_fill_buffer_with_output(&Canva, out);
 
 			*is_xml = 1;
