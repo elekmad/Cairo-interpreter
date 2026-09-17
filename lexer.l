@@ -91,6 +91,9 @@ int yycolumn = 1;
 (?i:"dtostr")		{ return DTOSTR; }
 (?i:"pi")			{ return PI; }
 (?i:"phi")			{ return PHI; }
+(?i:"gettimeinsecs")	{ return GETTIMEINSECS; }
+(?i:"getgmttime")	{ return GETGMTTIME; }
+(?i:"getlocaltime")	{ return GETLOCALTIME; }
 (?i:"red")			{ return RED; }
 (?i:"green")		{ return GREEN; }
 (?i:"blue")			{ return BLUE; }

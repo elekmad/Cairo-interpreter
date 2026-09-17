@@ -169,18 +169,6 @@ typedef struct op_random
 
 }OpRandom;
 
-typedef struct op_pi
-{
-	Op super;
-
-}OpPi;
-
-typedef struct op_phi
-{
-	Op super;
-
-}OpPhi;
-
 
 typedef struct op_if
 {

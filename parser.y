@@ -95,6 +95,9 @@ Op *root;
 %token GETSIZE
 %token PI
 %token PHI
+%token GETTIMEINSECS
+%token GETGMTTIME
+%token GETLOCALTIME
 %token RED
 %token GREEN
 %token BLUE
@@ -1122,6 +1125,25 @@ expression:
       	$$ = OpPhi_new();
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
+		| GETTIMEINSECS '('  ')'
+      {
+      	$$ = OpGetTimeInSecs_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      	| GETGMTTIME '(' expression ')'
+      {
+		Op1 *op = (Op1*)OpGetGMTTime_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| GETLOCALTIME '(' expression ')'
+      {
+		Op1 *op = (Op1*)OpGetLocalTime_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
 		| RED '('  ')'
       {
       	$$ = OpGetRedColor_new();
