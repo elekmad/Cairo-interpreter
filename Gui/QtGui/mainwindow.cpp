@@ -352,13 +352,13 @@ void MainWindow::processXmlResponse(const QString &xmlText, const QByteArray &ou
         item.text = msgElem.firstChildElement("text").text();
 
         bool ok;
-        int val = msgElem.firstChildElement("first_line").text().toInt(&ok);
+        int val = msgElem.firstChildElement("pos").firstChildElement("first_line").text().toInt(&ok);
         if (ok) item.firstLine = val;
-        val = msgElem.firstChildElement("first_column").text().toInt(&ok);
+        val = msgElem.firstChildElement("pos").firstChildElement("first_column").text().toInt(&ok);
         if (ok) item.firstColumn = val;
-        val = msgElem.firstChildElement("last_line").text().toInt(&ok);
+        val = msgElem.firstChildElement("pos").firstChildElement("last_line").text().toInt(&ok);
         if (ok) item.lastLine = val;
-        val = msgElem.firstChildElement("last_column").text().toInt(&ok);
+        val = msgElem.firstChildElement("pos").firstChildElement("last_column").text().toInt(&ok);
         if (ok) item.lastColumn = val;
 
         addMessage(item);

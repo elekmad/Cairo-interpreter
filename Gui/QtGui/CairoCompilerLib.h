@@ -95,7 +95,7 @@ int cairo_parse(String *buffer, String *prefix, String *out, String *msgs, int *
 		}
 	}
 	else
-		OpCanvaContext_export_messages_to_xml(&Ctx, msgs, false);
+		OpProgram_export_to_xml(&Prog, msgs, false);
 
 	OpCanvaContext_terminate(&Ctx);
 	OpProgram_terminate(&Prog);
