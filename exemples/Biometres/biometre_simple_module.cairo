@@ -13,7 +13,6 @@ labels=["chakra 1", "chakra 2", "chakra 3", "chakra 4", "charka 5", "chakra 6", 
 message("Labels :", labels);
 center=getoutputsize() / 2;
 center=center+concat(0, center[1]/2);
-message("center", center);
 
 color(black())
 {
