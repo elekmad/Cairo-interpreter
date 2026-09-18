@@ -12,12 +12,13 @@ option QTGUI : compilation de l'interface graphique en Qt. Actuellement incompat
 
 sudo apt install qt6-base-dev qt6-svg-dev libqt6widgets6 libqt6xml6 libqt6svgwidgets6 librsvg2-dev
 
-Pour compiler :
+Pour compiler (options pour avoir rapidement accès à l'interface graphique Qt) :
+
 mkdir build
 cd build
-cmake ../ -DCMAKE_VERBOSE_MAKEFILE=false  -DCMAKE_RELEASE_MODE=Debug  -DBUILD_UNITTESTS=true -DUPDISTANT=true -DNOSDL=false -DCGIMODE=false -DQTGUI=false
+cmake ../ -DCMAKE_VERBOSE_MAKEFILE=false  -DCMAKE_RELEASE_MODE=Debug  -DBUILD_UNITTESTS=false -DUPDISTANT=true -DNOSDL=false -DCGIMODE=false -DQTGUI=true
 make
-make <= Un 2e make est actuellement nécessaire la premiere fois a cause d'un probleme de dépendances mal gérées avec cproto
+
 
 Tester mode bash :
 
