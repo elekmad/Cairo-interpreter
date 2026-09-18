@@ -18,6 +18,8 @@ extern "C"
 #include <unistd.h>
 
 
+extern int yycolumn;
+extern int yylineno;
 int cairo_parse(String *buffer, String *prefix, String *out, String *msgs, int *is_xml, int *width, int *height)
 {
 	CanvaCtx Canva;
@@ -33,6 +35,8 @@ int cairo_parse(String *buffer, String *prefix, String *out, String *msgs, int *
 	OpParser_set_program(&Parser, &Prog);
 	OpParser_set_current_context(&Parser, (OpContext*)&Ctx);
 	Op *root = NULL;
+	yycolumn = 1;
+	yylineno = 1;
 	/*extern int yydebug, yy_flex_debug;
 	yydebug = 1;
 	yy_flex_debug = 1;*/

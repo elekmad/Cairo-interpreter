@@ -169,8 +169,13 @@ void OpVariable_print(OpVariable *self)
 
 void OpVariable_to_string(OpVariable *self, String *s)
 {
-	int cmpt;
 	String_append_printf(s, "self %p name '%s' content : ", self, self->name != NULL ? self->name : "null");
+	OpVariable_content_to_string(self, s);
+}
+
+void OpVariable_content_to_string(OpVariable *self, String *s)
+{
+	int cmpt;
 	switch(self->type)
 	{
 	case NONE : 	String_append_printf(s, "empty type");
@@ -1157,7 +1162,7 @@ int OpPrintMessage_execute(OpPrintMessage *self, OpContext *ctx)
 		{
 			OpVariable_copy(&val, OpContext_get_current_value(ctx));
 			String_append_printf(&s, "Message '%s' : ", self->message);
-			OpVariable_to_string(&val, &s);
+			OpVariable_content_to_string(&val, &s);
 			OpContext_set_running_state(ctx, (Op*)self, Run, String_get_char_string(&s));
 			fprintf(stderr, "%s\n", String_get_char_string(&s));
 		}

@@ -475,7 +475,7 @@ void MainWindow::onMessageClicked(QListWidgetItem *item) {
     int lastColumn = item->data(Qt::UserRole + 4).toInt();
 
     if (firstLine > 0) {
-        selectEditorPosition(firstLine, firstColumn, lastLine, lastColumn);
+        selectEditorPosition(firstLine, firstColumn, lastLine, lastColumn + 1);//last column est le début de la dernière colonne. +1 est la fin de la colonne, début de la suivante. Pour entourer la sélection, besoin de la fin !
     }
 }
 
