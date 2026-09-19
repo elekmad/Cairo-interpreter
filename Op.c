@@ -338,6 +338,8 @@ bool double_eq(double a, double b)
 void OpMessage_init(OpMessage *self)
 {
 	String_init(&self->msg);
+	memset(&self->pos, 0, sizeof(SourcePos));
+	self->state = Init;
 }
 
 OpMessage *OpMessage_new(void)

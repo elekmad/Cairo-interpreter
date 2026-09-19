@@ -66,6 +66,11 @@ void OpModule_add_argument(OpModule *self, OpVariable *arg)
 	self->number_of_arguments++;
 }
 
+size_t OpModule_get_nb_argument(OpModule *self)
+{
+	return self->number_of_arguments;
+}
+
 void OpModule_add_to_root(OpModule *self, Op *op)
 {
 	OpBloc_append_Op((OpBloc*)self->root, op);
@@ -202,9 +207,13 @@ void _OpLaunchModule_add_call_arg(Op *op, OpLaunchModule *self)
 	OpLaunchModule_add_call_arg(self, op);
 }
 
-void OpLaunchModule_set_call_arguments(OpLaunchModule *self, LinkedList *list)
+int OpLaunchModule_set_call_arguments(OpLaunchModule *self, LinkedList *list)
 {
-	LinkedList_do_to_all(list, (void(*)(void*,void*))_OpLaunchModule_add_call_arg, (void*)self);
+	if(list != NULL)
+		LinkedList_do_to_all(list, (void(*)(void*,void*))_OpLaunchModule_add_call_arg, (void*)self);
+	if(self->number_of_call_args != OpModule_get_nb_argument(self->module))
+		return -1;
+	return 0;
 }
 
 void OpLaunchModule_add_call_arg(OpLaunchModule *self, Op *arg)

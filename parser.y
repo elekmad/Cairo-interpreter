@@ -258,13 +258,64 @@ statement:
       		{
 	      		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
 	      		OpLaunchModule_set_module(op, m);
-	      		OpLaunchModule_set_call_arguments(op, $3);
-	      		LinkedList_free($3);
-      			free($1);
+	      		if(OpLaunchModule_set_call_arguments(op, $3) == 0)
+	      		{
+	      			LinkedList_free($3);
+      				free($1);
+  				}
+	      		else
+	      		{
+		      		LinkedList_free($3);
+	      			String s;
+      				String_init(&s);
+	      			String_append_printf(&s, "Module '%s' called with wrong nomber of arguments", $1);
+      				yyerror(root, p, String_get_char_string(&s));
+      				String_finalize(&s);
+		      		free($1);
+		      		YYERROR;
+	      		}
       		}
       		else
       		{
       			LinkedList_free($3);
+      			String s;
+      			String_init(&s);
+      			String_append_printf(&s, "Module '%s' not found", $1);
+      			yyerror(root, p, String_get_char_string(&s));
+      			String_finalize(&s);
+      			free($1);
+      			YYERROR;
+  			}
+  			fprintf(stderr, "CALL MODULE WITHOUT BLOCK\n");
+      		
+      }
+      
+      | IDENTIFIER '(' ')' ';'
+      {
+      		OpLaunchModule *op = (OpLaunchModule*)OpLaunchModule_new();
+      		$$ = (Op*)op;
+      		ssize_t module_num = OpProgram_check_module_number(OpParser_get_program(p), $1);
+      		if(module_num >= 0)
+      		{
+	      		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
+	      		OpLaunchModule_set_module(op, m);
+	      		if(OpLaunchModule_set_call_arguments(op, NULL) == 0)
+	      		{
+      				free($1);
+  				}
+	      		else
+	      		{
+	      			String s;
+      				String_init(&s);
+	      			String_append_printf(&s, "Module '%s' called with wrong nomber of arguments", $1);
+      				yyerror(root, p, String_get_char_string(&s));
+      				String_finalize(&s);
+		      		free($1);
+		      		YYERROR;
+	      		}
+      		}
+      		else
+      		{
       			String s;
       			String_init(&s);
       			String_append_printf(&s, "Module '%s' not found", $1);
@@ -300,11 +351,25 @@ statement:
       		{
 	      		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
 	      		OpLaunchModule_set_module(op, m);
-	      		OpLaunchModule_set_call_arguments(op, $3);
-	      		OpLaunchModule_set_parent(op, (OpCanvaContext*)OpParser_get_current_context(p));
-	      		OpLaunchModule_set_childs(op, $5);
-	      		LinkedList_free($3);
-	      		free($1);
+	      		if(OpLaunchModule_set_call_arguments(op, $3) == 0)
+	      		{
+		      		OpLaunchModule_set_parent(op, (OpCanvaContext*)OpParser_get_current_context(p));
+	      			OpLaunchModule_set_childs(op, $5);
+		      		LinkedList_free($3);
+		      		free($1);
+	      		}
+	      		else
+	      		{
+		      		LinkedList_free($3);
+	      			String s;
+      				String_init(&s);
+	      			String_append_printf(&s, "Module '%s' called with wrong nomber of arguments", $1);
+      				yyerror(root, p, String_get_char_string(&s));
+      				String_finalize(&s);
+		      		free($1);
+		      		YYERROR;
+	      		}
+
       		}
       		else
       		{
@@ -320,27 +385,99 @@ statement:
   			fprintf(stderr, "CALL MODULE WITH BLOCK\n");
       }
       
-      | DEFMODULE IDENTIFIER
+      | IDENTIFIER '(' ')' block
+      {
+      		OpLaunchModule *op = (OpLaunchModule*)OpLaunchModule_new();
+      		$$ = (Op*)op;
+      		ssize_t module_num = OpProgram_check_module_number(OpParser_get_program(p), $1);
+      		if(module_num >= 0)
+      		{
+	      		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
+	      		OpLaunchModule_set_module(op, m);
+	      		if(OpLaunchModule_set_call_arguments(op, NULL) == 0)
+	      		{
+		      		OpLaunchModule_set_parent(op, (OpCanvaContext*)OpParser_get_current_context(p));
+	      			OpLaunchModule_set_childs(op, $4);
+		      		free($1);
+	      		}
+	      		else
+	      		{
+	      			String s;
+      				String_init(&s);
+	      			String_append_printf(&s, "Module '%s' called with wrong nomber of arguments", $1);
+      				yyerror(root, p, String_get_char_string(&s));
+      				String_finalize(&s);
+		      		free($1);
+		      		YYERROR;
+	      		}
+      		}
+      		else
+      		{
+      			String s;
+      			String_init(&s);
+      			String_append_printf(&s, "Module '%s' not found", $1);
+      			yyerror(root, p, String_get_char_string(&s));
+      			String_finalize(&s);
+      			free($1);
+      			YYERROR;
+  			}
+  			fprintf(stderr, "CALL MODULE WITH BLOCK\n");
+      }
+      
+      | DEFMODULE IDENTIFIER '(' def_args ')'
       {
 		  	if(OpParser_get_inside_module(p) > 0)
 			{
+	      		free($2);
+	      		$2 = (char*)NULL;
+	      		LinkedList_do_to_all($4, (void(*)(void*, void*))free, NULL);
+	      		LinkedList_free($4);
+	      		$4 = (LinkedList*)NULL;
 		        yyerror(root, p, "Definition of a module inside another module");
 		        YYERROR;
 			}
       		size_t module_num = OpProgram_get_module_number(OpParser_get_program(p), $2);
       		free($2);
+      		$2 = (char*)NULL;
+      		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
+      		OpParser_set_current_module(p, m);
+      		OpParser_set_inside_module(p);
+      		OpParser_set_current_context(p, (OpContext*)OpModule_get_context(m));
+      		OpModule_add_arguments(m, $4);
+      		LinkedList_do_to_all($4, (void(*)(void*, void*))free, NULL);
+      		LinkedList_free($4);
+      }
+      block
+      {
+      		OpModule *m = OpParser_get_current_module(p);
+      		OpModule_add_to_root(m, $7);
+      		OpParser_set_current_context(p, OpProgram_get_context(OpParser_get_program(p)));
+      		OpParser_set_current_module(p, NULL);
+      		OpParser_unset_inside_module(p);
+      		$$ = (Op*)NULL;
+      }
+      
+      | DEFMODULE IDENTIFIER '(' ')'
+      {
+		  	if(OpParser_get_inside_module(p) > 0)
+			{
+	      		free($2);
+	      		$2 = (char*)NULL;
+		        yyerror(root, p, "Definition of a module inside another module");
+		        YYERROR;
+			}
+      		size_t module_num = OpProgram_get_module_number(OpParser_get_program(p), $2);
+      		free($2);
+      		$2 = (char*)NULL;
       		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
       		OpParser_set_current_module(p, m);
       		OpParser_set_inside_module(p);
       		OpParser_set_current_context(p, (OpContext*)OpModule_get_context(m));
       }
-      '(' def_args ')' block
+      block
       {
       		OpModule *m = OpParser_get_current_module(p);
-      		OpModule_add_to_root(m, $7);
-      		OpModule_add_arguments(m, $5);
-      		LinkedList_do_to_all($5, (void(*)(void*, void*))free, NULL);
-      		LinkedList_free($5);
+      		OpModule_add_to_root(m, $6);
       		OpParser_set_current_context(p, OpProgram_get_context(OpParser_get_program(p)));
       		OpParser_set_current_module(p, NULL);
       		OpParser_unset_inside_module(p);
