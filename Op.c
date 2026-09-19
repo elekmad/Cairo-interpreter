@@ -760,6 +760,9 @@ void Op_terminate(Op *self)
 Op *Op_new(OpIsa *isa)
 {
 	Op *self = malloc(isa->size);
+#ifdef DEBUG_FREE
+	fprintf(stderr, "Op New : %p isa %p '%s'\n", self, isa, isa->name);
+#endif
 	if(self != NULL)
 	{
 		self->isa = isa;
@@ -786,6 +789,9 @@ void Op_set_source_pos(Op *self, int fl, int fc, int ll, int lc)
 
 void Op_free(Op *self)
 {
+#ifdef DEBUG_FREE
+	fprintf(stderr, "Op Free : %p\n", self);
+#endif
 	if(self != NULL)
 	{
 		self->isa->terminate(self);
@@ -1063,7 +1069,9 @@ void OpBloc_append_Op(OpBloc *self, Op *op)
 	size_t n = s->nb_ops;
 	Op_set_nb_ops(s, n + 1);
 	s->operandes[n] = op;
+#ifdef DEBUG_FREE
 	fprintf(stderr, "Append Op %p (%s) in bloc %p (%s)\n", op, op->isa->name, self, self->super.isa->name);
+#endif
 
 }
 

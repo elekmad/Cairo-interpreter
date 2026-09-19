@@ -28,10 +28,13 @@ void OpProgram_init(OpProgram *self)
 	self->modules = NULL;
 	self->number_of_modules = 0;
 	self->root = NULL;
+	self->ctx = NULL;
 }
 
 void OpProgram_terminate(OpProgram *self)
 {
+	if(self->root != NULL)
+		Op_free(self->root);
 	if(self->number_of_modules > 0)
 	{
 		if(self->modules != NULL)
@@ -59,7 +62,8 @@ void OpProgram_free(OpProgram *self)
 
 void OpProgram_fix_operandes(OpProgram *self)
 {
-	Op_fix_operandes(self->root, self->ctx);
+	if(self->root != NULL)
+		Op_fix_operandes(self->root, self->ctx);
 	size_t i;
 	for(i = 0; i < self->number_of_modules; i++)
 	{
@@ -163,6 +167,9 @@ void OpProgram_set_context(OpProgram *self, OpContext *ctx)
 
 void OpProgram_set_root(OpProgram *self, Op *root)
 {
+#ifdef DEBUG_FREE
+	fprintf(stderr, "Program set root %p\n", root);
+#endif
 	self->root = root;
 }
 
@@ -193,8 +200,9 @@ void OpParser_set_filename_prefix(OpParser *self, String *prefix)
 	fprintf(stderr, "Filename Prefix : %s\n", String_get_char_string(&self->filename_prefix));
 }
 
-int OpParser_parse(OpParser *self, String *s, Op **root)
+int OpParser_parse(OpParser *self, String *s)
 {
+	int ret = -1;
 	int fd = open("/tmp/foo", O_CREAT|O_TRUNC|O_WRONLY, 0666);
 	write(fd, String_get_char_string(s), String_get_length(s));
 	close(fd);
@@ -203,9 +211,12 @@ int OpParser_parse(OpParser *self, String *s, Op **root)
     f->file_content = s;
     OpParser_push_stream(self, f);
 
-    if(yyparse(root, self) == 0 && *root != NULL)
-    	return 0;
-    return -1;
+    Op *root = NULL;
+    if(yyparse(&root, self) == 0)
+    	ret = 0;
+    OpProgram_set_root(self->program, root);
+	OpProgram_fix_operandes(self->program);
+    return ret;
 }
 
 int OpParser_check_if_include_exist(OpParser *self, const char *name)

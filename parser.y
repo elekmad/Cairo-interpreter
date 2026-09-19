@@ -32,6 +32,7 @@ Op *root;
     double number;
     char *string;
     Op *node;
+    Op *program;
     OpVariable *var;
     LinkedList *list;
 }
@@ -139,10 +140,16 @@ Op *root;
 %token CHILDS
 %token INCLUDE
 
-%type <node> program block expression statements statement
+
+%type <program> program
+%type <node> block expression statements statement
 %type <list> call_args def_args
 %type <var> number_list string_list
 %destructor { free($$); } <string>
+%destructor {
+	OpContext *c = OpParser_get_current_context(p);
+	Op_fix_operandes($$, c);
+	Op_free($$); } <node>
 
 %left OR
 %left XOR
@@ -251,11 +258,11 @@ statement:
       
       | IDENTIFIER '(' call_args ')' ';'
       {
-      		OpLaunchModule *op = (OpLaunchModule*)OpLaunchModule_new();
-      		$$ = (Op*)op;
       		ssize_t module_num = OpProgram_check_module_number(OpParser_get_program(p), $1);
       		if(module_num >= 0)
       		{
+	      		OpLaunchModule *op = (OpLaunchModule*)OpLaunchModule_new();
+	      		$$ = (Op*)op;
 	      		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
 	      		OpLaunchModule_set_module(op, m);
 	      		if(OpLaunchModule_set_call_arguments(op, $3) == 0)
@@ -265,6 +272,8 @@ statement:
   				}
 	      		else
 	      		{
+	      			Op_free((Op*)op);
+	      			$$ = (Op*)NULL;
 		      		LinkedList_free($3);
 	      			String s;
       				String_init(&s);
@@ -277,6 +286,7 @@ statement:
       		}
       		else
       		{
+      			$$ = (Op*)NULL;
       			LinkedList_free($3);
       			String s;
       			String_init(&s);
@@ -292,11 +302,11 @@ statement:
       
       | IDENTIFIER '(' ')' ';'
       {
-      		OpLaunchModule *op = (OpLaunchModule*)OpLaunchModule_new();
-      		$$ = (Op*)op;
       		ssize_t module_num = OpProgram_check_module_number(OpParser_get_program(p), $1);
       		if(module_num >= 0)
       		{
+	      		OpLaunchModule *op = (OpLaunchModule*)OpLaunchModule_new();
+	      		$$ = (Op*)op;
 	      		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
 	      		OpLaunchModule_set_module(op, m);
 	      		if(OpLaunchModule_set_call_arguments(op, NULL) == 0)
@@ -305,6 +315,8 @@ statement:
   				}
 	      		else
 	      		{
+	      			Op_free((Op*)op);
+	      			$$ = (Op*)NULL;
 	      			String s;
       				String_init(&s);
 	      			String_append_printf(&s, "Module '%s' called with wrong nomber of arguments", $1);
@@ -316,6 +328,7 @@ statement:
       		}
       		else
       		{
+      			$$ = (Op*)NULL;
       			String s;
       			String_init(&s);
       			String_append_printf(&s, "Module '%s' not found", $1);
@@ -344,11 +357,11 @@ statement:
       
       | IDENTIFIER '(' call_args ')' block
       {
-      		OpLaunchModule *op = (OpLaunchModule*)OpLaunchModule_new();
-      		$$ = (Op*)op;
       		ssize_t module_num = OpProgram_check_module_number(OpParser_get_program(p), $1);
       		if(module_num >= 0)
       		{
+	      		OpLaunchModule *op = (OpLaunchModule*)OpLaunchModule_new();
+	      		$$ = (Op*)op;
 	      		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
 	      		OpLaunchModule_set_module(op, m);
 	      		if(OpLaunchModule_set_call_arguments(op, $3) == 0)
@@ -360,6 +373,8 @@ statement:
 	      		}
 	      		else
 	      		{
+	      			Op_free((Op*)op);
+	      			$$ = (Op*)NULL;
 		      		LinkedList_free($3);
 	      			String s;
       				String_init(&s);
@@ -373,6 +388,7 @@ statement:
       		}
       		else
       		{
+      			$$ = (Op*)NULL;
       			LinkedList_free($3);
       			String s;
       			String_init(&s);
@@ -387,11 +403,11 @@ statement:
       
       | IDENTIFIER '(' ')' block
       {
-      		OpLaunchModule *op = (OpLaunchModule*)OpLaunchModule_new();
-      		$$ = (Op*)op;
       		ssize_t module_num = OpProgram_check_module_number(OpParser_get_program(p), $1);
       		if(module_num >= 0)
       		{
+	      		OpLaunchModule *op = (OpLaunchModule*)OpLaunchModule_new();
+	      		$$ = (Op*)op;
 	      		OpModule *m = OpProgram_get_module(OpParser_get_program(p), module_num);
 	      		OpLaunchModule_set_module(op, m);
 	      		if(OpLaunchModule_set_call_arguments(op, NULL) == 0)
@@ -402,6 +418,8 @@ statement:
 	      		}
 	      		else
 	      		{
+	      			Op_free((Op*)op);
+	      			$$ = (Op*)NULL;
 	      			String s;
       				String_init(&s);
 	      			String_append_printf(&s, "Module '%s' called with wrong nomber of arguments", $1);
@@ -413,6 +431,7 @@ statement:
       		}
       		else
       		{
+      			$$ = (Op*)NULL;
       			String s;
       			String_init(&s);
       			String_append_printf(&s, "Module '%s' not found", $1);

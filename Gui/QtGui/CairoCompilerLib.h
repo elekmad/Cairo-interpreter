@@ -34,7 +34,6 @@ int cairo_parse(String *buffer, String *prefix, String *out, String *msgs, int *
 	OpProgram_set_context(&Prog, (OpContext*)&Ctx);
 	OpParser_set_program(&Parser, &Prog);
 	OpParser_set_current_context(&Parser, (OpContext*)&Ctx);
-	Op *root = NULL;
 	yycolumn = 1;
 	yylineno = 1;
 	/*extern int yydebug, yy_flex_debug;
@@ -42,12 +41,10 @@ int cairo_parse(String *buffer, String *prefix, String *out, String *msgs, int *
 	yy_flex_debug = 1;*/
 	fprintf(stderr, "Code String : %s\n", String_get_char_string(buffer));
 
-	if(OpParser_parse(&Parser, buffer, &root) == 0)
+	if(OpParser_parse(&Parser, buffer) == 0)
 	{
 		int w, h;
 
-		OpProgram_set_root(&Prog, root);
-		OpProgram_fix_operandes(&Prog);
 		OpProgram_prerun(&Prog);
 
 
@@ -104,7 +101,6 @@ int cairo_parse(String *buffer, String *prefix, String *out, String *msgs, int *
 	OpCanvaContext_terminate(&Ctx);
 	OpProgram_terminate(&Prog);
 	OpParser_terminate(&Parser);
-	Op_free(root);
 	return 0;
 }
 }

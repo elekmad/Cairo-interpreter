@@ -102,7 +102,6 @@ int main( int argc, char *argv[ ] )
 	OpProgram_set_context(&Prog, (OpContext*)&Ctx);
 	OpParser_set_program(&Parser, &Prog);
 	OpParser_set_current_context(&Parser, (OpContext*)&Ctx);
-    Op *root = NULL;
     /*extern int yydebug, yy_flex_debug;
     yydebug = 1;
     yy_flex_debug = 1;*/
@@ -134,12 +133,10 @@ int main( int argc, char *argv[ ] )
     }
 #endif
 
-    if(OpParser_parse(&Parser, buffer, &root) == 0)
+    if(OpParser_parse(&Parser, buffer) == 0)
     {
     	int w, h;
 
-    	OpProgram_set_root(&Prog, root);
-    	OpProgram_fix_operandes(&Prog);
     	OpProgram_prerun(&Prog);
 
 
@@ -301,7 +298,6 @@ int main( int argc, char *argv[ ] )
     OpCanvaContext_terminate(&Ctx);
     OpProgram_terminate(&Prog);
     OpParser_terminate(&Parser);
-	Op_free(root);
 
     return EXIT_SUCCESS;
 }
