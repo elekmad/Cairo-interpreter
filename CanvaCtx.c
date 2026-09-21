@@ -338,6 +338,24 @@ void CanvaCtx_translate(CanvaCtx *self, double x, double y)
 	cairo_translate(self->cr, x, y);
 }
 
+void CanvaCtx_new_path(CanvaCtx *self)
+{
+	fprintf(stderr, "Cairo new path %p\n", self->cr);
+	cairo_new_path(self->cr);
+}
+
+void CanvaCtx_new_sub_path(CanvaCtx *self)
+{
+	fprintf(stderr, "Cairo new subpath %p\n", self->cr);
+	cairo_new_sub_path(self->cr);
+}
+
+void CanvaCtx_close_path(CanvaCtx *self)
+{
+	fprintf(stderr, "Cairo close path %p\n", self->cr);
+	cairo_close_path(self->cr);
+}
+
 void CanvaCtx_save(CanvaCtx *self)
 {
 	fprintf(stderr, "Cairo save %p\n", self->cr);

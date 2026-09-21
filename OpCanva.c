@@ -1086,6 +1086,70 @@ Op *OpSetDefaultFillColor_new(void)
 }
 
 
+OpIsa OpNewPath_isa = {
+		.name="NewPath",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpNewPath_execute,
+		.check_args = NULL,
+};
+
+int OpNewPath_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_new_path(ctx->Canva);
+	return 0;
+}
+
+Op *OpNewPath_new(void)
+{
+	return Op_new(&OpNewPath_isa);
+}
+
+OpIsa OpNewSubPath_isa = {
+		.name="NewSubPath",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpNewSubPath_execute,
+		.check_args = NULL,
+};
+
+int OpNewSubPath_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_new_sub_path(ctx->Canva);
+	return 0;
+}
+
+Op *OpNewSubPath_new(void)
+{
+	return Op_new(&OpNewSubPath_isa);
+}
+
+OpIsa OpClosePath_isa = {
+		.name="ClosePath",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpClosePath_execute,
+		.check_args = NULL,
+};
+
+int OpClosePath_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_close_path(ctx->Canva);
+	return 0;
+}
+
+Op *OpClosePath_new(void)
+{
+	return Op_new(&OpClosePath_isa);
+}
+
+
 OpIsa OpStroke_isa = {
 		.name="Stroke",
 		.size=sizeof(Op),
