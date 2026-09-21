@@ -30,9 +30,11 @@ protected:
 private slots:
     void openFile();
     void saveSource();
+    void saveSourceAs();
     void processCode();
     void saveOutput();
     void onMessageClicked(QListWidgetItem *item);
+    void onTextChanged();
 
 private:
     void setupUi();
@@ -54,6 +56,7 @@ private:
     QLabel *filenameLabel;
     QPushButton *openBtn;
     QPushButton *saveBtn;
+    QPushButton *saveasBtn;
     QPushButton *sendBtn;
 
     QLabel *outputDisplay;

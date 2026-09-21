@@ -104,13 +104,16 @@ void MainWindow::setupUi() {
 
     openBtn = new QPushButton("Ouvrir", this);
     saveBtn = new QPushButton("Enregistrer", this);
+    saveasBtn = new QPushButton("Enregistrer Sous", this);
     sendBtn = new QPushButton("Envoyer", this);
     sendBtn->setObjectName("sendButton");
+    sendBtn->setEnabled(false);
 
     editorHeaderLayout->addWidget(titleLabel);
     editorHeaderLayout->addWidget(filenameLabel, 1);
     editorHeaderLayout->addWidget(openBtn);
     editorHeaderLayout->addWidget(saveBtn);
+    editorHeaderLayout->addWidget(saveasBtn);
     editorHeaderLayout->addWidget(sendBtn);
 
     // Zone d'édition
@@ -194,9 +197,11 @@ void MainWindow::setupUi() {
     // Signal / Slots Connects
     connect(openBtn, &QPushButton::clicked, this, &MainWindow::openFile);
     connect(saveBtn, &QPushButton::clicked, this, &MainWindow::saveSource);
+    connect(saveasBtn, &QPushButton::clicked, this, &MainWindow::saveSourceAs);
     connect(sendBtn, &QPushButton::clicked, this, &MainWindow::processCode);
     connect(saveOutputBtn, &QPushButton::clicked, this, &MainWindow::saveOutput);
     connect(messagesList, &QListWidget::itemClicked, this, &MainWindow::onMessageClicked);
+    connect(editor, &QPlainTextEdit::textChanged, this, &MainWindow::onTextChanged);
 
     resize(1100, 700);
 }
@@ -255,6 +260,16 @@ void MainWindow::applyDarkStyle() {
     this->setStyleSheet(style);
 }
 
+
+
+// Raccourcis clavier (Ctrl+O, Ctrl+S, Ctrl+Enter)
+void MainWindow::onTextChanged() {
+    if(editor->toPlainText().isEmpty() == false)
+    	sendBtn->setEnabled(true);
+    else
+    	sendBtn->setEnabled(false);
+}
+
 // Raccourcis clavier (Ctrl+O, Ctrl+S, Ctrl+Enter)
 void MainWindow::keyPressEvent(QKeyEvent *event) {
     if (event->modifiers() & Qt::ControlModifier || event->modifiers() & Qt::MetaModifier) {
@@ -265,7 +280,8 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
             saveSource();
             return;
         } else if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
-            processCode();
+        	if(editor->toPlainText().isEmpty() == false)
+        		processCode();
             return;
         }
     }
@@ -297,6 +313,23 @@ void MainWindow::saveSource() {
         filePath = QFileDialog::getSaveFileName(this, "Enregistrer sous", "untitled.cairo", "Cairo Files (*.cairo)");
         if (filePath.isEmpty()) return;
     }
+
+    QFile file(filePath);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream out(&file);
+        out << editor->toPlainText();
+        file.close();
+
+        currentFilePath = filePath;
+        filenameLabel->setText(QFileInfo(filePath).fileName());
+    } else {
+        addLocalMessage("Error", "Impossible d'enregistrer le fichier.");
+    }
+}
+
+void MainWindow::saveSourceAs() {
+	QString filePath = QFileDialog::getSaveFileName(this, "Enregistrer sous", "untitled.cairo", "Cairo Files (*.cairo)");
+	if (filePath.isEmpty()) return;
 
     QFile file(filePath);
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
