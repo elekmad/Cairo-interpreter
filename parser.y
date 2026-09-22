@@ -48,6 +48,7 @@ Op *root;
 %token NEWPATH
 %token NEWSUBPATH
 %token CLOSEPATH
+%token PATHEXTENTS
 %token RECTANGLE
 %token POLYGON
 %token SETBGCOLOR
@@ -1296,6 +1297,12 @@ expression:
       	| FONTEXTENTS '('  ')'
       {
 		Op *op = (Op*)OpGetFontExtents_new();
+      	$$ = (Op*)op;
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| PATHEXTENTS '('  ')'
+      {
+		Op *op = (Op*)OpGetPathExtents_new();
       	$$ = (Op*)op;
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }

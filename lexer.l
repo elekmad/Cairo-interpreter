@@ -40,6 +40,7 @@ int yycolumn = 1;
 (?i:"newpath")		{ return NEWPATH; }
 (?i:"newsubpath")	{ return NEWSUBPATH; }
 (?i:"closepath")	{ return CLOSEPATH; }
+(?i:"getpathextents")	{ return PATHEXTENTS; }
 (?i:"rectangle")	{ return RECTANGLE; }
 (?i:"polygon")		{ return POLYGON; }
 (?i:"setbgcolor")	{ return SETBGCOLOR; }
@@ -82,8 +83,8 @@ int yycolumn = 1;
 (?i:"setfont")		{ return FONT; }
 (?i:"text")			{ return TEXT; }
 (?i:"textpath")		{ return TEXTPATH; }
-(?i:"textextents")	{ return TEXTEXTENTS; }
-(?i:"fontextents")	{ return FONTEXTENTS; }
+(?i:"gettextextents")	{ return TEXTEXTENTS; }
+(?i:"getfontextents")	{ return FONTEXTENTS; }
 (?i:"getoutputsize")	{ return GETOUTPUTSIZE; }
 (?i:"getlength")		{ return GETLEN; }
 (?i:"getlen")		{ return GETLEN; }

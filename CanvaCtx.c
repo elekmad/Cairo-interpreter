@@ -488,6 +488,12 @@ void CanvaCtx_get_font_extents(CanvaCtx *self, CanvaCtxFontExtent *e)
 	e->max_y_advance = ex.max_y_advance;
 }
 
+void CanvaCtx_get_path_extents(CanvaCtx *self, double *x1, double *y1, double *x2, double *y2)
+{
+	cairo_path_extents (self->cr, x1, y1, x2, y2);
+	fprintf(stderr, "Cairo %p get path extents : %f %f %f %f\n", self->cr, *x1, *y1, *x2, *y2);
+}
+
 void CanvaCtx_set_font_size(CanvaCtx *self, double size)
 {
 	fprintf(stderr, "Cairo %p font size %f\n", self->cr, size);

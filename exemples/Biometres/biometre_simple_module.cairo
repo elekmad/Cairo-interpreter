@@ -32,7 +32,7 @@ color(black())
 		rotate_angle_text=rotate_angle+180/(2*nb);
 		rotate_around(center, radians(rotate_angle_text))
 		{
-			tsize=textextents(labels[i-1]);
+			tsize=gettextextents(labels[i-1]);
 			rmin=tsize[3]/(2*sin(radians(180/(2*nb))));
 			dfromcenter=(((rayon-rmin)/2 + rmin)+tsize[2]/2);
 			unset(textorg);

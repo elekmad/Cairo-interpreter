@@ -33,5 +33,10 @@ color(red()+green())
 	}
 
 	polygon(coords);
+	e=getpathextents();
 	stroke();
 }
+
+rectangle(e[0], e[1], e[2]-e[0], e[3]-e[1]);
+stroke();
+message("e", e);

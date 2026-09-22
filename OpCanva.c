@@ -2765,6 +2765,43 @@ Op *OpGetFontExtents_new(void)
 	return Op_new(&OpGetFontExtents_isa);
 }
 
+OpIsa OpGetPathExtents_isa = {
+		.name="GetPathExtents",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpGetPathExtents_execute,
+		.check_args = NULL,
+};
+
+int OpGetPathExtents_execute(Op *self, OpCanvaContext *ctx)
+{
+	double x1, y1, x2, y2;
+	CanvaCtx_get_path_extents(ctx->Canva, &x1, &y1, &x2, &y2);
+	OpVariable v;
+	OpVariable_init(&v);
+	OpVariable_append_double(&v, x1);
+	OpVariable_append_double(&v, y1);
+	OpVariable_append_double(&v, x2);
+	OpVariable_append_double(&v, y2);
+	OpContext_copy_variable_to_current_value((OpContext*)ctx, &v);
+
+	String s;
+	String_init(&s);
+	OpVariable_to_string(&v, &s);
+	fprintf(stderr, "Get Path Extents : %s\n", String_get_char_string(&s));
+	String_finalize(&s);
+	OpVariable_terminate(&v);
+
+	return 0;
+}
+
+Op *OpGetPathExtents_new(void)
+{
+	return Op_new(&OpGetPathExtents_isa);
+}
+
 
 OpIsa OpGetOutputSize_isa = {
 		.name="GetOutputSize",
