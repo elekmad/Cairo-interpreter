@@ -681,7 +681,129 @@ Op *OpRectangle_new(void)
 	return Op_new(&OpRectangle_isa);
 }
 
+OpIsa OpPolygon_isa = {
+		.name="Polygon",
+		.size=sizeof(OpPolygon),
+		.init = (void(*)(Op*))OpPolygon_init,
+		.terminate = (void(*)(Op*))OpPolygon_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpPolygon_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpPolygon_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpPolygon_check_args,
+};
 
+void OpPolygon_init(OpPolygon *self)
+{
+	Op_init(&self->super);
+	self->params = NULL;
+}
+
+void OpPolygon_terminate(OpPolygon *self)
+{
+	Op_terminate(&self->super);
+	_OpPolygon_set_params(self, NULL);
+}
+
+
+int OpPolygon_check_args(OpPolygon *self, OpCanvaContext *canvactx)
+{
+	if(self->params != NULL)
+		return 0;
+	return -1;
+}
+
+int OpPolygon_execute(OpPolygon *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	OpVariable *v;
+	size_t nb;
+	if(self->params != NULL)
+	{
+		double *d;
+		size_t size;
+		ret = Op_execute(self->params, ctx);
+		if(ret == 0)
+		{
+			v = OpContext_get_current_value(ctx);
+			if(OpVariable_get_type(v) == DOUBLES)
+			{
+				nb = OpVariable_get_number_elements(v);
+				if(nb > 3 && nb % 2 == 0)
+				{
+
+				}
+				else
+				{
+					String msg;
+					String_init(&msg);
+					String_append_printf(&msg, "Wrong number of doubles given in parameter : %zu. Must be >= 4 and even.");
+					ret = -1;
+					OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&msg));
+					String_finalize(&msg);
+				}
+			}
+			else
+			{
+				String msg;
+				String_init(&msg);
+				String_append_printf(&msg, "Wrong type of parameter given, must be an array of doubles with even elements.");
+				ret = -1;
+				OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&msg));
+				String_finalize(&msg);
+			}
+		}
+	}
+
+	if(ret == 0)
+	{
+		size_t i;
+		double *d = OpVariable_get_doubles(v);
+		fprintf(stderr, "Op Draw Polygon\n");
+		CanvaCtx_new_path(canvactx->Canva);
+		CanvaCtx_move_to(canvactx->Canva, d[0], d[1]);
+		for(i = 2; i < nb - 1; i+=2)
+		{
+			CanvaCtx_draw_line_to(canvactx->Canva, d[i], d[i+1]);
+		}
+		CanvaCtx_draw_line_to(canvactx->Canva, d[0], d[1]);
+		CanvaCtx_close_path(canvactx->Canva);
+	}
+	return ret;
+}
+
+void _OpPolygon_set_params(OpPolygon *self, Op *v)
+{
+	OP_SET_OPERANDE(self, params, v);
+}
+
+#define OPPOLYGON_PARAMS 0
+
+void OpPolygon_set_params(OpPolygon *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPPOLYGON_PARAMS);
+}
+
+int OpPolygon_fix_operandes(OpPolygon *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		Op *params = NULL;
+		params = self->super.operandes[OPPOLYGON_PARAMS];
+
+		if(params != NULL)
+		{
+			ret = 0;
+			_OpPolygon_set_params(self, params);
+		}
+	}
+	return ret;
+}
+
+Op *OpPolygon_new(void)
+{
+	return Op_new(&OpPolygon_isa);
+}
 
 OpIsa OpColor_isa = {
 		.name="Color",

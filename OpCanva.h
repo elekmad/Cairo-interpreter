@@ -62,6 +62,12 @@ typedef struct op_rectangle
 
 }OpRectangle;
 
+typedef struct op_polygon
+{
+	Op super;
+	Op *params;
+}OpPolygon;
+
 
 typedef struct op_color
 {

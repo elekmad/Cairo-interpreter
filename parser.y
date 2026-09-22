@@ -49,6 +49,7 @@ Op *root;
 %token NEWSUBPATH
 %token CLOSEPATH
 %token RECTANGLE
+%token POLYGON
 %token SETBGCOLOR
 %token SETAUTOSTROKECOLOR
 %token SETAUTOFILLCOLOR
@@ -731,6 +732,14 @@ statement:
       	OpRectangle *op = (OpRectangle*)OpRectangle_new();
       	$$ = (Op*)op;
       	OpRectangle_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+
+    | POLYGON '(' expression ')' ';'
+      {
+      	OpPolygon *op = (OpPolygon*)OpPolygon_new();
+      	$$ = (Op*)op;
+      	OpPolygon_set_params(op, $3);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 

@@ -41,6 +41,7 @@ int yycolumn = 1;
 (?i:"newsubpath")	{ return NEWSUBPATH; }
 (?i:"closepath")	{ return CLOSEPATH; }
 (?i:"rectangle")	{ return RECTANGLE; }
+(?i:"polygon")		{ return POLYGON; }
 (?i:"setbgcolor")	{ return SETBGCOLOR; }
 (?i:"setautostrokecolor")	{ return SETAUTOSTROKECOLOR; }
 (?i:"setautofillcolor")	{ return SETAUTOFILLCOLOR; }
