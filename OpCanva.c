@@ -2607,25 +2607,15 @@ Op *OpGetTextExtents_new(void)
 
 OpIsa OpGetFontExtents_isa = {
 		.name="GetFontExtents",
-		.size=sizeof(OpGetFontExtents),
-		.init = (void(*)(Op*))OpGetFontExtents_init,
-		.terminate = (void(*)(Op*))OpGetFontExtents_terminate,
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpGetFontExtents_execute,
 		.check_args = NULL,
 };
 
-void OpGetFontExtents_init(OpGetFontExtents *self)
-{
-	Op_init(&self->super);
-}
-
-void OpGetFontExtents_terminate(OpGetFontExtents *self)
-{
-	Op_terminate(&self->super);
-}
-
-int OpGetFontExtents_execute(OpGetFontExtents *self, OpCanvaContext *ctx)
+int OpGetFontExtents_execute(Op *self, OpCanvaContext *ctx)
 {
 	CanvaCtxFontExtent e;
 	CanvaCtx_get_font_extents(ctx->Canva, &e);
@@ -2656,25 +2646,15 @@ Op *OpGetFontExtents_new(void)
 
 OpIsa OpGetOutputSize_isa = {
 		.name="GetOutputSize",
-		.size=sizeof(OpGetOutputSize),
-		.init = (void(*)(Op*))OpGetOutputSize_init,
-		.terminate = (void(*)(Op*))OpGetOutputSize_terminate,
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpGetOutputSize_execute,
 		.check_args = NULL,
 };
 
-void OpGetOutputSize_init(OpGetOutputSize *self)
-{
-	Op_init(&self->super);
-}
-
-void OpGetOutputSize_terminate(OpGetOutputSize *self)
-{
-	Op_terminate(&self->super);
-}
-
-int OpGetOutputSize_execute(OpGetOutputSize *self, OpCanvaContext *ctx)
+int OpGetOutputSize_execute(Op *self, OpCanvaContext *ctx)
 {
 	int w, h;
 	w = OpCanvaContext_get_width(ctx);
@@ -2704,25 +2684,15 @@ Op *OpGetOutputSize_new(void)
 
 OpIsa OpGetRedColor_isa = {
 		.name="GetRedColor",
-		.size=sizeof(OpGetRedColor),
-		.init = (void(*)(Op*))OpGetRedColor_init,
-		.terminate = (void(*)(Op*))OpGetRedColor_terminate,
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpGetRedColor_execute,
 		.check_args = NULL,
 };
 
-void OpGetRedColor_init(OpGetRedColor *self)
-{
-	Op_init(&self->super);
-}
-
-void OpGetRedColor_terminate(OpGetRedColor *self)
-{
-	Op_terminate(&self->super);
-}
-
-int OpGetRedColor_execute(OpGetRedColor *self, OpCanvaContext *ctx)
+int OpGetRedColor_execute(Op *self, OpCanvaContext *ctx)
 {
 	OpVariable v;
 	OpVariable_init(&v);
@@ -2749,25 +2719,15 @@ Op *OpGetRedColor_new(void)
 
 OpIsa OpGetGreenColor_isa = {
 		.name="GetGreenColor",
-		.size=sizeof(OpGetGreenColor),
-		.init = (void(*)(Op*))OpGetGreenColor_init,
-		.terminate = (void(*)(Op*))OpGetGreenColor_terminate,
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpGetGreenColor_execute,
 		.check_args = NULL,
 };
 
-void OpGetGreenColor_init(OpGetGreenColor *self)
-{
-	Op_init(&self->super);
-}
-
-void OpGetGreenColor_terminate(OpGetGreenColor *self)
-{
-	Op_terminate(&self->super);
-}
-
-int OpGetGreenColor_execute(OpGetGreenColor *self, OpCanvaContext *ctx)
+int OpGetGreenColor_execute(Op *self, OpCanvaContext *ctx)
 {
 	OpVariable v;
 	OpVariable_init(&v);
@@ -2794,25 +2754,15 @@ Op *OpGetGreenColor_new(void)
 
 OpIsa OpGetBlueColor_isa = {
 		.name="GetBlueColor",
-		.size=sizeof(OpGetBlueColor),
-		.init = (void(*)(Op*))OpGetBlueColor_init,
-		.terminate = (void(*)(Op*))OpGetBlueColor_terminate,
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpGetBlueColor_execute,
 		.check_args = NULL,
 };
 
-void OpGetBlueColor_init(OpGetBlueColor *self)
-{
-	Op_init(&self->super);
-}
-
-void OpGetBlueColor_terminate(OpGetBlueColor *self)
-{
-	Op_terminate(&self->super);
-}
-
-int OpGetBlueColor_execute(OpGetBlueColor *self, OpCanvaContext *ctx)
+int OpGetBlueColor_execute(Op *self, OpCanvaContext *ctx)
 {
 	OpVariable v;
 	OpVariable_init(&v);
@@ -2839,25 +2789,16 @@ Op *OpGetBlueColor_new(void)
 
 OpIsa OpGetBlackColor_isa = {
 		.name="GetBlackColor",
-		.size=sizeof(OpGetBlackColor),
-		.init = (void(*)(Op*))OpGetBlackColor_init,
-		.terminate = (void(*)(Op*))OpGetBlackColor_terminate,
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpGetBlackColor_execute,
 		.check_args = NULL,
 };
 
-void OpGetBlackColor_init(OpGetBlackColor *self)
-{
-	Op_init(&self->super);
-}
 
-void OpGetBlackColor_terminate(OpGetBlackColor *self)
-{
-	Op_terminate(&self->super);
-}
-
-int OpGetBlackColor_execute(OpGetBlackColor *self, OpCanvaContext *ctx)
+int OpGetBlackColor_execute(Op *self, OpCanvaContext *ctx)
 {
 	OpVariable v;
 	OpVariable_init(&v);
@@ -2884,25 +2825,15 @@ Op *OpGetBlackColor_new(void)
 
 OpIsa OpGetWhiteColor_isa = {
 		.name="GetWhiteColor",
-		.size=sizeof(OpGetWhiteColor),
-		.init = (void(*)(Op*))OpGetWhiteColor_init,
-		.terminate = (void(*)(Op*))OpGetWhiteColor_terminate,
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
 		.execute = (int(*)(Op*, OpContext*))OpGetWhiteColor_execute,
 		.check_args = NULL,
 };
 
-void OpGetWhiteColor_init(OpGetWhiteColor *self)
-{
-	Op_init(&self->super);
-}
-
-void OpGetWhiteColor_terminate(OpGetWhiteColor *self)
-{
-	Op_terminate(&self->super);
-}
-
-int OpGetWhiteColor_execute(OpGetWhiteColor *self, OpCanvaContext *ctx)
+int OpGetWhiteColor_execute(Op *self, OpCanvaContext *ctx)
 {
 	OpVariable v;
 	OpVariable_init(&v);
@@ -2929,25 +2860,15 @@ Op *OpGetWhiteColor_new(void)
 
 OpIsa OpSetOutputPNG_isa = {
 		.name="SetOutputPNG",
-		.size=sizeof(OpSetOutputPNG),
-		.init = (void(*)(Op*))OpSetOutputPNG_init,
-		.terminate = (void(*)(Op*))OpSetOutputPNG_terminate,
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))NULL,
 		.execute = (int(*)(Op*, OpContext*))OpSetOutputPNG_execute,
 		.check_args = NULL
 };
 
-void OpSetOutputPNG_init(OpSetOutputPNG *self)
-{
-	Op_init(&self->super);
-}
-
-void OpSetOutputPNG_terminate(OpSetOutputPNG *self)
-{
-	Op_terminate(&self->super);
-}
-
-int OpSetOutputPNG_execute(OpSetOutputPNG *self, OpCanvaContext *ctx)
+int OpSetOutputPNG_execute(Op *self, OpCanvaContext *ctx)
 {
 	OpCanvaContext_set_output_png(ctx);
 	return 0;
@@ -2960,25 +2881,15 @@ Op *OpSetOutputPNG_new(void)
 
 OpIsa OpSetOutputSVG_isa = {
 		.name="SetOutputSVG",
-		.size=sizeof(OpSetOutputSVG),
-		.init = (void(*)(Op*))OpSetOutputSVG_init,
-		.terminate = (void(*)(Op*))OpSetOutputSVG_terminate,
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))NULL,
 		.execute = (int(*)(Op*, OpContext*))OpSetOutputSVG_execute,
 		.check_args = NULL
 };
 
-void OpSetOutputSVG_init(OpSetOutputSVG *self)
-{
-	Op_init(&self->super);
-}
-
-void OpSetOutputSVG_terminate(OpSetOutputSVG *self)
-{
-	Op_terminate(&self->super);
-}
-
-int OpSetOutputSVG_execute(OpSetOutputSVG *self, OpCanvaContext *ctx)
+int OpSetOutputSVG_execute(Op *self, OpCanvaContext *ctx)
 {
 	OpCanvaContext_set_output_svg(ctx);
 	return 0;

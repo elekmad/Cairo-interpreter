@@ -538,14 +538,14 @@ statement:
 	  }
       	| SETPNGOUTPUT '(' ')' ';'
       {
-		OpSetOutputPNG *op = (OpSetOutputPNG *)OpSetOutputPNG_new();
+		Op *op = (Op *)OpSetOutputPNG_new();
       	$$ = (Op*)op;
       	Op_set_for_prerunning($$);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
       	| SETSVGOUTPUT '(' ')' ';'
       {
-		OpSetOutputSVG *op = (OpSetOutputSVG *)OpSetOutputSVG_new();
+		Op *op = (Op *)OpSetOutputSVG_new();
       	$$ = (Op*)op;
       	Op_set_for_prerunning($$);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
@@ -1286,7 +1286,7 @@ expression:
 	  }
       	| FONTEXTENTS '('  ')'
       {
-		OpGetFontExtents *op = (OpGetFontExtents*)OpGetFontExtents_new();
+		Op *op = (Op*)OpGetFontExtents_new();
       	$$ = (Op*)op;
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
@@ -1429,7 +1429,7 @@ expression:
     }
       	| GETOUTPUTSIZE '(' ')'
       {
-		OpGetOutputSize *op = (OpGetOutputSize *)OpGetOutputSize_new();
+		Op *op = (Op *)OpGetOutputSize_new();
       	$$ = (Op*)op;
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }

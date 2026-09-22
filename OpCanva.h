@@ -171,55 +171,6 @@ typedef struct op_get_text_extent
 	Op *text;
 }OpGetTextExtents;
 
-typedef struct op_get_font_extent
-{
-	Op super;
-}OpGetFontExtents;
-
-typedef struct op_get_red_color
-{
-	Op super;
-}OpGetRedColor;
-
-typedef struct op_get_green_color
-{
-	Op super;
-}OpGetGreenColor;
-
-typedef struct op_get_blue_color
-{
-	Op super;
-}OpGetBlueColor;
-
-typedef struct op_get_black_color
-{
-	Op super;
-}OpGetBlackColor;
-
-typedef struct op_get_white_color
-{
-	Op super;
-}OpGetWhiteColor;
-
-
-typedef struct op_get_output_size
-{
-	Op super;
-}OpGetOutputSize;
-
-typedef struct op_set_output_png
-{
-	Op super;
-	char *filename;
-}OpSetOutputPNG;
-
-typedef struct op_set_output_svg
-{
-	Op super;
-	char *filename;
-}OpSetOutputSVG;
-
-
 #include <OpCanva.proto.h>
 
 #endif /* OPCANVA_H_ */
