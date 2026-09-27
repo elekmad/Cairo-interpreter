@@ -485,7 +485,7 @@ int OpCurve_fix_operandes(OpCurve *self, OpContext *ctx)
 		m1y = self->super.operandes[OPCURVE_M1Y];
 		m2x = self->super.operandes[OPCURVE_M2X];
 		m2y = self->super.operandes[OPCURVE_M2Y];
-		if(self->super.nb_ops >= 6)
+		if(self->super.nb_ops >= 7)
 			params = self->super.operandes[OPCURVE_PARAMS];
 
 		if(x != NULL && y != NULL && m1x != NULL && m1y != NULL && m2x != NULL && m2y != NULL)
