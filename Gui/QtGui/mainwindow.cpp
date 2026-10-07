@@ -225,6 +225,22 @@ void MainWindow::applyDarkStyle() {
             border: none;
         }
 
+		QMenu {
+			background-color: #303030;
+			color: #ffffff;
+		}
+		
+		QMenu::item {
+			background-color: #303030;
+			color: #ffffff;
+			padding: 5px 20px;
+		}
+		
+		QMenu::item:selected {
+			background-color: #505050;
+			color: #ffffff;
+		}
+
         QPushButton {
             background-color: #555;
             color: white;
