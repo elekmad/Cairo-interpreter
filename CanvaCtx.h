@@ -16,6 +16,10 @@
 #include <String.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum canva_ctx_auto_draw_mode
 {
 	None = 0,
@@ -80,6 +84,10 @@ typedef struct {
 } CanvaCtx;
 
 #include <CanvaCtx.proto.h>
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* CANVACTX_H_ */

@@ -3,6 +3,7 @@
 #include <QFileInfo>
 
 
+#include <OpProgram.h>
 
 extern "C"
 {
@@ -12,7 +13,6 @@ extern "C"
 #include <stdio.h>
 #include <CanvaCtx.h>
 #include <OpCanva.h>
-#include <OpProgram.h>
 #include <parser.tab.h>
 #include <lexer.h>
 #include <unistd.h>

@@ -338,6 +338,14 @@ void CanvaCtx_translate(CanvaCtx *self, double x, double y)
 	cairo_translate(self->cr, x, y);
 }
 
+void CanvaCtx_apply_matrix_transform(CanvaCtx *self, double m1, double m2, double m3, double m4, double m5, double m6)
+{
+	fprintf(stderr, "Cairo matrix %p %f %f %f %f %f %f\n", self->cr, m1, m2, m3, m4, m5, m6);
+	cairo_matrix_t m;
+	cairo_matrix_init(&m, m1, m2, m3, m4, m5, m6);
+	cairo_transform(self->cr, &m);
+}
+
 void CanvaCtx_new_path(CanvaCtx *self)
 {
 	fprintf(stderr, "Cairo new path %p\n", self->cr);

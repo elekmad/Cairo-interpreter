@@ -78,6 +78,7 @@ Op *root;
 %token TRANSLATE
 %token MOVETO
 %token SCALE
+%token APPLYMATRIX
 %token LINETO
 %token IF
 %token ELSE
@@ -144,6 +145,8 @@ Op *root;
 %token DEFMODULE
 %token CHILDS
 %token INCLUDE
+%token IMPORT
+%token DRAWIMPORT
 
 
 %type <program> program
@@ -512,6 +515,39 @@ statement:
 			OpParser_parse_include(p, $2);
 			free($2);
 			$$ = NULL;
+      }
+      | IMPORT '(' TEXTCONTENT ')' ';'
+      {
+			size_t n = OpParser_import_svg(p, $3);
+			free($3);
+			Op *draw = OpDrawImport_new();
+			$$ = draw;
+			OpDrawImport_set_program((OpDrawImport*)draw, OpParser_get_program(p));
+			OpGetValue *v = (OpGetValue*)OpGetValue_new();
+	      	OpGetValue_set_value(v, (double)n);
+	      	OpDrawImport_set_number((OpDrawImport*)draw, (Op*)v);
+      }
+      | IDENTIFIER '=' IMPORT '(' TEXTCONTENT ')' ';'
+      {
+			size_t n = OpParser_import_svg(p, $5);
+			free($5);
+	      	
+      		size_t var_num = OpContext_get_variable_number(OpParser_get_current_context(p), $1);
+      		OpSetVariable *op = (OpSetVariable*)OpSetVariable_new() ;
+      		$$ = (Op*)op;
+			OpGetValue *v = (OpGetValue*)OpGetValue_new();
+	      	OpGetValue_set_value(v, (double)n);
+      		OpSetVariable_set_variable_number(op, var_num);
+      		OpSetVariable_set_value(op, (Op*)v);
+      		Op_set_source_pos($$, @1.first_line, @1.first_column, @3.last_line, @3.last_column);
+      		free($1);
+      }
+      | DRAWIMPORT '(' expression ')' ';'
+      {
+			Op *draw = OpDrawImport_new();
+			$$ = draw;
+			OpDrawImport_set_program((OpDrawImport*)draw, OpParser_get_program(p));
+	      	OpDrawImport_set_number((OpDrawImport*)draw, $3);
       }
 
       | UNSET '(' IDENTIFIER ')' ';'
@@ -1074,6 +1110,50 @@ statement:
         OpBloc_append_Op(op, $5);
   		Op_set_source_pos((Op*)opt, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
   		Op_set_source_pos($$, @5.first_line, @5.first_column, @5.last_line, @5.last_column);
+      }
+      	| APPLYMATRIX '(' expression ',' expression ',' expression ',' expression ',' expression ',' expression ')' ';'
+      {
+      	OpMatrix *op = (OpMatrix*)OpMatrix_new();
+      	$$ = (Op*)op;
+		OpMatrix_set_m1(op, $3);
+		OpMatrix_set_m2(op, $5);
+		OpMatrix_set_m3(op, $7);
+		OpMatrix_set_m4(op, $9);
+		OpMatrix_set_m5(op, $11);
+		OpMatrix_set_m6(op, $13);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      	| APPLYMATRIX '(' expression ',' expression ',' expression ',' expression ',' expression ',' expression ')' block
+      {
+      	OpBloc *op = (OpBloc*)OpCanvaBloc_new();
+      	OpMatrix *opm = (OpMatrix*)OpMatrix_new();
+      	$$ = (Op*)op;
+		OpMatrix_set_m1(opm, $3);
+		OpMatrix_set_m2(opm, $5);
+		OpMatrix_set_m3(opm, $7);
+		OpMatrix_set_m4(opm, $9);
+		OpMatrix_set_m5(opm, $11);
+		OpMatrix_set_m6(opm, $13);
+        OpBloc_append_Op(op, (Op*)opm);
+        OpBloc_append_Op(op, $15);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      	| APPLYMATRIX '(' expression ')' ';'
+      {
+      	OpMatrix *op = (OpMatrix*)OpMatrix_new();
+      	$$ = (Op*)op;
+		OpMatrix_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      	| APPLYMATRIX '(' expression ')' block
+      {
+      	OpBloc *op = (OpBloc*)OpCanvaBloc_new();
+      	OpMatrix *opm = (OpMatrix*)OpMatrix_new();
+      	$$ = (Op*)op;
+		OpMatrix_set_params(opm, $3);
+        OpBloc_append_Op(op, (Op*)opm);
+        OpBloc_append_Op(op, $5);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       	| MOVETO '(' expression ','
       				   expression ')' ';'

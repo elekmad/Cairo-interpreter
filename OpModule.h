@@ -8,6 +8,10 @@
 #ifndef OPMODULE_H_
 #define OPMODULE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <OpCanva.h>
 #include <String.h>
 
@@ -41,5 +45,9 @@ typedef struct op_launch_module_childs
 
 
 #include <OpModule.proto.h>
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* OPMODULE_H_ */

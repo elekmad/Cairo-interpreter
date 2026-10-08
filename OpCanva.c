@@ -2215,6 +2215,207 @@ Op *OpScale_new(void)
 	return Op_new(&OpScale_isa);
 }
 
+OpIsa OpMatrix_isa = {
+		.name="Matrix",
+		.size=sizeof(OpMatrix),
+		.init = (void(*)(Op*))OpMatrix_init,
+		.terminate = (void(*)(Op*))OpMatrix_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpMatrix_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpMatrix_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpMatrix_check_args,
+};
+
+void OpMatrix_init(OpMatrix *self)
+{
+	Op_init(&self->super);
+	self->m1 = NULL;
+	self->m2 = NULL;
+	self->m3 = NULL;
+	self->m4 = NULL;
+	self->m5 = NULL;
+	self->m6 = NULL;
+	self->params = NULL;
+}
+
+void OpMatrix_terminate(OpMatrix *self)
+{
+	Op_terminate(&self->super);
+	_OpMatrix_set_m1(self, NULL);
+	_OpMatrix_set_m2(self, NULL);
+	_OpMatrix_set_m3(self, NULL);
+	_OpMatrix_set_m4(self, NULL);
+	_OpMatrix_set_m5(self, NULL);
+	_OpMatrix_set_m6(self, NULL);
+	_OpMatrix_set_params(self, NULL);
+}
+
+int OpMatrix_check_args(OpMatrix *self, OpCanvaContext *canvactx)
+{
+	if(self->params != NULL || (self->m1 != NULL && self->m2 != NULL && self->m3 != NULL && self->m4 != NULL && self->m5 != NULL && self->m6 != NULL))
+		return 0;
+	return -1;
+}
+
+int OpMatrix_execute(OpMatrix *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double m1 = NAN, m2 = NAN, m3 = NAN, m4 = NAN, m5 = NAN, m6 = NAN;
+	if(self->params != NULL)
+	{
+		double *d;
+		size_t size;
+		ret = Op_execute_get_doubles(self->params, (Op*)self, ctx, &d, &size, 6);
+		if(ret == 0)
+		{
+			m1=d[0];
+			m2=d[1];
+			m3=d[2];
+			m4=d[3];
+			m5=d[4];
+			m6=d[5];
+		}
+	}
+	else if(self->m1 != NULL)
+	{
+		ret = Op_execute_get_double(self->m1, (Op*)self, ctx, &m1);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->m2, (Op*)self, ctx, &m2);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->m3, (Op*)self, ctx, &m3);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->m4, (Op*)self, ctx, &m4);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->m5, (Op*)self, ctx, &m5);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->m6, (Op*)self, ctx, &m6);
+	}
+
+	if(ret == 0)
+	{
+		fprintf(stderr, "Op Apply Matrix Transform {%f %f %f %f %f %f}\n", m1, m2, m3, m4, m5, m6);
+		CanvaCtx_apply_matrix_transform(canvactx->Canva, m1, m2, m3, m4, m5, m6);
+	}
+	return ret;
+}
+
+void _OpMatrix_set_m1(OpMatrix *self, Op *v)
+{
+	OP_SET_OPERANDE(self, m1, v);
+}
+
+void _OpMatrix_set_m2(OpMatrix *self, Op *v)
+{
+	OP_SET_OPERANDE(self, m2, v);
+}
+
+void _OpMatrix_set_m3(OpMatrix *self, Op *v)
+{
+	OP_SET_OPERANDE(self, m3, v);
+}
+
+void _OpMatrix_set_m4(OpMatrix *self, Op *v)
+{
+	OP_SET_OPERANDE(self, m4, v);
+}
+
+void _OpMatrix_set_m5(OpMatrix *self, Op *v)
+{
+	OP_SET_OPERANDE(self, m5, v);
+}
+
+void _OpMatrix_set_m6(OpMatrix *self, Op *v)
+{
+	OP_SET_OPERANDE(self, m6, v);
+}
+
+void _OpMatrix_set_params(OpMatrix *self, Op *v)
+{
+	OP_SET_OPERANDE(self, params, v);
+}
+
+#define OPMATRIX_M1 0
+#define OPMATRIX_M2 1
+#define OPMATRIX_M3 2
+#define OPMATRIX_M4 3
+#define OPMATRIX_M5 4
+#define OPMATRIX_M6 5
+#define OPMATRIX_PARAMS 6
+
+void OpMatrix_set_m1(OpMatrix *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPMATRIX_M1);
+}
+
+void OpMatrix_set_m2(OpMatrix *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPMATRIX_M2);
+}
+
+void OpMatrix_set_m3(OpMatrix *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPMATRIX_M3);
+}
+
+void OpMatrix_set_m4(OpMatrix *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPMATRIX_M4);
+}
+
+void OpMatrix_set_m5(OpMatrix *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPMATRIX_M5);
+}
+
+void OpMatrix_set_m6(OpMatrix *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPMATRIX_M6);
+}
+
+void OpMatrix_set_params(OpMatrix *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPMATRIX_PARAMS);
+}
+
+int OpMatrix_fix_operandes(OpMatrix *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 6)
+	{
+		Op *m1, *m2, *m3, *m4, *m5, *m6, *params = NULL;
+		m1 = self->super.operandes[OPMATRIX_M1];
+		m2 = self->super.operandes[OPMATRIX_M2];
+		m3 = self->super.operandes[OPMATRIX_M3];
+		m4 = self->super.operandes[OPMATRIX_M4];
+		m5 = self->super.operandes[OPMATRIX_M5];
+		m6 = self->super.operandes[OPMATRIX_M6];
+		if(self->super.nb_ops >= 7)
+			params = self->super.operandes[OPCURVE_PARAMS];
+
+		if(m1 != NULL && m2 != NULL && m3 != NULL && m4 != NULL && m5 != NULL && m6 != NULL)
+		{
+			ret = 0;
+			_OpMatrix_set_m1(self, m1);
+			_OpMatrix_set_m2(self, m2);
+			_OpMatrix_set_m3(self, m3);
+			_OpMatrix_set_m4(self, m4);
+			_OpMatrix_set_m5(self, m5);
+			_OpMatrix_set_m6(self, m6);
+		}
+		else if(params != NULL)
+		{
+			ret = 0;
+			_OpMatrix_set_params(self, params);
+		}
+	}
+	return ret;
+}
+
+Op *OpMatrix_new(void)
+{
+	return Op_new(&OpMatrix_isa);
+}
+
 
 
 OpIsa OpDrawLineTo_isa = {
@@ -2864,7 +3065,7 @@ int OpGetRedColor_execute(Op *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	fprintf(stderr, "Get Output Size : %s\n", String_get_char_string(&s));
+	fprintf(stderr, "Get Red Color : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -2899,7 +3100,7 @@ int OpGetGreenColor_execute(Op *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	fprintf(stderr, "Get Output Size : %s\n", String_get_char_string(&s));
+	fprintf(stderr, "Get Green Color : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -2934,7 +3135,7 @@ int OpGetBlueColor_execute(Op *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	fprintf(stderr, "Get Output Size : %s\n", String_get_char_string(&s));
+	fprintf(stderr, "Get Blue Color : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -2970,7 +3171,7 @@ int OpGetBlackColor_execute(Op *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	fprintf(stderr, "Get Output Size : %s\n", String_get_char_string(&s));
+	fprintf(stderr, "Get Black Color : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -3005,7 +3206,7 @@ int OpGetWhiteColor_execute(Op *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	fprintf(stderr, "Get Output Size : %s\n", String_get_char_string(&s));
+	fprintf(stderr, "Get White Color Size : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 

@@ -70,6 +70,7 @@ int yycolumn = 1;
 (?i:"translate")	{ return TRANSLATE; }
 (?i:"moveto")		{ return MOVETO; }
 (?i:"scale")		{ return SCALE; }
+(?i:"applymatrix")		{ return APPLYMATRIX; }
 (?i:"lineto")		{ return LINETO; }
 (?i:"if")			{ return IF; }
 (?i:"else")			{ return ELSE; }
@@ -126,6 +127,8 @@ int yycolumn = 1;
 (?i:"rand")			{ return RAND; }
 (?i:"message")		{ return MESSAGE; } 
 (?i:"children")		{ return CHILDS; }
+(?i:"import")		{ return IMPORT; } 
+(?i:"drawimport")		{ return DRAWIMPORT; }  
 ^(?i:"#initmessage")	{ return PREMESSAGE; }
 ^(?i:"#setoutputsize")	{ return SETOUTPUTSIZE; } 
 ^(?i:"#setpngoutput")	{ return SETPNGOUTPUT; }

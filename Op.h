@@ -8,10 +8,15 @@
 #ifndef OP_H_
 #define OP_H_
 
-#include <LinkedList.h>
 #include <stddef.h>
-#include <String.h>
 #include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <LinkedList.h>
+#include <String.h>
 
 typedef enum op_variable_type
 {
@@ -236,5 +241,9 @@ typedef struct op_1_operandes
 
 
 #include <Op.proto.h>
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* OP_H_ */

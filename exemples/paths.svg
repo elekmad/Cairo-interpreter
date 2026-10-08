@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="600" height="500"
+     viewBox="0 0 600 500">
+
+  <!-- M L H V Z : chemin polygonal -->
+  <path d="
+    M 30 30
+    L 120 30
+    H 170
+    V 80
+    L 120 120
+    Z
+  " fill="none" stroke="black"/>
+
+  <!-- m l h v z : mêmes commandes en relatif -->
+  <path d="
+    M 220 30
+    l 90 0
+    h 50
+    v 50
+    l -50 40
+    z
+  " fill="none" stroke="red"/>
+
+  <!-- C : Bézier cubique -->
+  <path d="
+    M 30 180
+    C 60 120, 120 240, 160 180
+    C 200 120, 240 240, 280 180
+  " fill="none" stroke="blue"/>
+
+  <!-- c : Bézier cubique relative -->
+  <path d="
+    M 320 180
+    c 30 -60, 90 60, 120 0
+    c 40 -60, 80 60, 120 0
+  " fill="none" stroke="red"/>
+
+  <!-- S : Bézier cubique lissée -->
+  <path d="
+    M 30 280
+    C 60 220, 100 340, 140 280
+    S 220 220, 260 280
+    S 340 340, 380 280
+  " fill="none" stroke="green"/>
+
+  <!-- s : version relative de S -->
+  <path d="
+    M 400 280
+    c 20 -60, 50 60, 70 0
+    s 50 -60, 70 0
+  " fill="none" stroke="black"/>
+
+  <!-- Q : Bézier quadratique -->
+  <path d="
+    M 30 400
+    Q 80 330, 130 400
+    Q 180 470, 230 400
+  " fill="none" stroke="blue"/>
+
+  <!-- q : quadratique relative -->
+  <path d="
+    M 260 400
+    q 40 -70, 80 0
+    q 40 70, 80 0
+  " fill="none" stroke="red"/>
+
+  <!-- T : quadratique lissée -->
+  <path d="
+    M 30 470
+    Q 70 420, 110 470
+    T 190 470
+    T 270 470
+  " fill="none" stroke="blue"/>
+
+  <!-- t : quadratique lissée relative -->
+  <path d="
+    M 300 470
+    q 30 -40, 60 0
+    t 60 0
+    t 60 0
+  " fill="none" stroke="green"/>
+
+  <!-- A : arc elliptique -->
+  <path d="
+    M 430 80
+    A 50 30 0 0 1 530 80
+    A 50 30 0 0 1 430 80
+  " fill="none" stroke="black"/>
+
+  <!-- a : arc elliptique relatif -->
+  <path d="
+    M 430 150
+    a 50 30 0 0 1 100 0
+    a 50 30 0 0 1 -100 0
+  " fill="none" stroke="blue"/>
+
+  <!-- combinaison de plusieurs commandes -->
+  <path d="
+    M 450 220
+    L 550 220
+    C 580 250, 520 300, 470 270
+    S 420 230, 450 220
+    Z
+  " fill="white" stroke="black"/>
+
+</svg>

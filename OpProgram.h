@@ -8,10 +8,18 @@
 #ifndef OPPROGRAM_H_
 #define OPPROGRAM_H_
 
+#include <libxml/xmlreader.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <Op.h>
 #include <OpModule.h>
 #include <LinkedList.h>
 #include <String.h>
+
+typedef struct op_import OpImport;
 
 typedef struct op_program
 {
@@ -19,6 +27,8 @@ typedef struct op_program
 	Op *root;//Main program
 	OpModule **modules;
 	size_t number_of_modules;
+	OpImport **imports;
+	size_t number_of_imports;
 }OpProgram;
 
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
@@ -43,7 +53,24 @@ typedef struct op_parser
 	int inside_loop;
 }OpParser;
 
+typedef struct op_import
+{
+	Op *root;
+}OpImport;
+
+typedef struct op_draw_import
+{
+	Op super;
+	Op *number;
+	OpProgram *program;
+
+}OpDrawImport;
+
 
 #include <OpProgram.proto.h>
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* OPPROGRAM_H_ */

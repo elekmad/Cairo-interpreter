@@ -8,11 +8,16 @@
 #ifndef OPCANVA_H_
 #define OPCANVA_H_
 
-#include <LinkedList.h>
 #include <stddef.h>
+#include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <LinkedList.h>
 #include <CanvaCtx.h>
 #include <Op.h>
-#include <stdbool.h>
 
 typedef struct op_canva_context
 {
@@ -128,6 +133,19 @@ typedef struct op_scale
 	Op *params;
 }OpScale;
 
+typedef struct op_matrix
+{
+	Op super;
+	Op *m1;
+	Op *m2;
+	Op *m3;
+	Op *m4;
+	Op *m5;
+	Op *m6;
+	Op *params;
+
+}OpMatrix;
+
 typedef struct op_draw_line_to
 {
 	Op super;
@@ -178,5 +196,9 @@ typedef struct op_get_text_extent
 }OpGetTextExtents;
 
 #include <OpCanva.proto.h>
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* OPCANVA_H_ */

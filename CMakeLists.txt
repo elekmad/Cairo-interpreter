@@ -65,7 +65,10 @@ add_executable(CairoInterpreter
 )
 
 #target_link_libraries(CairoInterpreter PRIVATE fl)
-target_link_libraries(CairoInterpreter PRIVATE xml2)
+
+find_package(LibXml2 REQUIRED)
+
+target_link_libraries(CairoInterpreter PRIVATE LibXml2::LibXml2)
 target_link_libraries(CairoInterpreter PRIVATE m)
 find_library(B64_LIBRARY
     NAMES libb64.a
@@ -187,7 +190,8 @@ if( QTGUI)
 	    Qt6::Xml 
 	    Qt6::SvgWidgets
 	)
-	target_link_libraries(CairoDSLEditor PRIVATE xml2)
+	
+	target_link_libraries(CairoDSLEditor PRIVATE LibXml2::LibXml2)
 	target_link_libraries(CairoDSLEditor PRIVATE m)
 	target_link_libraries(CairoDSLEditor PRIVATE ${B64_LIBRARY})
 	target_link_libraries(CairoDSLEditor PRIVATE Cairo::Cairo)

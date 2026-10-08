@@ -1,11 +1,12 @@
 #include <QApplication>
 #include "mainwindow.h"
 
+#include <OpProgram.h>
+
 extern "C"
 {
 #include <CanvaCtx.h>
 #include <OpCanva.h>
-#include <OpProgram.h>
 #include <parser.tab.h>
 }
 

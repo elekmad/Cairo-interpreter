@@ -8,6 +8,10 @@
 #ifndef OPMATHS_H_
 #define OPMATHS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <Op.h>
 
 typedef struct op_init_random
@@ -25,5 +29,9 @@ typedef struct op_random
 }OpRandom;
 
 #include <OpMaths.proto.h>
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* OPMATHS_H_ */
