@@ -43,6 +43,7 @@ int yycolumn = 1;
 (?i:"getpathextents")	{ return PATHEXTENTS; }
 (?i:"rectangle")	{ return RECTANGLE; }
 (?i:"polygon")		{ return POLYGON; }
+(?i:"polyline")		{ return POLYLINE; }
 (?i:"setbgcolor")	{ return SETBGCOLOR; }
 (?i:"setautostrokecolor")	{ return SETAUTOSTROKECOLOR; }
 (?i:"setautofillcolor")	{ return SETAUTOFILLCOLOR; }

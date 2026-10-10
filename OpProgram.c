@@ -465,12 +465,10 @@ size_t OpParser_import_svg(OpParser *self, const char *name)
 	    	OpParser_import_parser_path(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "polyline")) {
-	    	fprintf(stderr, "polyline\n");
-	        //parse_polyline(reader);
+	    	OpParser_import_parser_polyline(self, reader, bloc, 0);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "polygon")) {
-	    	fprintf(stderr, "polygon\n");
-	        //parse_polyline(reader);
+	    	OpParser_import_parser_polyline(self, reader, bloc, 1);
 	    }
 
 	    if(append == 1)
@@ -674,7 +672,7 @@ int OpParser_import_parser_group(OpParser *self, xmlTextReaderPtr reader, OpBloc
 void OpParser_import_parser_rect(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
 	fprintf(stderr, "Parse SVG RECT\n");
-	double x = NAN, y = NAN, width = NAN, height = NAN, r = NAN, b = NAN, g = NAN, a = NAN;
+	double x = NAN, y = NAN, w = NAN, h = NAN;
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "x");
 	if(attr != NULL)
 	{
@@ -690,14 +688,75 @@ void OpParser_import_parser_rect(OpParser *self, xmlTextReaderPtr reader, OpBloc
 	attr = xmlTextReaderGetAttribute(reader, BAD_CAST "width");
 	if(attr != NULL)
 	{
-		width = strtod((char*)attr, NULL);
+		w = strtod((char*)attr, NULL);
 		xmlFree(attr);
 	}
 	attr = xmlTextReaderGetAttribute(reader, BAD_CAST "height");
 	if(attr != NULL)
 	{
-		height = strtod((char*)attr, NULL);
+		h = strtod((char*)attr, NULL);
 		xmlFree(attr);
+	}
+	if(!isnan(x) && !isnan(y) && !isnan(w) && !isnan(h))
+	{
+		OpRectangle *r = (OpRectangle*)OpRectangle_new();
+
+		Op *g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, x);
+		OpRectangle_set_x(r, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, y);
+		OpRectangle_set_y(r, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, w);
+		OpRectangle_set_w(r, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, h);
+		OpRectangle_set_h(r, g);
+
+		OpBloc_append_Op(ret, (Op*)r);
+	}
+}
+
+
+void OpParser_import_parser_polyline(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret, bool is_polygone)
+{
+	fprintf(stderr, "Parse SVG POLYLINE/GONE (%d)\n", is_polygone);
+	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "points");
+	if(attr != NULL)
+	{
+		double x, y;
+		char *p = (char*)attr;
+		OpVariable v;
+		OpVariable_init(&v);
+		while(*p != '\0')
+		{
+			x = NAN;
+			y = NAN;
+			x = strtod(p, &p);
+			if(*p == ',')
+				y = strtod(p+1, &p);
+			if(!isnan(x) && !isnan(y))
+			{
+				OpVariable_append_double(&v, x);
+				OpVariable_append_double(&v, y);
+			}
+			if(*p != '\0')
+				p++;
+		}
+		if(OpVariable_get_type(&v) == DOUBLES && OpVariable_get_number_elements(&v) > 0)
+		{
+			Op *P = OpPolyline_new(), *g;
+			g = OpGetValue_new();
+			OpGetValue_copy_variable((OpGetValue*)g, &v);
+			OpPolyline_set_params((OpPolyline*)P, g);
+			if(is_polygone == 1)
+				OpPolyline_set_polygon((OpPolyline*)P);
+			OpBloc_append_Op(ret, P);
+		}
 	}
 }
 

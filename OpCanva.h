@@ -67,11 +67,12 @@ typedef struct op_rectangle
 
 }OpRectangle;
 
-typedef struct op_polygon
+typedef struct op_polyline
 {
 	Op super;
 	Op *params;
-}OpPolygon;
+	bool is_polygon;
+}OpPolyline;
 
 
 typedef struct op_color

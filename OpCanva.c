@@ -681,37 +681,43 @@ Op *OpRectangle_new(void)
 	return Op_new(&OpRectangle_isa);
 }
 
-OpIsa OpPolygon_isa = {
-		.name="Polygon",
-		.size=sizeof(OpPolygon),
-		.init = (void(*)(Op*))OpPolygon_init,
-		.terminate = (void(*)(Op*))OpPolygon_terminate,
-		.fix_operandes = (int(*)(Op*, OpContext*))OpPolygon_fix_operandes,
-		.execute = (int(*)(Op*, OpContext*))OpPolygon_execute,
-		.check_args = (int(*)(Op*, OpContext*))OpPolygon_check_args,
+OpIsa OpPolyline_isa = {
+		.name="Polyline",
+		.size=sizeof(OpPolyline),
+		.init = (void(*)(Op*))OpPolyline_init,
+		.terminate = (void(*)(Op*))OpPolyline_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpPolyline_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpPolyline_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpPolyline_check_args,
 };
 
-void OpPolygon_init(OpPolygon *self)
+void OpPolyline_init(OpPolyline *self)
 {
 	Op_init(&self->super);
 	self->params = NULL;
+	self->is_polygon = 0;
 }
 
-void OpPolygon_terminate(OpPolygon *self)
+void OpPolyline_terminate(OpPolyline *self)
 {
 	Op_terminate(&self->super);
-	_OpPolygon_set_params(self, NULL);
+	_OpPolyline_set_params(self, NULL);
 }
 
 
-int OpPolygon_check_args(OpPolygon *self, OpCanvaContext *canvactx)
+int OpPolyline_check_args(OpPolyline *self, OpCanvaContext *canvactx)
 {
 	if(self->params != NULL)
 		return 0;
 	return -1;
 }
 
-int OpPolygon_execute(OpPolygon *self, OpCanvaContext *canvactx)
+void OpPolyline_set_polygon(OpPolyline *self)
+{
+	self->is_polygon = 1;
+}
+
+int OpPolyline_execute(OpPolyline *self, OpCanvaContext *canvactx)
 {
 	int ret = 0;
 	OpContext *ctx = (OpContext*)canvactx;
@@ -758,51 +764,54 @@ int OpPolygon_execute(OpPolygon *self, OpCanvaContext *canvactx)
 	{
 		size_t i;
 		double *d = OpVariable_get_doubles(v);
-		fprintf(stderr, "Op Draw Polygon\n");
+		fprintf(stderr, "Op Draw Polyline\n");
 		CanvaCtx_new_path(canvactx->Canva);
 		CanvaCtx_move_to(canvactx->Canva, d[0], d[1]);
 		for(i = 2; i < nb - 1; i+=2)
 		{
 			CanvaCtx_draw_line_to(canvactx->Canva, d[i], d[i+1]);
 		}
-		CanvaCtx_draw_line_to(canvactx->Canva, d[0], d[1]);
-		CanvaCtx_close_path(canvactx->Canva);
-	}
-	return ret;
-}
-
-void _OpPolygon_set_params(OpPolygon *self, Op *v)
-{
-	OP_SET_OPERANDE(self, params, v);
-}
-
-#define OPPOLYGON_PARAMS 0
-
-void OpPolygon_set_params(OpPolygon *self, Op *v)
-{
-	OP_ADD_OPERANDE(self, v, OPPOLYGON_PARAMS);
-}
-
-int OpPolygon_fix_operandes(OpPolygon *self, OpContext *ctx)
-{
-	int ret = -1;
-	if(self->super.nb_ops >= 1)
-	{
-		Op *params = NULL;
-		params = self->super.operandes[OPPOLYGON_PARAMS];
-
-		if(params != NULL)
+		if(self->is_polygon == 1)
 		{
-			ret = 0;
-			_OpPolygon_set_params(self, params);
+			fprintf(stderr, "CLosing Polyline for drawing Polygon\n");
+			CanvaCtx_close_path(canvactx->Canva);
 		}
 	}
 	return ret;
 }
 
-Op *OpPolygon_new(void)
+void _OpPolyline_set_params(OpPolyline *self, Op *v)
 {
-	return Op_new(&OpPolygon_isa);
+	OP_SET_OPERANDE(self, params, v);
+}
+
+#define OPPOLYLINE_PARAMS 0
+
+void OpPolyline_set_params(OpPolyline *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPPOLYLINE_PARAMS);
+}
+
+int OpPolyline_fix_operandes(OpPolyline *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		Op *params = NULL;
+		params = self->super.operandes[OPPOLYLINE_PARAMS];
+
+		if(params != NULL)
+		{
+			ret = 0;
+			_OpPolyline_set_params(self, params);
+		}
+	}
+	return ret;
+}
+
+Op *OpPolyline_new(void)
+{
+	return Op_new(&OpPolyline_isa);
 }
 
 OpIsa OpColor_isa = {

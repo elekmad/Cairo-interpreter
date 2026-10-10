@@ -51,6 +51,7 @@ Op *root;
 %token PATHEXTENTS
 %token RECTANGLE
 %token POLYGON
+%token POLYLINE
 %token SETBGCOLOR
 %token SETAUTOSTROKECOLOR
 %token SETAUTOFILLCOLOR
@@ -774,9 +775,18 @@ statement:
 
     | POLYGON '(' expression ')' ';'
       {
-      	OpPolygon *op = (OpPolygon*)OpPolygon_new();
+      	OpPolyline *op = (OpPolyline*)OpPolyline_new();
       	$$ = (Op*)op;
-      	OpPolygon_set_params(op, $3);
+      	OpPolyline_set_params(op, $3);
+      	OpPolyline_set_polygon(op);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+
+    | POLYLINE '(' expression ')' ';'
+      {
+      	OpPolyline *op = (OpPolyline*)OpPolyline_new();
+      	$$ = (Op*)op;
+      	OpPolyline_set_params(op, $3);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
 
