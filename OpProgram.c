@@ -438,7 +438,7 @@ size_t OpParser_import_svg(OpParser *self, const char *name)
 
 	while (xmlTextReaderRead(reader) == 1)
 	{
-		int append = 1;
+		int append = 0;
 
 	    if (xmlTextReaderNodeType(reader) != XML_READER_TYPE_ELEMENT)
 	        continue;
@@ -459,15 +459,19 @@ size_t OpParser_import_svg(OpParser *self, const char *name)
 	    	append = OpParser_import_parser_group(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "rect")) {
+	    	append = 1;
 	    	OpParser_import_parser_rect(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "path")) {
+	    	append = 1;
 	    	OpParser_import_parser_path(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "polyline")) {
+	    	append = 1;
 	    	OpParser_import_parser_polyline(self, reader, bloc, 0);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "polygon")) {
+	    	append = 1;
 	    	OpParser_import_parser_polyline(self, reader, bloc, 1);
 	    }
 
@@ -630,7 +634,7 @@ int OpParser_import_parser_group(OpParser *self, xmlTextReaderPtr reader, OpBloc
 	int depth = xmlTextReaderDepth(reader);
 	while (xmlTextReaderRead(reader) == 1)
 	{
-		int append = 1;
+		int append = 0;
 	    if (xmlTextReaderNodeType(reader) == XML_READER_TYPE_END_ELEMENT && xmlTextReaderDepth(reader) == depth)//End of group
 	        break;
 	    else if (xmlTextReaderNodeType(reader) != XML_READER_TYPE_ELEMENT)
@@ -649,10 +653,20 @@ int OpParser_import_parser_group(OpParser *self, xmlTextReaderPtr reader, OpBloc
 			append = OpParser_import_parser_group(self, reader, bloc);
 		}
 	    else if (xmlStrEqual(name, BAD_CAST "rect")) {
+	    	append = 1;
 	    	OpParser_import_parser_rect(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "path")) {
+	    	append = 1;
 	    	OpParser_import_parser_path(self, reader, bloc);
+	    }
+	    else if (xmlStrEqual(name, BAD_CAST "polyline")) {
+	    	append = 1;
+	    	OpParser_import_parser_polyline(self, reader, bloc, 0);
+	    }
+	    else if (xmlStrEqual(name, BAD_CAST "polygon")) {
+	    	append = 1;
+	    	OpParser_import_parser_polyline(self, reader, bloc, 1);
 	    }
 
 	    if(append == 1)
@@ -757,6 +771,7 @@ void OpParser_import_parser_polyline(OpParser *self, xmlTextReaderPtr reader, Op
 				OpPolyline_set_polygon((OpPolyline*)P);
 			OpBloc_append_Op(ret, P);
 		}
+		OpVariable_terminate(&v);
 	}
 }
 
@@ -787,35 +802,24 @@ void _OpParser_import_parse_color_section(xmlTextReaderPtr reader, Op **color, O
 	if(attr != NULL)
 	{
 		*color = NULL;
-		if(strcmp((char*)attr, "black") == 0)
+		const char *rgb = getrgb((char*)attr);
+		if(rgb != NULL)
 		{
-			Op *get = OpGetBlackColor_new();
-			*color = OpColor_new();
-			OpColor_set_params((OpColor*)*color, get);
-		}
-		else if(strcmp((char*)attr, "white") == 0)
-		{
-			Op *get = OpGetWhiteColor_new();
-			*color = OpColor_new();
-			OpColor_set_params((OpColor*)*color, get);
-		}
-		else if(strcmp((char*)attr, "red") == 0)
-		{
-			Op *get = OpGetRedColor_new();
-			*color = OpColor_new();
-			OpColor_set_params((OpColor*)*color, get);
-		}
-		else if(strcmp((char*)attr, "green") == 0)
-		{
-			Op *get = OpGetGreenColor_new();
-			*color = OpColor_new();
-			OpColor_set_params((OpColor*)*color, get);
-		}
-		else if(strcmp((char*)attr, "blue") == 0)
-		{
-			Op *get = OpGetBlueColor_new();
-			*color = OpColor_new();
-			OpColor_set_params((OpColor*)*color, get);
+			unsigned int r, g, b;
+			if(sscanf(rgb, "%2x%2x%2x", &r, &g, &b) == 3)
+			{
+				OpVariable v;
+				OpVariable_init(&v);
+				OpVariable_append_double(&v, (double)r);
+				OpVariable_append_double(&v, (double)g);
+				OpVariable_append_double(&v, (double)b);
+				Op *gv = OpGetValue_new();
+				OpGetValue_copy_variable((OpGetValue*)gv, &v);
+				OpVariable_terminate(&v);
+
+				*color = OpColor_new();
+				OpColor_set_params((OpColor*)*color, gv);
+			}
 		}
 		else
 		{
@@ -847,22 +851,20 @@ void _OpParser_import_parse_color_section(xmlTextReaderPtr reader, Op **color, O
 
 			if(!isnan(r) && !isnan(g) && !isnan(b))
 			{
-				*color = OpColor_new();
-				OpGetValue *getr = (OpGetValue*)OpGetValue_new();
-				OpGetValue_set_value(getr, r);
-				OpGetValue *getg = (OpGetValue*)OpGetValue_new();
-				OpGetValue_set_value(getg, g);
-				OpGetValue *getb = (OpGetValue*)OpGetValue_new();
-				OpGetValue_set_value(getb, b);
-				OpColor_set_red((OpColor*)*color, (Op*)getr);
-				OpColor_set_green((OpColor*)*color, (Op*)getg);
-				OpColor_set_blue((OpColor*)*color, (Op*)getb);
+
+				OpVariable v;
+				OpVariable_init(&v);
+				OpVariable_append_double(&v, r);
+				OpVariable_append_double(&v, g);
+				OpVariable_append_double(&v, b);
 				if(!isnan(a))
-				{
-					OpGetValue *geta = (OpGetValue*)OpGetValue_new();
-					OpGetValue_set_value(geta, a);
-					OpColor_set_alpha((OpColor*)*color, (Op*)geta);
-				}
+					OpVariable_append_double(&v, a);
+				Op *gv = OpGetValue_new();
+				OpGetValue_copy_variable((OpGetValue*)gv, &v);
+				OpVariable_terminate(&v);
+
+				*color = OpColor_new();
+				OpColor_set_params((OpColor*)*color, gv);
 			}
 		}
 		if(*color != NULL)

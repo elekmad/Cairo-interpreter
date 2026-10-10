@@ -86,6 +86,12 @@ typedef struct op_color
 
 }OpColor;
 
+typedef struct op_get_rgb_color
+{
+	Op super;
+	Op *name;
+}OpGetRGBColor;
+
 typedef struct op_set_line_width
 {
 	Op super;

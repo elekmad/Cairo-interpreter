@@ -114,6 +114,7 @@ Op *root;
 %token BLUE
 %token BLACK
 %token WHITE
+%token RGBCOLOR
 %token RADIANS
 %token DEGREES
 %token AND
@@ -1455,6 +1456,13 @@ expression:
       	$$ = OpGetWhiteColor_new();
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
+      	| RGBCOLOR '(' expression ')'
+      {
+		Op *op = OpGetRGBColor_new();
+      	$$ = op;
+		OpGetRGBColor_set_name((OpGetRGBColor*)op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
       | '[' number_list ']'
       {
       	OpGetValue *op = (OpGetValue*)OpGetValue_new();

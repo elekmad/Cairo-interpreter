@@ -63,6 +63,7 @@ int yycolumn = 1;
 (?i:"clippreserve")	{ return CLIPPRESERVE; }
 (?i:"resetclip")	{ return RESETCLIP; }
 (?i:"color")		{ return COLOR; }
+(?i:"getrgb")			{ return RGBCOLOR; }
 (?i:"setlinewidth")	{ return SETLINEWIDTH; }
 (?i:"getlinewidth")	{ return GETLINEWIDTH; }
 (?i:"fill")			{ return FILL; }
