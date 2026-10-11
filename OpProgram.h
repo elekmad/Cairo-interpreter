@@ -18,6 +18,7 @@ extern "C" {
 #include <OpModule.h>
 #include <LinkedList.h>
 #include <String.h>
+#include <uthash.h>
 
 typedef struct op_import OpImport;
 
@@ -52,6 +53,13 @@ typedef struct op_parser
 	int depth;
 	int inside_loop;
 }OpParser;
+
+typedef struct op_parser_hash_elt
+{
+	char name[30];
+	char value[30];
+	UT_hash_handle hh;
+}OpParserHashElt;
 
 typedef struct op_import
 {

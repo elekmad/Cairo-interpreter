@@ -778,97 +778,240 @@ void OpParser_import_parser_polyline(OpParser *self, xmlTextReaderPtr reader, Op
 
 void OpParser_import_parse_color_section(xmlTextReaderPtr reader, OpBloc *ret)
 {
-	Op *fill_color = NULL, *fill_draw = NULL, *stroke_color = NULL, *stroke_draw = NULL;
-	_OpParser_import_parse_color_section(reader, &stroke_color, &stroke_draw, "stroke", OpStroke_new);
-	if(stroke_color != NULL)
-		_OpParser_import_parse_color_section(reader, &fill_color, &fill_draw, "fill", OpFillPreserve_new);
-	else
-		_OpParser_import_parse_color_section(reader, &fill_color, &fill_draw, "fill", OpFill_new);
+	OpColor *fill_color = NULL, *stroke_color = NULL;
+	int fill_present = 0, stroke_present = 0;
+	Op *fill_draw = NULL, *stroke_draw = NULL, *style = NULL;
+	_OpParser_import_parse_style_section(reader, &fill_color, &fill_present, &stroke_color, &stroke_present, &style);
+	if(style != NULL)
+		OpBloc_append_Op(ret, style);
+	if(stroke_color == NULL && stroke_present == 0)
+		_OpParser_import_parse_color_section(reader, &stroke_color, "stroke");
+	if(fill_color == NULL && fill_present == 0)
+		_OpParser_import_parse_color_section(reader, &fill_color, "fill");
 	if(fill_color != NULL)
 	{
-		OpBloc_append_Op(ret, fill_color);
+		OpBloc_append_Op(ret, (Op*)fill_color);
+		if(stroke_color == NULL)
+			fill_draw = OpFill_new();
+		else
+			fill_draw = OpFillPreserve_new();
 		OpBloc_append_Op(ret, fill_draw);
 	}
 	if(stroke_color != NULL)
 	{
-		OpBloc_append_Op(ret, stroke_color);
+		stroke_draw = OpStroke_new();
+		OpBloc_append_Op(ret, (Op*)stroke_color);
 		OpBloc_append_Op(ret, stroke_draw);
 	}
 }
 
-void _OpParser_import_parse_color_section(xmlTextReaderPtr reader, Op **color, Op **draw, const char *name, Op*(*new_func)(void))
+void _OpParser_import_parse_style_section(xmlTextReaderPtr reader, OpColor **fill, int *fill_present, OpColor **stroke, int *stroke_present, Op **style)
+{
+	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "style");
+	if(attr != NULL)
+	{
+		OpParserHashElt *elts = NULL;
+		String name, value;
+		char *p = (char*)attr;
+		String_init(&name);
+		String_init(&value);
+		while(*p != '\0')
+		{
+			char *sep;
+			if((sep = strchr(p, ':')) != NULL)
+			{
+				String_empty(&name);
+				String_append_data(&name, sep - p, p);
+				p = sep + 1;
+				sep = strchrnul(p, ';');
+
+				String_empty(&value);
+				String_append_data(&value, sep - p, p);
+				if(*sep != '\0')
+					p = sep + 1;
+				else
+					p = sep;
+				OpParserHashElt *e = malloc(sizeof(OpParserHashElt));
+				strcpy(e->name, String_get_char_string(&name));
+				strcpy(e->value, String_get_char_string(&value));
+				HASH_ADD_STR(elts, name, e);
+
+				fprintf(stderr, "Name '%s' : value '%s'\n", String_get_char_string(&name), String_get_char_string(&value));
+			}
+		}
+		String_finalize(&name);
+		String_finalize(&value);
+		//Use HasHMap
+
+		//Search fill:color and fill-opacity:opacity
+		char *col_name = "fill", *opacity_name = "fill-opacity";
+
+		OpParserHashElt *color, *opacity;
+		HASH_FIND_STR(elts, col_name, color);
+		if(color)
+		{
+			*fill_present = 1;
+			HASH_FIND_STR(elts, opacity_name, opacity);
+			_OpParser_import_get_rgba_color(color->value, opacity != NULL ? opacity->value : NULL, fill);
+		}
+
+		col_name = "stroke";
+		opacity_name = "stroke-opacity";
+
+		HASH_FIND_STR(elts, col_name, color);
+		if(color)
+		{
+			*stroke_present = 1;
+			HASH_FIND_STR(elts, opacity_name, opacity);
+			_OpParser_import_get_rgba_color(color->value, opacity != NULL ? opacity->value : NULL, stroke);
+
+			OpParserHashElt *line_width;
+			HASH_FIND_STR(elts, "stroke-width", line_width);
+			if(line_width != NULL)
+			{
+				double lw = strtod(line_width->value, NULL);
+				if(!isnan(lw))
+				{
+					if(*style == NULL)
+						*style = OpBloc_new();
+					Op *sw = OpSetLineWidth_new(), *gv = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)gv, lw);
+					OpSetLineWidth_set_width((OpSetLineWidth*)sw, gv);
+					OpBloc_append_Op((OpBloc*)*style, sw);
+				}
+			}
+		}
+
+		//Free HashMap
+		OpParserHashElt *cur, *tmp;
+		HASH_ITER(hh, elts, cur, tmp)
+		{
+			HASH_DEL(elts, cur);
+			free(cur);
+		}
+		xmlFree(attr);
+	}
+}
+
+unsigned int _OpParser_import_hex_to_int(const char *e, int size)
+{
+	unsigned int r = 0;
+	for(int i = 0; i < size; i++)
+	{
+		char c = e[i];
+		if(c >= '0' && c <= '9')
+			r = r * 16 + c - '0';
+		else if(c >= 'a' && c <= 'f')
+			r = r * 16 + c - 'a' + 10;
+		else if(c >= 'A' && c <= 'F')
+			r = r * 16 + c - 'A' + 10;
+	}
+	return r;
+}
+
+void _OpParser_import_get_rgba_color(const char *color, const char *opacity, OpColor **op)
+{
+	double r = NAN, g = NAN, b = NAN, a = NAN;
+	if(*color == '\0')
+		return;
+	if(opacity != NULL)
+	{
+		char *p;
+		a = strtod(opacity, &p);
+		if(*p == '%')
+			a /= 100;
+
+		if(double_eq(a, 0.0))
+			return;
+	}
+
+	if(strcmp(color, "none") == 0)
+		return;
+	if(*color == '#')
+	{
+		if(strlen(color+1) == 3)
+		{
+			r = (double)_OpParser_import_hex_to_int(color + 1, 1);
+			g = (double)_OpParser_import_hex_to_int(color + 2, 1);
+			b = (double)_OpParser_import_hex_to_int(color + 3, 1);
+		}
+		else
+		{
+			r = (double)_OpParser_import_hex_to_int(color + 1, 2);
+			g = (double)_OpParser_import_hex_to_int(color + 3, 2);
+			b = (double)_OpParser_import_hex_to_int(color + 5, 2);
+		}
+	}
+	else if(strncmp(color, "rgb(", 4) == 0)
+	{
+		char *p;
+		r = strtod(color + 4, &p);
+		if(*p == '%')
+		{
+			r *= 2.55;
+			p++;
+		}
+		if(*p == ',')
+			p++;
+		while(*p != '\0' && !(*p >= '0' && *p <= '9'))
+			p++;
+
+		g = strtod(p, &p);
+		if(*p == '%')
+		{
+			g *= 2.55;
+			p++;
+		}
+		if(*p == ',')
+			p++;
+		while(*p != '\0' && !(*p >= '0' && *p <= '9'))
+			p++;
+		b = strtod(p, &p);
+		if(*p == '%')
+			b *= 2.55;
+	}
+	else
+	{
+		const char *rgb = getrgb(color);
+		r = (double)_OpParser_import_hex_to_int(rgb, 2);
+		g = (double)_OpParser_import_hex_to_int(rgb + 2, 2);
+		b = (double)_OpParser_import_hex_to_int(rgb + 4, 2);
+	}
+	if(!isnan(r) && !isnan(g) && !isnan(b))
+	{
+		OpVariable v;
+		OpVariable_init(&v);
+		OpVariable_append_double(&v, r);
+		OpVariable_append_double(&v, g);
+		OpVariable_append_double(&v, b);
+		if(!isnan(a))
+			OpVariable_append_double(&v, a);
+		*op = (OpColor*)OpColor_new();
+		Op *gv = OpGetValue_new();
+		OpGetValue_copy_variable((OpGetValue*)gv, &v);
+		OpVariable_terminate(&v);
+		OpColor_set_params((OpColor*)*op, gv);
+	}
+}
+
+void _OpParser_import_parse_color_section(xmlTextReaderPtr reader, OpColor **op, const char *name)
 {
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST name);
 	if(attr != NULL)
 	{
-		*color = NULL;
-		const char *rgb = getrgb((char*)attr);
-		if(rgb != NULL)
-		{
-			unsigned int r, g, b;
-			if(sscanf(rgb, "%2x%2x%2x", &r, &g, &b) == 3)
-			{
-				OpVariable v;
-				OpVariable_init(&v);
-				OpVariable_append_double(&v, (double)r);
-				OpVariable_append_double(&v, (double)g);
-				OpVariable_append_double(&v, (double)b);
-				Op *gv = OpGetValue_new();
-				OpGetValue_copy_variable((OpGetValue*)gv, &v);
-				OpVariable_terminate(&v);
+		char *color = (char*)attr, *opacity = NULL;
+		String opacity_name;
+		String_init(&opacity_name);
+		String_append_char_string(&opacity_name, name);
+		String_append_char_string(&opacity_name, "-opacity");
+		xmlChar *attr2 = xmlTextReaderGetAttribute(reader, BAD_CAST String_get_char_string(&opacity_name));
+		if(attr2 != NULL)
+			opacity = (char*)attr2;
 
-				*color = OpColor_new();
-				OpColor_set_params((OpColor*)*color, gv);
-			}
-		}
-		else
-		{
-			double r = NAN, b = NAN, g = NAN, a = NAN;
-			if(sscanf((char*)attr, "rgb(%lf%%, %lf%%, %lf%%)", &r, &g, &b) == 3)
-			{
-				r *= 2.55;
-				g *= 2.55;
-				b *= 2.55;
-			}
-			else
-			{
-				r = NAN;
-				g = NAN;
-				b = NAN;
-			}
+		_OpParser_import_get_rgba_color(color, opacity, op);
 
-			String opacity_name;
-			String_init(&opacity_name);
-			String_append_char_string(&opacity_name, name);
-			String_append_char_string(&opacity_name, "-opacity");
-			xmlChar *attr2 = xmlTextReaderGetAttribute(reader, BAD_CAST String_get_char_string(&opacity_name));
-			if(attr2 != NULL)
-			{
-				a = strtod((char*)attr, NULL) * 255.0;
-				xmlFree(attr2);
-			}
-			String_finalize(&opacity_name);
-
-			if(!isnan(r) && !isnan(g) && !isnan(b))
-			{
-
-				OpVariable v;
-				OpVariable_init(&v);
-				OpVariable_append_double(&v, r);
-				OpVariable_append_double(&v, g);
-				OpVariable_append_double(&v, b);
-				if(!isnan(a))
-					OpVariable_append_double(&v, a);
-				Op *gv = OpGetValue_new();
-				OpGetValue_copy_variable((OpGetValue*)gv, &v);
-				OpVariable_terminate(&v);
-
-				*color = OpColor_new();
-				OpColor_set_params((OpColor*)*color, gv);
-			}
-		}
-		if(*color != NULL)
-			*draw = new_func();
+		if(attr2 != NULL)
+			xmlFree(attr2);
 
 		xmlFree(attr);
 	}

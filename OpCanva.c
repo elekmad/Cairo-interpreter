@@ -3369,8 +3369,6 @@ typedef struct {
     const char *hex;
 } Color;
 
-static const int ColorsCount = 148;
-
 static const Color colors[] = {
     {"aliceblue", "F0F8FF"},
     {"antiquewhite", "FAEBD7"},
@@ -3530,7 +3528,8 @@ const char *getrgb(const char *e)
         return NULL;
     }
 
-    for (size_t i = 0; i < ColorsCount; i++) {
+    int count = sizeof(colors)/sizeof(colors[0]);
+    for (size_t i = 0; i < count; i++) {
         if (strcasecmp(e, colors[i].name) == 0)
         	return colors[i].hex;
     }
