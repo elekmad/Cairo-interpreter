@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SVG test pour parseur : noms, none, rgb(), #RGB, #RRGGBB,
+     attributs directs, style, opacity, fill-opacity, stroke-opacity,
+     stroke-width. Les transformations et autres propriétés sont omises. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="790" viewBox="0 0 1000 790">
+  <rect width="1000" height="790" fill="white"/>
+
+  <!-- 1. Noms de couleurs et none en attributs -->
+  <rect x="20" y="35" width="130" height="65" fill="tomato" stroke="black" stroke-width="3"/>
+  <rect x="170" y="35" width="130" height="65" fill="steelblue" stroke="gold" stroke-width="5"/>
+  <rect x="320" y="35" width="130" height="65" fill="cyan" stroke="magenta" stroke-width="3"/>
+  <rect x="470" y="35" width="130" height="65" fill="none" stroke="darkgreen" stroke-width="5"/>
+  <rect x="620" y="35" width="130" height="65" fill="rebeccapurple" stroke="black" stroke-width="2"/>
+  <rect x="770" y="35" width="130" height="65" fill="orange" stroke="none" stroke-width="5"/>
+
+  <!-- 2. rgb() avec entiers -->
+  <rect x="20" y="125" width="130" height="65" fill="rgb(255, 0, 0)" stroke="rgb(0, 0, 0)" stroke-width="3"/>
+  <rect x="170" y="125" width="130" height="65" fill="rgb(0, 128, 0)" stroke="rgb(255, 165, 0)" stroke-width="4"/>
+  <rect x="320" y="125" width="130" height="65" fill="rgb(30, 144, 255)" stroke="black" stroke-width="2"/>
+
+  <!-- 3. rgb() avec pourcentages -->
+  <rect x="470" y="125" width="130" height="65" fill="rgb(100%, 0%, 0%)" stroke="rgb(0%, 0%, 0%)" stroke-width="3"/>
+  <rect x="620" y="125" width="130" height="65" fill="rgb(0%, 50%, 0%)" stroke="rgb(100%, 65%, 0%)" stroke-width="4"/>
+  <rect x="770" y="125" width="130" height="65" fill="rgb(12%, 56%, 100%)" stroke="black" stroke-width="2"/>
+
+  <!-- 4. Hexadécimal court et long -->
+  <rect x="20" y="215" width="130" height="65" fill="#F00" stroke="#000" stroke-width="3"/>
+  <rect x="170" y="215" width="130" height="65" fill="#008000" stroke="#FFA500" stroke-width="4"/>
+  <rect x="320" y="215" width="130" height="65" fill="#1E90FF" stroke="#222" stroke-width="2"/>
+
+  <!-- 5. Couleurs et épaisseurs dans style="" -->
+  <rect x="20" y="305" width="130" height="65" style="fill:tomato;stroke:black;stroke-width:3"/>
+  <rect x="170" y="305" width="130" height="65" style="fill:rgb(0,128,0);stroke:orange;stroke-width:4"/>
+  <rect x="320" y="305" width="130" height="65" style="fill:#1E90FF;stroke:#000;stroke-width:2"/>
+  <rect x="470" y="305" width="130" height="65" style="fill:none;stroke:purple;stroke-width:5"/>
+  <rect x="620" y="305" width="130" height="65" style="fill:#F0F;stroke:rgb(0%,0%,0%);stroke-width:3"/>
+
+  <!-- 6. Mélange attributs directs et style : style gagne pour la même propriété -->
+  <rect x="20" y="395" width="130" height="65" fill="yellow" stroke="black" stroke-width="2" style="fill:cyan"/>
+  <rect x="170" y="395" width="130" height="65" fill="tomato" stroke="black" stroke-width="2" style="stroke:blue;stroke-width:6"/>
+  <rect x="320" y="395" width="130" height="65" fill="none" stroke="green" stroke-width="2" style="fill:gold;stroke-width:4"/>
+
+  <!-- 7. Opacité globale -->
+  <rect x="20" y="485" width="130" height="65" fill="red" stroke="black" stroke-width="3" opacity="1"/>
+  <rect x="170" y="485" width="130" height="65" fill="red" stroke="black" stroke-width="3" opacity="0.65"/>
+  <rect x="320" y="485" width="130" height="65" fill="red" stroke="black" stroke-width="3" opacity="0.25"/>
+  <rect x="470" y="485" width="130" height="65" fill="red" stroke="black" stroke-width="3" opacity="0"/>
+
+  <!-- 8. Opacités spécifiques, attributs directs -->
+  <rect x="20" y="575" width="130" height="65" fill="blue" fill-opacity="0.25" stroke="black" stroke-width="3"/>
+  <rect x="170" y="575" width="130" height="65" fill="blue" stroke="red" stroke-opacity="0.25" stroke-width="8"/>
+  <rect x="320" y="575" width="130" height="65" fill="blue" fill-opacity="0.6" stroke="red" stroke-opacity="0.6" stroke-width="8"/>
+
+  <!-- 9. Opacités dans style -->
+  <rect x="470" y="575" width="130" height="65" style="fill:blue;fill-opacity:0.25;stroke:black;stroke-width:3"/>
+  <rect x="620" y="575" width="130" height="65" style="fill:blue;stroke:red;stroke-opacity:0.25;stroke-width:8"/>
+  <rect x="770" y="575" width="130" height="65" style="fill:blue;fill-opacity:60%;stroke:red;stroke-opacity:60%;stroke-width:8"/>
+
+  <!-- 10. Héritage des propriétés depuis un groupe -->
+  <g fill="lightgreen" stroke="darkslateblue" stroke-width="4">
+    <rect x="20" y="665" width="130" height="65"/>
+    <rect x="170" y="665" width="130" height="65" style="fill:gold"/>
+    <rect x="320" y="665" width="130" height="65" style="stroke:red;stroke-width:2"/>
+  </g>
+
+  <!-- currentColor est laissé en commentaire : nécessite de résoudre color -->
+  <!-- <rect x="470" y="665" width="130" height="65" color="red" fill="currentColor"/> -->
+
+  <!-- Libellés de test -->
+  <g fill="black" stroke="none" style="font-family:sans-serif;font-size:14px">
+    <text x="20" y="22">1. Noms / none</text>
+    <text x="20" y="112">2. rgb(entiers)</text>
+    <text x="470" y="112">3. rgb(%)</text>
+    <text x="20" y="202">4. #RGB / #RRGGBB</text>
+    <text x="20" y="292">5. style=""</text>
+    <text x="20" y="382">6. Attribut + style</text>
+    <text x="20" y="472">7. opacity</text>
+    <text x="20" y="562">8. fill-opacity / stroke-opacity</text>
+    <text x="470" y="562">9. Opacités dans style</text>
+    <text x="20" y="652">10. Héritage de groupe</text>
+  </g>
+</svg>

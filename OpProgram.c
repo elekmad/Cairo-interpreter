@@ -779,13 +779,36 @@ void OpParser_import_parser_polyline(OpParser *self, xmlTextReaderPtr reader, Op
 void OpParser_import_parse_color_section(xmlTextReaderPtr reader, OpBloc *ret)
 {
 	OpColor *fill_color = NULL, *stroke_color = NULL;
-	int fill_present = 0, stroke_present = 0;
+	int fill_present = 0, stroke_present = 0, line_width_present = 0;
 	Op *fill_draw = NULL, *stroke_draw = NULL, *style = NULL;
-	_OpParser_import_parse_style_section(reader, &fill_color, &fill_present, &stroke_color, &stroke_present, &style);
-	if(style != NULL)
-		OpBloc_append_Op(ret, style);
+	_OpParser_import_parse_style_section(reader, &fill_color, &fill_present, &stroke_color, &stroke_present, &style, &line_width_present);
+
 	if(stroke_color == NULL && stroke_present == 0)
 		_OpParser_import_parse_color_section(reader, &stroke_color, "stroke");
+	if(stroke_color != NULL && line_width_present == 0)
+	{
+		xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "stroke-width");
+		if(attr != NULL)
+		{
+			double lw = strtod((char*)attr, NULL);
+			if(!isnan(lw))
+			{
+				Op *slw, *gv = OpGetValue_new();
+				slw = OpSetLineWidth_new();
+				OpGetValue_set_value((OpGetValue*)gv, lw);
+				OpSetLineWidth_set_width((OpSetLineWidth*)slw, gv);
+
+				if(style == NULL)
+					style = OpBloc_new();
+				OpBloc_append_Op((OpBloc*)style, slw);
+			}
+			xmlFree(attr);
+		}
+	}
+
+	if(style != NULL)
+		OpBloc_append_Op(ret, style);
+
 	if(fill_color == NULL && fill_present == 0)
 		_OpParser_import_parse_color_section(reader, &fill_color, "fill");
 	if(fill_color != NULL)
@@ -805,7 +828,7 @@ void OpParser_import_parse_color_section(xmlTextReaderPtr reader, OpBloc *ret)
 	}
 }
 
-void _OpParser_import_parse_style_section(xmlTextReaderPtr reader, OpColor **fill, int *fill_present, OpColor **stroke, int *stroke_present, Op **style)
+void _OpParser_import_parse_style_section(xmlTextReaderPtr reader, OpColor **fill, int *fill_present, OpColor **stroke, int *stroke_present, Op **style, int *linewidth_present)
 {
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "style");
 	if(attr != NULL)
@@ -872,6 +895,7 @@ void _OpParser_import_parse_style_section(xmlTextReaderPtr reader, OpColor **fil
 				double lw = strtod(line_width->value, NULL);
 				if(!isnan(lw))
 				{
+					*linewidth_present = 1;
 					if(*style == NULL)
 						*style = OpBloc_new();
 					Op *sw = OpSetLineWidth_new(), *gv = OpGetValue_new();
@@ -906,6 +930,8 @@ unsigned int _OpParser_import_hex_to_int(const char *e, int size)
 		else if(c >= 'A' && c <= 'F')
 			r = r * 16 + c - 'A' + 10;
 	}
+	if(size == 1)
+		r = r * 16 + r;
 	return r;
 }
 
