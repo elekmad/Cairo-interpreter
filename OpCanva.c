@@ -1834,6 +1834,152 @@ Op *OpRotate_new(void)
 }
 
 
+OpIsa OpSkewX_isa = {
+		.name="SkewX",
+		.size=sizeof(OpSkewX),
+		.init = (void(*)(Op*))OpSkewX_init,
+		.terminate = (void(*)(Op*))OpSkewX_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpSkewX_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpSkewX_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpSkewX_check_args,
+};
+
+void OpSkewX_init(OpSkewX *self)
+{
+	Op_init(&self->super);
+	self->angle = NULL;
+}
+
+void OpSkewX_terminate(OpSkewX *self)
+{
+	Op_terminate(&self->super);
+	_OpSkewX_set_angle(self, NULL);
+}
+
+#define OSKEWX_ANGLE 0
+
+void OpSkewX_set_angle(OpSkewX *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OSKEWX_ANGLE);
+}
+
+void _OpSkewX_set_angle(OpSkewX *self, Op *v)
+{
+	OP_SET_OPERANDE(self, angle, v);
+}
+
+int OpSkewX_fix_operandes(OpSkewX *self, OpCanvaContext *canvactx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_OpSkewX_set_angle(self, self->super.operandes[OSKEWX_ANGLE]);
+	}
+	return ret;
+}
+
+int OpSkewX_check_args(OpSkewX *self, OpCanvaContext *canvactx)
+{
+	if(self->angle != NULL)
+		return 0;
+	return -1;
+}
+
+int OpSkewX_execute(OpSkewX *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double a = NAN;
+	ret = Op_execute_get_double(self->angle, (Op*)self, ctx, &a);
+
+	if(ret == 0)
+	{
+		fprintf(stderr, "Op SkewX %f\n", a);
+		CanvaCtx_skewx(canvactx->Canva, a);
+	}
+	return ret;
+}
+
+Op *OpSkewX_new(void)
+{
+	return Op_new(&OpSkewX_isa);
+}
+
+
+OpIsa OpSkewY_isa = {
+		.name="SkewY",
+		.size=sizeof(OpSkewY),
+		.init = (void(*)(Op*))OpSkewY_init,
+		.terminate = (void(*)(Op*))OpSkewY_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpSkewY_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpSkewY_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpSkewY_check_args,
+};
+
+void OpSkewY_init(OpSkewY *self)
+{
+	Op_init(&self->super);
+	self->angle = NULL;
+}
+
+void OpSkewY_terminate(OpSkewY *self)
+{
+	Op_terminate(&self->super);
+	_OpSkewY_set_angle(self, NULL);
+}
+
+#define OSKEWY_ANGLE 0
+
+void OpSkewY_set_angle(OpSkewY *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OSKEWY_ANGLE);
+}
+
+void _OpSkewY_set_angle(OpSkewY *self, Op *v)
+{
+	OP_SET_OPERANDE(self, angle, v);
+}
+
+int OpSkewY_fix_operandes(OpSkewY *self, OpCanvaContext *canvactx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_OpSkewY_set_angle(self, self->super.operandes[OSKEWY_ANGLE]);
+	}
+	return ret;
+}
+
+int OpSkewY_check_args(OpSkewY *self, OpCanvaContext *canvactx)
+{
+	if(self->angle != NULL)
+		return 0;
+	return -1;
+}
+
+int OpSkewY_execute(OpSkewY *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double a = NAN;
+	ret = Op_execute_get_double(self->angle, (Op*)self, ctx, &a);
+
+	if(ret == 0)
+	{
+		fprintf(stderr, "Op SkewY %f\n", a);
+		CanvaCtx_skewy(canvactx->Canva, a);
+	}
+	return ret;
+}
+
+Op *OpSkewY_new(void)
+{
+	return Op_new(&OpSkewY_isa);
+}
+
+
 OpIsa OpTranslate_isa = {
 		.name="Translate",
 		.size=sizeof(OpTranslate),

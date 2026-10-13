@@ -79,6 +79,8 @@ Op *root;
 %token TRANSLATE
 %token MOVETO
 %token SCALE
+%token SKEWX
+%token SKEWY
 %token APPLYMATRIX
 %token LINETO
 %token IF
@@ -1120,6 +1122,42 @@ statement:
         OpBloc_append_Op(op, (Op*)opt);
         OpBloc_append_Op(op, $5);
   		Op_set_source_pos((Op*)opt, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		Op_set_source_pos($$, @5.first_line, @5.first_column, @5.last_line, @5.last_column);
+      }
+      	| SKEWX '(' expression ')' ';'
+      {
+      	OpSkewX *op = (OpSkewX*)OpSkewX_new();
+      	$$ = (Op*)op;
+		OpSkewX_set_angle(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+    	| SKEWX '(' expression ')' block
+      {
+      	OpBloc *op = (OpBloc*)OpCanvaBloc_new();
+      	$$ = (Op*)op;
+      	OpSkewX *opr = (OpSkewX*)OpSkewX_new();
+		OpSkewX_set_angle(opr, $3);
+        OpBloc_append_Op(op, (Op*)opr);
+        OpBloc_append_Op(op, $5);
+  		Op_set_source_pos((Op*)opr, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+  		Op_set_source_pos($$, @5.first_line, @5.first_column, @5.last_line, @5.last_column);
+      }
+      	| SKEWY '(' expression ')' ';'
+      {
+      	OpSkewY *op = (OpSkewY*)OpSkewY_new();
+      	$$ = (Op*)op;
+		OpSkewY_set_angle(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+    	| SKEWY '(' expression ')' block
+      {
+      	OpBloc *op = (OpBloc*)OpCanvaBloc_new();
+      	$$ = (Op*)op;
+      	OpSkewY *opr = (OpSkewY*)OpSkewY_new();
+		OpSkewY_set_angle(opr, $3);
+        OpBloc_append_Op(op, (Op*)opr);
+        OpBloc_append_Op(op, $5);
+  		Op_set_source_pos((Op*)opr, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
   		Op_set_source_pos($$, @5.first_line, @5.first_column, @5.last_line, @5.last_column);
       }
       	| APPLYMATRIX '(' expression ',' expression ',' expression ',' expression ',' expression ',' expression ')' ';'

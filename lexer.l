@@ -72,6 +72,8 @@ int yycolumn = 1;
 (?i:"translate")	{ return TRANSLATE; }
 (?i:"moveto")		{ return MOVETO; }
 (?i:"scale")		{ return SCALE; }
+(?i:"skewx")		{ return SKEWX; }
+(?i:"skewy")		{ return SKEWY; }
 (?i:"applymatrix")		{ return APPLYMATRIX; }
 (?i:"lineto")		{ return LINETO; }
 (?i:"if")			{ return IF; }

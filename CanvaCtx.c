@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <cairo-svg.h>
 #include <b64/cencode.h>
+#include <math.h>
 
 void _CanvaCtx_init(CanvaCtx *self)
 {
@@ -336,6 +337,18 @@ void CanvaCtx_translate(CanvaCtx *self, double x, double y)
 {
 	fprintf(stderr, "Cairo translate %p %f:%f\n", self->cr, x, y);
 	cairo_translate(self->cr, x, y);
+}
+
+void CanvaCtx_skewx(CanvaCtx *self, double a)
+{
+	fprintf(stderr, "Cairo skewx %p %f\n", self->cr, a);
+	CanvaCtx_apply_matrix_transform(self, 1, 0, tan(a), 1, 0, 0);
+}
+
+void CanvaCtx_skewy(CanvaCtx *self, double a)
+{
+	fprintf(stderr, "Cairo skewy %p %f\n", self->cr, a);
+	CanvaCtx_apply_matrix_transform(self, 1, tan(a), 0, 1, 0, 0);
 }
 
 void CanvaCtx_apply_matrix_transform(CanvaCtx *self, double m1, double m2, double m3, double m4, double m5, double m6)

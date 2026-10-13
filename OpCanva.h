@@ -116,6 +116,18 @@ typedef struct op_rotate
 	Op *angle;
 }OpRotate;
 
+typedef struct op_skewx
+{
+	Op super;
+	Op *angle;
+}OpSkewX;
+
+typedef struct op_skewy
+{
+	Op super;
+	Op *angle;
+}OpSkewY;
+
 typedef struct op_translate
 {
 	Op super;
