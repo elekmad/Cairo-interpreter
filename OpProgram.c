@@ -462,9 +462,21 @@ size_t OpParser_import_svg(OpParser *self, const char *name)
 	    	append = 1;
 	    	OpParser_import_parser_rect(self, reader, bloc);
 	    }
+	    else if (xmlStrEqual(name, BAD_CAST "circle")) {
+	    	append = 1;
+	    	OpParser_import_parser_circle(self, reader, bloc);
+	    }
+	    else if (xmlStrEqual(name, BAD_CAST "ellipse")) {
+	    	append = 1;
+	    	OpParser_import_parser_ellipse(self, reader, bloc);
+	    }
 	    else if (xmlStrEqual(name, BAD_CAST "path")) {
 	    	append = 1;
 	    	OpParser_import_parser_path(self, reader, bloc);
+	    }
+	    else if (xmlStrEqual(name, BAD_CAST "line")) {
+	    	append = 1;
+	    	OpParser_import_parser_line(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "polyline")) {
 	    	append = 1;
@@ -495,128 +507,163 @@ void _OpParser_import_parse_transform_section(OpParser *self, xmlTextReaderPtr r
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "transform");
 	if(attr != NULL)
 	{
+		char *p = (char*)attr;
 		double x, y, a, m1, m2, m3, m4, m5, m6;
-		if(strncmp((char*)attr, "translate(", 10) == 0)
+		while(*p != '\0')
 		{
-			if(sscanf(((char*)attr)+10, "%lf,%lf)", &x, &y) == 2)
+			if(strncmp(p, "translate(", 10) == 0)
 			{
-				Op *Tr = OpTranslate_new();
-				Op *g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, x);
-				OpTranslate_set_x((OpTranslate*)Tr, g);
-				g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, y);
-				OpTranslate_set_y((OpTranslate*)Tr, g);
-				OpBloc_append_Op(ret, Tr);
-				fprintf(stderr, "Apply Translate (%f, %f) to bloc %p\n", x, y, ret);
+				if(sscanf(p+10, "%lf,%lf)", &x, &y) == 2)
+				{
+					Op *Tr = OpTranslate_new();
+					Op *g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, x);
+					OpTranslate_set_x((OpTranslate*)Tr, g);
+					g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, y);
+					OpTranslate_set_y((OpTranslate*)Tr, g);
+					OpBloc_append_Op(ret, Tr);
+					fprintf(stderr, "Apply Translate (%f, %f) to bloc %p\n", x, y, ret);
+				}
+				else if(sscanf(p+10, "%lf)", &x) == 1)
+				{
+					Op *Tr = OpTranslate_new();
+					Op *g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, x);
+					OpTranslate_set_x((OpTranslate*)Tr, g);
+					g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, x);
+					OpTranslate_set_y((OpTranslate*)Tr, g);
+					OpBloc_append_Op(ret, Tr);
+					fprintf(stderr, "Apply Translate (%f) to bloc %p\n", x, ret);
+				}
 			}
-			else if(sscanf(((char*)attr)+10, "%lf)", &x) == 1)
+			else if(strncmp(p, "rotate(", 7) == 0)
 			{
-				Op *Tr = OpTranslate_new();
-				Op *g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, x);
-				OpTranslate_set_x((OpTranslate*)Tr, g);
-				g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, x);
-				OpTranslate_set_y((OpTranslate*)Tr, g);
-				OpBloc_append_Op(ret, Tr);
-				fprintf(stderr, "Apply Translate (%f) to bloc %p\n", x, ret);
+				if(sscanf(p+7, "%lf,%lf,%lf)", &a, &x, &y) == 3)
+				{
+					Op *Tr = OpTranslate_new();
+					Op *g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, x);
+					OpTranslate_set_x((OpTranslate*)Tr, g);
+					g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, y);
+					OpTranslate_set_y((OpTranslate*)Tr, g);
+					OpBloc_append_Op(ret, Tr);
+					Op *Rt = OpRotate_new();
+					g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, a * M_PI / 180);
+					OpRotate_set_angle((OpRotate*)Rt, g);
+					OpBloc_append_Op(ret, Rt);
+					Tr = OpTranslate_new();
+					g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, -x);
+					OpTranslate_set_x((OpTranslate*)Tr, g);
+					g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, -y);
+					OpTranslate_set_y((OpTranslate*)Tr, g);
+					OpBloc_append_Op(ret, Tr);
+					fprintf(stderr, "Apply Rotate Around Point to bloc %p\n", ret);
+				}
+				else if(sscanf(p+7, "%lf)", &a) == 1)
+				{
+					Op *Rt = OpRotate_new();
+					Op *g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, a * M_PI / 180);
+					OpRotate_set_angle((OpRotate*)Rt, g);
+					OpBloc_append_Op(ret, Rt);
+					fprintf(stderr, "Apply Rotate to bloc %p\n", ret);
+				}
 			}
+			else if(strncmp(p, "scale(", 6) == 0)
+			{
+				if(sscanf(p+6, "%lf,%lf)", &x, &y) == 2)
+				{
+					Op *Sc = OpScale_new();
+					Op *g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, x);
+					OpScale_set_x((OpScale*)Sc, g);
+					g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, y);
+					OpScale_set_y((OpScale*)Sc, g);
+					OpBloc_append_Op(ret, Sc);
+					fprintf(stderr, "Apply Scale to bloc %p\n", ret);
+				}
+				else if(sscanf(p+6, "%lf)", &x) == 1)
+				{
+					Op *Sc = OpScale_new();
+					Op *g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, x);
+					OpScale_set_x((OpScale*)Sc, g);
+					g = OpGetValue_new();
+					OpGetValue_set_value((OpGetValue*)g, x);
+					OpScale_set_y((OpScale*)Sc, g);
+					OpBloc_append_Op(ret, Sc);
+					fprintf(stderr, "Apply Scale to bloc %p\n", ret);
+				}
+			}
+			else if(sscanf(p, "matrix(%lf,%lf,%lf,%lf,%lf,%lf)", &m1, &m2, &m3, &m4, &m5, &m6) == 6)
+			{
+				Op *M = OpMatrix_new();
+				Op *g = OpGetValue_new();
+				OpGetValue_set_value((OpGetValue*)g, m1);
+				OpMatrix_set_m1((OpMatrix*)M, g);
+
+				g = OpGetValue_new();
+				OpGetValue_set_value((OpGetValue*)g, m2);
+				OpMatrix_set_m2((OpMatrix*)M, g);
+
+				g = OpGetValue_new();
+				OpGetValue_set_value((OpGetValue*)g, m3);
+				OpMatrix_set_m3((OpMatrix*)M, g);
+
+				g = OpGetValue_new();
+				OpGetValue_set_value((OpGetValue*)g, m4);
+				OpMatrix_set_m4((OpMatrix*)M, g);
+
+				g = OpGetValue_new();
+				OpGetValue_set_value((OpGetValue*)g, m5);
+				OpMatrix_set_m5((OpMatrix*)M, g);
+
+				g = OpGetValue_new();
+				OpGetValue_set_value((OpGetValue*)g, m6);
+				OpMatrix_set_m6((OpMatrix*)M, g);
+
+				OpBloc_append_Op(ret, M);
+				fprintf(stderr, "Apply Matrix to bloc %p\n", ret);
+			}
+			else if(strncmp(p, "skew", 4) == 0)
+			{
+				if(strncmp(p+4, "X(", 2) == 0)
+				{
+					if(sscanf(p+6, "%lf)", &a) == 1)
+					{
+						Op *Sk = OpSkewX_new();
+						Op *g = OpGetValue_new();
+						OpGetValue_set_value((OpGetValue*)g, a * M_PI / 180);
+						OpSkewX_set_angle((OpSkewX*)Sk, g);
+						OpBloc_append_Op(ret, Sk);
+						fprintf(stderr, "Apply SkewX %f rad (%f deg) to bloc %p\n", a*M_PI/180, a, ret);
+					}
+				}
+				else if(strncmp(p+4, "Y(", 2) == 0)
+				{
+					if(sscanf(p+6, "%lf)", &a) == 1)
+					{
+						Op *Sk = OpSkewY_new();
+						Op *g = OpGetValue_new();
+						OpGetValue_set_value((OpGetValue*)g, a * M_PI / 180);
+						OpSkewY_set_angle((OpSkewY*)Sk, g);
+						OpBloc_append_Op(ret, Sk);
+						fprintf(stderr, "Apply SkewY %f rad (%f deg) to bloc %p\n", a*M_PI/180, a, ret);
+					}
+				}
+			}
+			p = strchrnul(p, ')');
+			while(*p != '\0' && !((*p >= 'a' && *p <='z') || (*p >= 'A' && *p <= 'Z')))
+				p++;
 		}
-		else if(strncmp((char*)attr, "rotate(", 7) == 0)
-		{
-			if(sscanf(((char*)attr)+7, "%lf,%lf,%lf)", &a, &x, &y) == 3)
-			{
-				Op *Tr = OpTranslate_new();
-				Op *g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, x);
-				OpTranslate_set_x((OpTranslate*)Tr, g);
-				g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, y);
-				OpTranslate_set_y((OpTranslate*)Tr, g);
-				OpBloc_append_Op(ret, Tr);
-				Op *Rt = OpRotate_new();
-				g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, a * M_PI / 180);
-				OpRotate_set_angle((OpRotate*)Rt, g);
-				OpBloc_append_Op(ret, Rt);
-				Tr = OpTranslate_new();
-				g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, -x);
-				OpTranslate_set_x((OpTranslate*)Tr, g);
-				g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, -y);
-				OpTranslate_set_y((OpTranslate*)Tr, g);
-				OpBloc_append_Op(ret, Tr);
-				fprintf(stderr, "Apply Rotate Around Point to bloc %p\n", ret);
-			}
-			else if(sscanf(((char*)attr)+7, "%lf)", &a) == 1)
-			{
-				Op *Rt = OpRotate_new();
-				Op *g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, a * M_PI / 180);
-				OpRotate_set_angle((OpRotate*)Rt, g);
-				OpBloc_append_Op(ret, Rt);
-				fprintf(stderr, "Apply Rotate to bloc %p\n", ret);
-			}
-		}
-		else if(strncmp((char*)attr, "scale(", 6) == 0)
-		{
-			if(sscanf(((char*)attr)+6, "%lf,%lf)", &x, &y) == 2)
-			{
-				Op *Sc = OpScale_new();
-				Op *g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, x);
-				OpScale_set_x((OpScale*)Sc, g);
-				g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, y);
-				OpScale_set_y((OpScale*)Sc, g);
-				OpBloc_append_Op(ret, Sc);
-				fprintf(stderr, "Apply Scale to bloc %p\n", ret);
-			}
-			else if(sscanf(((char*)attr)+6, "%lf)", &x) == 1)
-			{
-				Op *Sc = OpScale_new();
-				Op *g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, x);
-				OpScale_set_x((OpScale*)Sc, g);
-				g = OpGetValue_new();
-				OpGetValue_set_value((OpGetValue*)g, x);
-				OpScale_set_y((OpScale*)Sc, g);
-				OpBloc_append_Op(ret, Sc);
-				fprintf(stderr, "Apply Scale to bloc %p\n", ret);
-			}
-		}
-		else if(sscanf((char*)attr, "matrix(%lf,%lf,%lf,%lf,%lf,%lf)", &m1, &m2, &m3, &m4, &m5, &m6) == 6)
-		{
-			Op *M = OpMatrix_new();
-			Op *g = OpGetValue_new();
-			OpGetValue_set_value((OpGetValue*)g, m1);
-			OpMatrix_set_m1((OpMatrix*)M, g);
-
-			g = OpGetValue_new();
-			OpGetValue_set_value((OpGetValue*)g, m2);
-			OpMatrix_set_m2((OpMatrix*)M, g);
-
-			g = OpGetValue_new();
-			OpGetValue_set_value((OpGetValue*)g, m3);
-			OpMatrix_set_m3((OpMatrix*)M, g);
-
-			g = OpGetValue_new();
-			OpGetValue_set_value((OpGetValue*)g, m4);
-			OpMatrix_set_m4((OpMatrix*)M, g);
-
-			g = OpGetValue_new();
-			OpGetValue_set_value((OpGetValue*)g, m5);
-			OpMatrix_set_m5((OpMatrix*)M, g);
-
-			g = OpGetValue_new();
-			OpGetValue_set_value((OpGetValue*)g, m6);
-			OpMatrix_set_m6((OpMatrix*)M, g);
-
-			OpBloc_append_Op(ret, M);
-			fprintf(stderr, "Apply Matrix to bloc %p\n", ret);
-		}
+		xmlFree(attr);
 	}
 }
 
@@ -656,9 +703,21 @@ int OpParser_import_parser_group(OpParser *self, xmlTextReaderPtr reader, OpBloc
 	    	append = 1;
 	    	OpParser_import_parser_rect(self, reader, bloc);
 	    }
+	    else if (xmlStrEqual(name, BAD_CAST "circle")) {
+	    	append = 1;
+	    	OpParser_import_parser_circle(self, reader, bloc);
+	    }
+	    else if (xmlStrEqual(name, BAD_CAST "ellipse")) {
+	    	append = 1;
+	    	OpParser_import_parser_ellipse(self, reader, bloc);
+	    }
 	    else if (xmlStrEqual(name, BAD_CAST "path")) {
 	    	append = 1;
 	    	OpParser_import_parser_path(self, reader, bloc);
+	    }
+	    else if (xmlStrEqual(name, BAD_CAST "line")) {
+	    	append = 1;
+	    	OpParser_import_parser_line(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "polyline")) {
 	    	append = 1;
@@ -736,6 +795,66 @@ void OpParser_import_parser_rect(OpParser *self, xmlTextReaderPtr reader, OpBloc
 }
 
 
+void OpParser_import_parser_line(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
+{
+	fprintf(stderr, "Parse SVG LINE\n");
+	double x1 = NAN, y1 = NAN, x2 = NAN, y2 = NAN;
+	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "x1");
+	if(attr != NULL)
+	{
+		x1 = strtod((char*)attr, NULL);
+		xmlFree(attr);
+	}
+	attr = xmlTextReaderGetAttribute(reader, BAD_CAST "y1");
+	if(attr != NULL)
+	{
+		y1 = strtod((char*)attr, NULL);
+		xmlFree(attr);
+	}
+	attr = xmlTextReaderGetAttribute(reader, BAD_CAST "x2");
+	if(attr != NULL)
+	{
+		x2 = strtod((char*)attr, NULL);
+		xmlFree(attr);
+	}
+	attr = xmlTextReaderGetAttribute(reader, BAD_CAST "y2");
+	if(attr != NULL)
+	{
+		y2 = strtod((char*)attr, NULL);
+		xmlFree(attr);
+	}
+	if(!isnan(x1) && !isnan(y1) && !isnan(x2) && !isnan(y2))
+	{
+		Op *p = OpNewPath_new();
+		OpBloc_append_Op(ret, p);
+
+		OpMoveTo *m = (OpMoveTo*)OpMoveTo_new();
+
+		Op *g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, x1);
+		OpMoveTo_set_x(m, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, y1);
+		OpMoveTo_set_y(m, g);
+
+		OpBloc_append_Op(ret, (Op*)m);
+
+		OpDrawLineTo *l = (OpDrawLineTo*)OpDrawLineTo_new();
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, x2);
+		OpDrawLineTo_set_x(l, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, y2);
+		OpDrawLineTo_set_y(l, g);
+
+		OpBloc_append_Op(ret, (Op*)l);
+	}
+}
+
+
 void OpParser_import_parser_polyline(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret, bool is_polygone)
 {
 	fprintf(stderr, "Parse SVG POLYLINE/GONE (%d)\n", is_polygone);
@@ -772,6 +891,141 @@ void OpParser_import_parser_polyline(OpParser *self, xmlTextReaderPtr reader, Op
 			OpBloc_append_Op(ret, P);
 		}
 		OpVariable_terminate(&v);
+	}
+}
+
+
+void OpParser_import_parser_circle(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
+{
+	fprintf(stderr, "Parse SVG CIRCLE\n");
+	double cx = NAN, cy = NAN, r = NAN;
+	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "cx");
+	if(attr != NULL)
+	{
+		cx = strtod((char*)attr, NULL);
+		xmlFree(attr);
+	}
+	attr = xmlTextReaderGetAttribute(reader, BAD_CAST "cy");
+	if(attr != NULL)
+	{
+		cy = strtod((char*)attr, NULL);
+		xmlFree(attr);
+	}
+	attr = xmlTextReaderGetAttribute(reader, BAD_CAST "r");
+	if(attr != NULL)
+	{
+		r = strtod((char*)attr, NULL);
+		xmlFree(attr);
+	}
+	if(!isnan(cx) && !isnan(cy) && !isnan(r))
+	{
+		Op *c = OpCircle_new();
+
+		Op *g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, cx);
+		OpCircle_set_x((OpCircle*)c, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, cy);
+		OpCircle_set_y((OpCircle*)c, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, r);
+		OpCircle_set_r((OpCircle*)c, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, 0);
+		OpCircle_set_a1((OpCircle*)c, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, 2*M_PI);
+		OpCircle_set_a2((OpCircle*)c, g);
+
+		OpBloc_append_Op(ret, c);
+	}
+}
+
+
+void OpParser_import_parser_ellipse(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
+{
+	fprintf(stderr, "Parse SVG CIRCLE\n");
+	double cx = NAN, cy = NAN, rx = NAN, ry = NAN;
+	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "cx");
+	if(attr != NULL)
+	{
+		cx = strtod((char*)attr, NULL);
+		xmlFree(attr);
+	}
+	attr = xmlTextReaderGetAttribute(reader, BAD_CAST "cy");
+	if(attr != NULL)
+	{
+		cy = strtod((char*)attr, NULL);
+		xmlFree(attr);
+	}
+	attr = xmlTextReaderGetAttribute(reader, BAD_CAST "rx");
+	if(attr != NULL)
+	{
+		rx = strtod((char*)attr, NULL);
+		xmlFree(attr);
+	}
+	attr = xmlTextReaderGetAttribute(reader, BAD_CAST "ry");
+	if(attr != NULL)
+	{
+		ry = strtod((char*)attr, NULL);
+		xmlFree(attr);
+	}
+	if(!isnan(cx) && !isnan(cy) && !isnan(rx) && !isnan(ry))
+	{
+		OpBloc *cb = (OpBloc*)OpCanvaBloc_new();
+		OpBloc_append_Op(ret, (Op*)cb);
+
+		Op *t = OpTranslate_new();
+
+		Op *g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, cx);
+		OpTranslate_set_x((OpTranslate*)t, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, cy);
+		OpTranslate_set_y((OpTranslate*)t, g);
+
+		OpBloc_append_Op(cb, t);
+
+		Op *sc = OpScale_new();
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, rx);
+		OpScale_set_x((OpScale*)sc, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, ry);
+		OpScale_set_y((OpScale*)sc, g);
+
+		OpBloc_append_Op(cb, sc);
+
+		Op *c = OpCircle_new();
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, 0);
+		OpCircle_set_x((OpCircle*)c, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, 0);
+		OpCircle_set_y((OpCircle*)c, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, 1.0);
+		OpCircle_set_r((OpCircle*)c, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, 0);
+		OpCircle_set_a1((OpCircle*)c, g);
+
+		g = OpGetValue_new();
+		OpGetValue_set_value((OpGetValue*)g, 2*M_PI);
+		OpCircle_set_a2((OpCircle*)c, g);
+
+		OpBloc_append_Op(cb, c);
 	}
 }
 
@@ -999,9 +1253,12 @@ void _OpParser_import_get_rgba_color(const char *color, const char *opacity, OpC
 	else
 	{
 		const char *rgb = getrgb(color);
-		r = (double)_OpParser_import_hex_to_int(rgb, 2);
-		g = (double)_OpParser_import_hex_to_int(rgb + 2, 2);
-		b = (double)_OpParser_import_hex_to_int(rgb + 4, 2);
+		if(rgb != NULL)
+		{
+			r = (double)_OpParser_import_hex_to_int(rgb, 2);
+			g = (double)_OpParser_import_hex_to_int(rgb + 2, 2);
+			b = (double)_OpParser_import_hex_to_int(rgb + 4, 2);
+		}
 	}
 	if(!isnan(r) && !isnan(g) && !isnan(b))
 	{
