@@ -221,6 +221,19 @@ int compute_add(OpVariable *res, OpVariable *v1, OpVariable *v2)
 			OpVariable_set_type(res, DOUBLE);
 			OpVariable_set_double(res, OpVariable_get_double(v1) + OpVariable_get_double(v2));
 		}
+		else if(t2 == DOUBLES)
+		{
+			size_t cmpt, nb;
+			double *vs, v;
+			vs = OpVariable_get_doubles(v2);
+			v = OpVariable_get_double(v1);
+			nb = OpVariable_get_number_elements(v2);
+			OpVariable_set_type(res, DOUBLES);
+			for(cmpt = 0; cmpt < nb; cmpt++)
+			{
+				OpVariable_append_double(res, vs[cmpt] + v);
+			}
+		}
 		else
 			ret = -1;
 	}
@@ -259,15 +272,31 @@ int compute_add(OpVariable *res, OpVariable *v1, OpVariable *v2)
 	{
 		if(t2 == STRING)
 		{
+			String s;
+			String_init(&s);
 			size_t nb1 = OpVariable_get_number_elements(v1) - 1;
 			size_t nb2 = OpVariable_get_number_elements(v2) - 1;
-			char *s = malloc(sizeof(char) * (nb1+nb2 + 1));
-			s[0] = '\0';
-			strcat(s, OpVariable_get_string(v1));
-			strcat(&s[nb1], OpVariable_get_string(v2));
+			String_append_data(&s, nb1, (const void*)OpVariable_get_string(v1));
+			String_append_data(&s, nb2, (const void*)OpVariable_get_string(v2));
 			OpVariable_set_type(res, STRING);
-			OpVariable_set_string(res, s);
-			free(s);
+			OpVariable_set_string(res, String_get_char_string(&s));
+			String_finalize(&s);
+		}
+		else if(t2 == STRINGS)
+		{
+			String s;
+			String_init(&s);
+			OpVariable_set_type(res, STRINGS);
+			size_t nb2 = OpVariable_get_number_elements(v2), cmpt;
+			const char *s1 = OpVariable_get_string(v1);
+			const char * const * s2 = OpVariable_get_strings(v2);
+			for(cmpt = 0; cmpt < nb2; cmpt++)
+			{
+				String_set_char_string(&s, s1);
+				String_append_char_string(&s, s2[cmpt]);
+				OpVariable_append_string(res, String_get_char_string(&s));
+			}
+			String_finalize(&s);
 		}
 		else
 			ret = -1;
@@ -276,16 +305,35 @@ int compute_add(OpVariable *res, OpVariable *v1, OpVariable *v2)
 	{
 		if(t2 == STRING)
 		{
-			OpVariable_copy(res, v1);
-			OpVariable_append_string(res, OpVariable_get_string(v2));
+			String s;
+			String_init(&s);
+			OpVariable_set_type(res, STRINGS);
+			size_t nb1 = OpVariable_get_number_elements(v1), cmpt;
+			const char *s2 = OpVariable_get_string(v2);
+			const char * const * s1 = OpVariable_get_strings(v1);
+			for(cmpt = 0; cmpt < nb1; cmpt++)
+			{
+				String_set_char_string(&s, s1[cmpt]);
+				String_append_char_string(&s, s2);
+				OpVariable_append_string(res, String_get_char_string(&s));
+			}
+			String_finalize(&s);
 		}
-		else if(t2 == STRING)
+		else if(t2 == STRINGS)
 		{
-			OpVariable_copy(res, v1);
-			size_t nb2 = OpVariable_get_number_elements(v2), cmpt;
-			const char * const * s = OpVariable_get_strings(v2);
-			for(cmpt = 0; cmpt < nb2; cmpt++)
-				OpVariable_append_string(res, s[cmpt]);
+			String s;
+			String_init(&s);
+			OpVariable_set_type(res, STRINGS);
+			size_t nb1 = OpVariable_get_number_elements(v1), cmpt;
+			const char * const * s2 = OpVariable_get_strings(v2);
+			const char * const * s1 = OpVariable_get_strings(v1);
+			for(cmpt = 0; cmpt < nb1; cmpt++)
+			{
+				String_set_char_string(&s, s1[cmpt]);
+				String_append_char_string(&s, s2[cmpt]);
+				OpVariable_append_string(res, String_get_char_string(&s));
+			}
+			String_finalize(&s);
 		}
 	}
 	else
@@ -301,7 +349,7 @@ int check_args_add(OpVariable *v1, OpVariable *v2)
 	{
 	case NONE : 	ret = -1;
 					break;
-	case DOUBLE :	if(t2 != DOUBLE)
+	case DOUBLE :	if(t2 != DOUBLE & t2 != DOUBLES)
 						ret = -1;
 					break;
 	case DOUBLES :	if(t2 != DOUBLE)
@@ -321,11 +369,25 @@ int check_args_add(OpVariable *v1, OpVariable *v2)
 						}
 					}
 					break;
-	case STRING :	if(t2 != STRING)
+	case STRING :	if(t2 != STRING && t2 != STRINGS)
 						ret = -1;
 					break;
-	case STRINGS :	if(t2 != STRING && t2 != STRINGS)
-						ret = -1;
+	case STRINGS :	if(t2 != STRING)
+					{
+						if(t2 == STRINGS)
+						{
+							if(OpVariable_get_number_elements(v1) != OpVariable_get_number_elements(v2))
+							{
+								fprintf(stderr, "Differents size of STRINGS : %zu <> %zu\n", OpVariable_get_number_elements(v1), OpVariable_get_number_elements(v2));
+								ret = -1;
+							}
+						}
+						else
+						{
+							fprintf(stderr, "Type 1 is %d, type 2 not : %d !\n", t1, t2);
+							ret = -1;
+						}
+					}
 					break;
 	}
 	return ret;
