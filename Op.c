@@ -2211,7 +2211,9 @@ int Op2_execute(Op2 *self, OpContext *ctx)
 			ret = ((OpIsaTwoOp*)((Op*)self)->isa)->check_args(&v1, &v2);
 		if(ret == 0)
 		{
-			ret = ((OpIsaTwoOp*)((Op*)self)->isa)->compute(&res, &v1, &v2);
+			String err_msg;
+			String_init(&err_msg);
+			ret = ((OpIsaTwoOp*)((Op*)self)->isa)->compute(&res, &v1, &v2, &err_msg);
 			if(ret == 0)
 			{
 				fprintf(stderr, "Op %p 2 operandes '%s'\n", self, ((Op*)self)->isa->name);
@@ -2227,9 +2229,12 @@ int Op2_execute(Op2 *self, OpContext *ctx)
 				String m;
 				String_init(&m);
 				String_append_printf(&m, "Error '%s' %p during compute", ((Op*)self)->isa->name, self);
+				if(String_get_length(&err_msg) > 0)
+					String_append_printf(&m, " : '%s'", String_get_char_string(&err_msg));
 				OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
 				String_finalize(&m);
 			}
+			String_finalize(&err_msg);
 		}
 		else
 		{
@@ -2247,7 +2252,7 @@ int Op2_execute(Op2 *self, OpContext *ctx)
 	return ret;
 }
 
-int compute_crochets(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_crochets(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	int ret = -1;
 	switch(OpVariable_get_type(v1))
@@ -2347,7 +2352,7 @@ Op *OpCrochets_new(void)
 	return Op_new(&OpCrochets_isa.super);
 }
 
-int compute_concat(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_concat(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	int ret = 0;
 	size_t cmpt, nb;
@@ -2452,7 +2457,7 @@ Op *OpConcat_new(void)
 	return Op_new(&OpConcat_isa.super);
 }
 
-int compute_and(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_and(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	double d1, d2;
 	bool b1, b2;
@@ -2496,7 +2501,7 @@ Op *OpAnd_new(void)
 	return Op_new(&OpAnd_isa.super);
 }
 
-int compute_or(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_or(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	double d1, d2;
 	bool b1, b2;
@@ -2540,7 +2545,7 @@ Op *OpOr_new(void)
 	return Op_new(&OpOr_isa.super);
 }
 
-int compute_xor(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_xor(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	double d1, d2;
 	bool b1, b2;
@@ -2656,7 +2661,9 @@ int Op1_execute(Op1 *self, OpContext *ctx)
 			ret = ((OpIsaOneOp*)((Op*)self)->isa)->check_arg(&v);
 		if(ret == 0)
 		{
-			ret = ((OpIsaOneOp*)((Op*)self)->isa)->compute(&res, &v);
+			String err_msg;
+			String_init(&err_msg);
+			ret = ((OpIsaOneOp*)((Op*)self)->isa)->compute(&res, &v, &err_msg);
 			if(ret == 0)
 			{
 				fprintf(stderr, "Op %p 1 operandes '%s'\n", self, ((Op*)self)->isa->name);
@@ -2670,9 +2677,12 @@ int Op1_execute(Op1 *self, OpContext *ctx)
 				String m;
 				String_init(&m);
 				String_append_printf(&m, "Error '%s' %p during compute", ((Op*)self)->isa->name, self);
+				if(String_get_length(&err_msg) > 0)
+					String_append_printf(&m, " : '%s'", String_get_char_string(&err_msg));
 				OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&m));
 				String_finalize(&m);
 			}
+			String_finalize(&err_msg);
 		}
 		else
 		{
@@ -2689,7 +2699,7 @@ int Op1_execute(Op1 *self, OpContext *ctx)
 	return ret;
 }
 
-int compute_not(OpVariable *res, OpVariable *v)
+int compute_not(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	switch(OpVariable_get_type(v))
 	{
@@ -2740,7 +2750,7 @@ Op *OpNot_new(void)
 	return Op_new(&OpNot_isa.super);
 }
 
-int compute_get_first(OpVariable *res, OpVariable *v)
+int compute_get_first(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	int ret = -1;
 	switch(OpVariable_get_type(v))
@@ -2819,7 +2829,7 @@ Op *OpGetFirst_new(void)
 	return Op_new(&OpGetFirst_isa.super);
 }
 
-int compute_get_last(OpVariable *res, OpVariable *v)
+int compute_get_last(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	int ret = -1;
 	switch(OpVariable_get_type(v))
@@ -2898,7 +2908,7 @@ Op *OpGetLast_new(void)
 	return Op_new(&OpGetLast_isa.super);
 }
 
-int compute_get_len(OpVariable *res, OpVariable *v)
+int compute_get_len(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	int ret = -1;
 	switch(OpVariable_get_type(v))
@@ -2954,7 +2964,7 @@ Op *OpGetLen_new(void)
 	return Op_new(&OpGetLen_isa.super);
 }
 
-int compute_get_size(OpVariable *res, OpVariable *v)
+int compute_get_size(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	int ret = -1;
 	switch(OpVariable_get_type(v))
@@ -3017,7 +3027,7 @@ Op *OpGetSize_new(void)
 	return Op_new(&OpGetSize_isa.super);
 }
 
-int compute_StrToDouble(OpVariable *res, OpVariable *v)
+int compute_StrToDouble(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	int ret = -1;
 	switch(OpVariable_get_type(v))
@@ -3085,7 +3095,7 @@ Op *OpStrToDouble_new(void)
 	return Op_new(&OpStrToDouble_isa.super);
 }
 
-int compute_DoubleToStr(OpVariable *res, OpVariable *v)
+int compute_DoubleToStr(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	int ret = -1;
 	switch(OpVariable_get_type(v))

@@ -30,7 +30,7 @@ Op *OpGetTimeInSecs_new(void)
 	return Op_new(&OpGetTimeInSecs_isa);
 }
 
-int compute_getgmttime(OpVariable *res, OpVariable *v)
+int compute_getgmttime(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	int ret = -1;
 	switch(OpVariable_get_type(v))
@@ -110,7 +110,7 @@ Op *OpGetGMTTime_new(void)
 	return Op_new(&OpGetGMTTime_isa.super);
 }
 
-int compute_getlocaltime(OpVariable *res, OpVariable *v)
+int compute_getlocaltime(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	int ret = -1;
 	switch(OpVariable_get_type(v))

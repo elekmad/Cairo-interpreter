@@ -210,7 +210,7 @@ Op *OpPhi_new(void)
 	return Op_new(&OpPhi_isa);
 }
 
-int compute_add(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_add(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	int ret = 0;
 	OpVarType t1 = OpVariable_get_type(v1), t2 = OpVariable_get_type(v2);
@@ -410,7 +410,7 @@ Op *OpAdd_new(void)
 	return Op_new(&OpAdd_isa.super);
 }
 
-int compute_del(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_del(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	int ret = 0;
 	OpVarType t1 = OpVariable_get_type(v1), t2 = OpVariable_get_type(v2);
@@ -519,7 +519,7 @@ Op *OpDel_new(void)
 	return Op_new(&OpDel_isa.super);
 }
 
-int compute_mult(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_mult(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	int ret = 0;
 	OpVarType t1 = OpVariable_get_type(v1), t2 = OpVariable_get_type(v2);
@@ -645,7 +645,7 @@ Op *OpDiv_new(void)
 	return Op_new(&OpDiv_isa.super);
 }
 
-int compute_div(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_div(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	int ret = 0;
 	OpVarType t1 = OpVariable_get_type(v1), t2 = OpVariable_get_type(v2);
@@ -659,7 +659,10 @@ int compute_div(OpVariable *res, OpVariable *v1, OpVariable *v2)
 			if(double_eq(d2, 0) == false)
 				OpVariable_set_double(res, d1 / d2);
 			else
+			{
+				String_append_char_string(err_msg, "Divide by Zero !");
 				ret = -1;
+			}
 		}
 		else if(t2 == DOUBLES)
 		{
@@ -675,6 +678,7 @@ int compute_div(OpVariable *res, OpVariable *v1, OpVariable *v2)
 					OpVariable_append_double(res, v / vs[cmpt]);
 				else
 				{
+					String_append_char_string(err_msg, "Divide by Zero !");
 					ret = -1;
 					break;
 				}
@@ -702,6 +706,7 @@ int compute_div(OpVariable *res, OpVariable *v1, OpVariable *v2)
 			}
 			else
 			{
+				String_append_char_string(err_msg, "Divide by Zero !");
 				ret = -1;
 			}
 		}
@@ -719,6 +724,7 @@ int compute_div(OpVariable *res, OpVariable *v1, OpVariable *v2)
 					OpVariable_append_double(res, vs1[cmpt] / vs2[cmpt]);
 				else
 				{
+					String_append_char_string(err_msg, "Divide by Zero !");
 					ret = -1;
 					break;
 				}
@@ -764,7 +770,7 @@ int check_args_div(OpVariable *v1, OpVariable *v2)
 
 
 
-int compute_equ(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_equ(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	int ret = 0;
 	bool eq = true;
@@ -831,7 +837,7 @@ Op *OpEqu_new(void)
 	return Op_new(&OpEqu_isa.super);
 }
 
-int compute_notequ(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_notequ(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	int ret = 0;
 	bool eq = true;
@@ -899,7 +905,7 @@ Op *OpNotEqu_new(void)
 	return Op_new(&OpNotEqu_isa.super);
 }
 
-int compute_inf(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_inf(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	if(OpVariable_get_type(v1) == DOUBLE)
 	{
@@ -948,7 +954,7 @@ Op *OpInf_new(void)
 	return Op_new(&OpInf_isa.super);
 }
 
-int compute_infequ(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_infequ(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	if(OpVariable_get_type(v1) == DOUBLE)
 	{
@@ -997,7 +1003,7 @@ Op *OpInfEqu_new(void)
 	return Op_new(&OpInfEqu_isa.super);
 }
 
-int compute_sup(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_sup(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	if(OpVariable_get_type(v1) == DOUBLE)
 	{
@@ -1046,7 +1052,7 @@ Op *OpSup_new(void)
 	return Op_new(&OpSup_isa.super);
 }
 
-int compute_supequ(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_supequ(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	if(OpVariable_get_type(v1) == DOUBLE)
 	{
@@ -1095,7 +1101,7 @@ Op *OpSupEqu_new(void)
 	return Op_new(&OpSupEqu_isa.super);
 }
 
-int compute_power(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_power(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	if(OpVariable_get_type(v1) == DOUBLE)
 	{
@@ -1140,7 +1146,7 @@ Op *OpPower_new(void)
 	return Op_new(&OpPower_isa.super);
 }
 
-int compute_modulo(OpVariable *res, OpVariable *v1, OpVariable *v2)
+int compute_modulo(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
 	if(OpVariable_get_type(v1) == DOUBLE)
 	{
@@ -1188,7 +1194,7 @@ Op *OpModulo_new(void)
 	return Op_new(&OpModulo_isa.super);
 }
 
-int compute_radians(OpVariable *res, OpVariable *v)
+int compute_radians(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	switch(OpVariable_get_type(v))
 	{
@@ -1241,7 +1247,7 @@ Op *OpRadians_new(void)
 	return Op_new(&OpRadians_isa.super);
 }
 
-int compute_degrees(OpVariable *res, OpVariable *v)
+int compute_degrees(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	switch(OpVariable_get_type(v))
 	{
@@ -1293,7 +1299,7 @@ Op *OpDegrees_new(void)
 	return Op_new(&OpDegrees_isa.super);
 }
 
-int compute_neg(OpVariable *res, OpVariable *v)
+int compute_neg(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	switch(OpVariable_get_type(v))
 	{
@@ -1345,7 +1351,7 @@ Op *OpNegValue_new(void)
 	return Op_new(&OpNegValue_isa.super);
 }
 
-int compute_floor(OpVariable *res, OpVariable *v)
+int compute_floor(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	switch(OpVariable_get_type(v))
 	{
@@ -1397,7 +1403,7 @@ Op *OpFloor_new(void)
 	return Op_new(&OpFloor_isa.super);
 }
 
-int compute_ceil(OpVariable *res, OpVariable *v)
+int compute_ceil(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	switch(OpVariable_get_type(v))
 	{
@@ -1449,7 +1455,7 @@ Op *OpCeil_new(void)
 	return Op_new(&OpCeil_isa.super);
 }
 
-int compute_cos(OpVariable *res, OpVariable *v)
+int compute_cos(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	switch(OpVariable_get_type(v))
 	{
@@ -1501,7 +1507,7 @@ Op *OpCos_new(void)
 	return Op_new(&OpCos_isa.super);
 }
 
-int compute_acos(OpVariable *res, OpVariable *v)
+int compute_acos(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	switch(OpVariable_get_type(v))
 	{
@@ -1553,7 +1559,7 @@ Op *OpAcos_new(void)
 	return Op_new(&OpAcos_isa.super);
 }
 
-int compute_sin(OpVariable *res, OpVariable *v)
+int compute_sin(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	switch(OpVariable_get_type(v))
 	{
@@ -1605,7 +1611,7 @@ Op *OpSin_new(void)
 	return Op_new(&OpSin_isa.super);
 }
 
-int compute_asin(OpVariable *res, OpVariable *v)
+int compute_asin(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	switch(OpVariable_get_type(v))
 	{
@@ -1657,7 +1663,7 @@ Op *OpAsin_new(void)
 	return Op_new(&OpAsin_isa.super);
 }
 
-int compute_tan(OpVariable *res, OpVariable *v)
+int compute_tan(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	switch(OpVariable_get_type(v))
 	{
@@ -1709,7 +1715,7 @@ Op *OpTan_new(void)
 	return Op_new(&OpTan_isa.super);
 }
 
-int compute_atan(OpVariable *res, OpVariable *v)
+int compute_atan(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	switch(OpVariable_get_type(v))
 	{
@@ -1761,7 +1767,7 @@ Op *OpAtan_new(void)
 	return Op_new(&OpAtan_isa.super);
 }
 
-int compute_sqrt(OpVariable *res, OpVariable *v)
+int compute_sqrt(OpVariable *res, OpVariable *v, String *err_msg)
 {
 	switch(OpVariable_get_type(v))
 	{

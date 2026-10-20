@@ -121,14 +121,14 @@ typedef struct op_isa_2_operandes
 {
 	OpIsa super;//Must be first
 	int (*check_args)(OpVariable*, OpVariable*);
-	int (*compute)(OpVariable *res, OpVariable *op1, OpVariable *op2);
+	int (*compute)(OpVariable *res, OpVariable *op1, OpVariable *op2, String *err_msg);
 }OpIsaTwoOp;
 
 typedef struct op_isa_1_operande
 {
 	OpIsa super;//Must be first
 	int (*check_arg)(OpVariable*);
-	int (*compute)(OpVariable *res, OpVariable *op);
+	int (*compute)(OpVariable *res, OpVariable *op, String *err_msg);
 }OpIsaOneOp;
 
 typedef struct op_isa_simple
