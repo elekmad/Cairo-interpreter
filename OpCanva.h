@@ -179,6 +179,62 @@ typedef struct op_canva_bloc
 	bool auto_draw;
 }OpCanvaBloc;
 
+typedef struct op_paint
+{
+	Op super;
+	Op *alpha;
+}OpPaint;
+
+typedef struct op_recall_pattern
+{
+	Op super;
+	Op *number;
+}OpRecallPattern;
+
+typedef struct op_new_linear
+{
+	Op super;
+	Op *x1;
+	Op *y1;
+	Op *x2;
+	Op *y2;
+	Op *params;
+
+}OpNewLinear;
+
+typedef struct op_new_radial
+{
+	Op super;
+	Op *x1;
+	Op *y1;
+	Op *r1;
+	Op *x2;
+	Op *y2;
+	Op *r2;
+	Op *params;
+
+}OpNewRadial;
+
+
+typedef struct op_add_stop_color
+{
+	Op super;
+	Op *pattern_num;
+	Op *offset;
+	Op *red;
+	Op *blue;
+	Op *green;
+	Op *alpha;
+	Op *params;
+
+}OpAddStopColor;
+
+typedef struct op_use_mask
+{
+	Op super;
+	Op *number;
+}OpUseMask;
+
 
 typedef struct op_font_selector
 {

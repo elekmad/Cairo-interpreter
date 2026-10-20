@@ -2756,6 +2756,863 @@ Op *OpCanvaBloc_new(void)
 	return Op_new(&OpCanvaBloc_isa);
 }
 
+OpIsa OpPushGroup_isa = {
+		.name="PushGroup",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpPushGroup_execute,
+		.check_args = NULL,
+};
+
+int OpPushGroup_execute(Op *self, OpCanvaContext *ctx)
+{
+	CanvaCtx_push_group(ctx->Canva);
+	return 0;
+}
+
+Op *OpPushGroup_new(void)
+{
+	return Op_new(&OpPushGroup_isa);
+}
+
+
+OpIsa OpPopGroup_isa = {
+		.name="PopGroup",
+		.size=sizeof(Op),
+		.init = (void(*)(Op*))Op_init,
+		.terminate = (void(*)(Op*))Op_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))NULL,//Pas de child
+		.execute = (int(*)(Op*, OpContext*))OpPopGroup_execute,
+		.check_args = NULL,
+};
+
+int OpPopGroup_execute(Op *self, OpCanvaContext *ctx)
+{
+	double val = CanvaCtx_pop_group(ctx->Canva);
+	OpContext_set_current_value_double((OpContext*)ctx, val);
+	return 0;
+}
+
+Op *OpPopGroup_new(void)
+{
+	return Op_new(&OpPopGroup_isa);
+}
+
+
+OpIsa OpNewLinear_isa = {
+		.name="NewLinear",
+		.size=sizeof(OpNewLinear),
+		.init = (void(*)(Op*))OpNewLinear_init,
+		.terminate = (void(*)(Op*))OpNewLinear_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpNewLinear_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpNewLinear_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpNewLinear_check_args,
+};
+
+void OpNewLinear_init(OpNewLinear *self)
+{
+	Op_init(&self->super);
+	self->x1 = NULL;
+	self->y1 = NULL;
+	self->x2 = NULL;
+	self->y2 = NULL;
+	self->params = NULL;
+}
+
+void OpNewLinear_terminate(OpNewLinear *self)
+{
+	Op_terminate(&self->super);
+	_OpNewLinear_set_x1(self, NULL);
+	_OpNewLinear_set_y1(self, NULL);
+	_OpNewLinear_set_x2(self, NULL);
+	_OpNewLinear_set_y2(self, NULL);
+	_OpNewLinear_set_params(self, NULL);
+}
+
+
+int OpNewLinear_check_args(OpNewLinear *self, OpCanvaContext *canvactx)
+{
+	if(self->params != NULL || (self->x1 != NULL && self->y1 != NULL && self->x2 != NULL && self->y2 != NULL))
+		return 0;
+	return -1;
+}
+
+int OpNewLinear_execute(OpNewLinear *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double x1 = NAN, y1 = NAN, x2 = NAN, y2 = NAN;
+	if(self->params != NULL)
+	{
+		double *d;
+		size_t size;
+		ret = Op_execute_get_doubles(self->params, (Op*)self, ctx, &d, &size, 4);
+		if(ret == 0)
+		{
+			x1=d[0];
+			y1=d[1];
+			x2=d[2];
+			y2=d[3];
+		}
+	}
+	else if(self->x1 != NULL)
+	{
+		ret = Op_execute_get_double(self->x1, (Op*)self, ctx, &x1);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->y1, (Op*)self, ctx, &y1);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->x2, (Op*)self, ctx, &x2);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->y2, (Op*)self, ctx, &y2);
+
+	}
+	if(ret == 0)
+	{
+		fprintf(stderr, "Op New Pattern Linear %f %f %f %f\n", x1, y1, x2, y2);
+		double num = CanvaCtx_new_linear_pattern(canvactx->Canva, x1, y1, x2, y2);
+		if(!isnan(num))
+			OpContext_set_current_value_double(ctx, num);
+	}
+	return ret;
+}
+
+void _OpNewLinear_set_x1(OpNewLinear *self, Op *v)
+{
+	OP_SET_OPERANDE(self, x1, v);
+}
+
+void _OpNewLinear_set_y1(OpNewLinear *self, Op *v)
+{
+	OP_SET_OPERANDE(self, y1, v);
+}
+
+void _OpNewLinear_set_x2(OpNewLinear *self, Op *v)
+{
+	OP_SET_OPERANDE(self, x2, v);
+}
+
+void _OpNewLinear_set_y2(OpNewLinear *self, Op *v)
+{
+	OP_SET_OPERANDE(self, y2, v);
+}
+
+void _OpNewLinear_set_params(OpNewLinear *self, Op *v)
+{
+	OP_SET_OPERANDE(self, params, v);
+}
+
+#define OPNEWLINEAR_X1 0
+#define OPNEWLINEAR_Y1 1
+#define OPNEWLINEAR_X2 2
+#define OPNEWLINEAR_Y2 3
+#define OPNEWLINEAR_PARAMS 4
+
+
+void OpNewLinear_set_x1(OpNewLinear *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPNEWLINEAR_X1);
+}
+
+void OpNewLinear_set_y1(OpNewLinear *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPNEWLINEAR_Y1);
+}
+
+void OpNewLinear_set_x2(OpNewLinear *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPNEWLINEAR_X2);
+}
+
+void OpNewLinear_set_y2(OpNewLinear *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPNEWLINEAR_Y2);
+}
+
+void OpNewLinear_set_params(OpNewLinear *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPNEWLINEAR_PARAMS);
+}
+
+int OpNewLinear_fix_operandes(OpNewLinear *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 4)
+	{
+		Op *x1, *y1, *x2, *y2, *params = NULL;
+		x1 = self->super.operandes[OPNEWLINEAR_X1];
+		y1 = self->super.operandes[OPNEWLINEAR_Y1];
+		x2 = self->super.operandes[OPNEWLINEAR_X2];
+		y2 = self->super.operandes[OPNEWLINEAR_Y2];
+		if(self->super.nb_ops >= 5)
+			params = self->super.operandes[OPNEWLINEAR_PARAMS];
+
+		if(x1 != NULL && y1 != NULL && x2 != NULL && y2 != NULL)
+		{
+			ret = 0;
+			_OpNewLinear_set_x1(self, x1);
+			_OpNewLinear_set_y1(self, y1);
+			_OpNewLinear_set_x2(self, x2);
+			_OpNewLinear_set_y2(self, y2);
+		}
+		else if(params != NULL)
+		{
+			ret = 0;
+			_OpNewLinear_set_params(self, params);
+		}
+	}
+	return ret;
+}
+
+Op *OpNewLinear_new(void)
+{
+	return Op_new(&OpNewLinear_isa);
+}
+
+OpIsa OpNewRadial_isa = {
+		.name="NewRadial",
+		.size=sizeof(OpNewRadial),
+		.init = (void(*)(Op*))OpNewRadial_init,
+		.terminate = (void(*)(Op*))OpNewRadial_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpNewRadial_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpNewRadial_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpNewRadial_check_args,
+};
+
+void OpNewRadial_init(OpNewRadial *self)
+{
+	Op_init(&self->super);
+	self->x1 = NULL;
+	self->y1 = NULL;
+	self->r1 = NULL;
+	self->x2 = NULL;
+	self->y2 = NULL;
+	self->r2 = NULL;
+	self->params = NULL;
+}
+
+void OpNewRadial_terminate(OpNewRadial *self)
+{
+	Op_terminate(&self->super);
+	_OpNewRadial_set_x1(self, NULL);
+	_OpNewRadial_set_y1(self, NULL);
+	_OpNewRadial_set_r1(self, NULL);
+	_OpNewRadial_set_x2(self, NULL);
+	_OpNewRadial_set_y2(self, NULL);
+	_OpNewRadial_set_r2(self, NULL);
+	_OpNewRadial_set_params(self, NULL);
+}
+
+
+int OpNewRadial_check_args(OpNewRadial *self, OpCanvaContext *canvactx)
+{
+	if(self->params != NULL || (self->x1 != NULL && self->y1 != NULL && self->r1 != NULL && self->x2 != NULL && self->y2 != NULL && self->r2 != NULL))
+		return 0;
+	return -1;
+}
+
+int OpNewRadial_execute(OpNewRadial *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double x1 = NAN, y1 = NAN, r1 = NAN, x2 = NAN, y2 = NAN, r2 = NAN;
+	if(self->params != NULL)
+	{
+		double *d;
+		size_t size;
+		ret = Op_execute_get_doubles(self->params, (Op*)self, ctx, &d, &size, 6);
+		if(ret == 0)
+		{
+			x1=d[0];
+			y1=d[1];
+			r1=d[2];
+			x2=d[3];
+			y2=d[4];
+			r2=d[5];
+		}
+	}
+	else if(self->x1 != NULL)
+	{
+		ret = Op_execute_get_double(self->x1, (Op*)self, ctx, &x1);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->y1, (Op*)self, ctx, &y1);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->r1, (Op*)self, ctx, &r1);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->x2, (Op*)self, ctx, &x2);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->y2, (Op*)self, ctx, &y2);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->r2, (Op*)self, ctx, &r2);
+
+	}
+	if(ret == 0)
+	{
+		fprintf(stderr, "Op New Pattern Radial %f %f %f %f %f %f\n", x1, y1, r1, x2, y2, r2);
+		double num = CanvaCtx_new_radial_pattern(canvactx->Canva, x1, y1, r1, x2, y2, r2);
+		if(!isnan(num))
+			OpContext_set_current_value_double(ctx, num);
+	}
+	return ret;
+}
+
+void _OpNewRadial_set_x1(OpNewRadial *self, Op *v)
+{
+	OP_SET_OPERANDE(self, x1, v);
+}
+
+void _OpNewRadial_set_y1(OpNewRadial *self, Op *v)
+{
+	OP_SET_OPERANDE(self, y1, v);
+}
+
+void _OpNewRadial_set_r1(OpNewRadial *self, Op *v)
+{
+	OP_SET_OPERANDE(self, r1, v);
+}
+
+void _OpNewRadial_set_x2(OpNewRadial *self, Op *v)
+{
+	OP_SET_OPERANDE(self, x2, v);
+}
+
+void _OpNewRadial_set_y2(OpNewRadial *self, Op *v)
+{
+	OP_SET_OPERANDE(self, y2, v);
+}
+
+void _OpNewRadial_set_r2(OpNewRadial *self, Op *v)
+{
+	OP_SET_OPERANDE(self, r2, v);
+}
+
+void _OpNewRadial_set_params(OpNewRadial *self, Op *v)
+{
+	OP_SET_OPERANDE(self, params, v);
+}
+
+#define OPNEWRADIAL_X1 0
+#define OPNEWRADIAL_Y1 1
+#define OPNEWRADIAL_R1 2
+#define OPNEWRADIAL_X2 3
+#define OPNEWRADIAL_Y2 4
+#define OPNEWRADIAL_R2 5
+#define OPNEWRADIAL_PARAMS 6
+
+
+void OpNewRadial_set_x1(OpNewRadial *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPNEWRADIAL_X1);
+}
+
+void OpNewRadial_set_y1(OpNewRadial *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPNEWRADIAL_Y1);
+}
+
+void OpNewRadial_set_r1(OpNewRadial *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPNEWRADIAL_R1);
+}
+
+void OpNewRadial_set_x2(OpNewRadial *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPNEWRADIAL_X2);
+}
+
+void OpNewRadial_set_y2(OpNewRadial *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPNEWRADIAL_Y2);
+}
+
+void OpNewRadial_set_r2(OpNewRadial *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPNEWRADIAL_R2);
+}
+
+void OpNewRadial_set_params(OpNewRadial *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPNEWRADIAL_PARAMS);
+}
+
+int OpNewRadial_fix_operandes(OpNewRadial *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 5)
+	{
+		Op *x1, *y1, *r1, *x2, *y2, *r2, *params = NULL;
+		x1 = self->super.operandes[OPNEWRADIAL_X1];
+		y1 = self->super.operandes[OPNEWRADIAL_Y1];
+		r1 = self->super.operandes[OPNEWRADIAL_R1];
+		x2 = self->super.operandes[OPNEWRADIAL_X2];
+		y2 = self->super.operandes[OPNEWRADIAL_Y2];
+		r2 = self->super.operandes[OPNEWRADIAL_R2];
+		if(self->super.nb_ops >= 6)
+			params = self->super.operandes[OPNEWRADIAL_PARAMS];
+
+		if(x1 != NULL && y1 != NULL && r1 != NULL && x2 != NULL && y2 != NULL && r2 != NULL)
+		{
+			ret = 0;
+			_OpNewRadial_set_x1(self, x1);
+			_OpNewRadial_set_y1(self, y1);
+			_OpNewRadial_set_r1(self, r1);
+			_OpNewRadial_set_x2(self, x2);
+			_OpNewRadial_set_y2(self, y2);
+			_OpNewRadial_set_r2(self, r2);
+		}
+		else if(params != NULL)
+		{
+			ret = 0;
+			_OpNewRadial_set_params(self, params);
+		}
+	}
+	return ret;
+}
+
+Op *OpNewRadial_new(void)
+{
+	return Op_new(&OpNewRadial_isa);
+}
+
+OpIsa OpAddStopColor_isa = {
+		.name="Color",
+		.size=sizeof(OpAddStopColor),
+		.init = (void(*)(Op*))OpAddStopColor_init,
+		.terminate = (void(*)(Op*))OpAddStopColor_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpAddStopColor_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpAddStopColor_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpAddStopColor_check_args,
+};
+
+void OpAddStopColor_init(OpAddStopColor *self)
+{
+	Op_init(&self->super);
+	self->pattern_num = NULL;
+	self->offset = NULL;
+	self->red = NULL;
+	self->blue = NULL;
+	self->green = NULL;
+	self->alpha = NULL;
+	self->params = NULL;
+}
+
+void OpAddStopColor_terminate(OpAddStopColor *self)
+{
+	Op_terminate(&self->super);
+	_OpAddStopColor_set_pattern_num(self, NULL);
+	_OpAddStopColor_set_offset(self, NULL);
+	_OpAddStopColor_set_red(self, NULL);
+	_OpAddStopColor_set_green(self, NULL);
+	_OpAddStopColor_set_blue(self, NULL);
+	_OpAddStopColor_set_alpha(self, NULL);
+	_OpAddStopColor_set_params(self, NULL);
+}
+
+int OpAddStopColor_check_args(OpAddStopColor *self, OpCanvaContext *canvactx)
+{
+	if(self->params != NULL || (self->pattern_num != NULL && self->offset != NULL && self->red != NULL && self->blue != NULL && self->green != NULL))
+		return 0;
+	return -1;
+}
+
+int OpAddStopColor_execute(OpAddStopColor *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double n = NAN, o = NAN, r = NAN, g = NAN, b = NAN, a = NAN;
+	if(self->params != NULL)
+	{
+		double *d;
+		size_t size;
+		ret = Op_execute_get_doubles(self->params, (Op*)self, ctx, &d, &size, 5);
+		if(ret == 0)
+		{
+			size_t i = 0;
+			n=d[i++];
+			o=d[i++];
+			r=d[i++];
+			g=d[i++];
+			b=d[i++];
+			if(size > 5)
+				a=d[i];
+		}
+	}
+	else if(self->offset != NULL)
+	{
+		ret = Op_execute_get_double(self->pattern_num, (Op*)self, ctx, &n);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->offset, (Op*)self, ctx, &o);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->red, (Op*)self, ctx, &r);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->green, (Op*)self, ctx, &g);
+		if(ret == 0)
+			ret = Op_execute_get_double(self->blue, (Op*)self, ctx, &b);
+		if(ret == 0 && self->alpha != NULL)
+			ret = Op_execute_get_double(self->alpha, (Op*)self, ctx, &a);
+
+	}
+	if(ret == 0)
+	{
+		String msg;
+		String_init(&msg);
+		fprintf(stderr, "Op Set Color %f, %f %f %f %f to pattern %f\n", o, r, g, b, a, n);
+		if(CanvaCtx_add_stop_rgba(canvactx->Canva, (size_t)n, o, r, g, b, a, &msg) == -1)
+		{
+			OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&msg));
+			ret = -1;
+		}
+		String_finalize(&msg);
+	}
+	return ret;
+}
+
+void _OpAddStopColor_set_pattern_num(OpAddStopColor *self, Op *v)
+{
+	OP_SET_OPERANDE(self, pattern_num, v);
+}
+
+void _OpAddStopColor_set_offset(OpAddStopColor *self, Op *v)
+{
+	OP_SET_OPERANDE(self, offset, v);
+}
+
+void _OpAddStopColor_set_red(OpAddStopColor *self, Op *r)
+{
+	OP_SET_OPERANDE(self, red, r);
+}
+
+void _OpAddStopColor_set_green(OpAddStopColor *self, Op *g)
+{
+	OP_SET_OPERANDE(self, green, g);
+}
+
+
+void _OpAddStopColor_set_blue(OpAddStopColor *self, Op *b)
+{
+	OP_SET_OPERANDE(self, blue, b);
+}
+
+
+void _OpAddStopColor_set_alpha(OpAddStopColor *self, Op *a)
+{
+	OP_SET_OPERANDE(self, alpha, a);
+}
+
+void _OpAddStopColor_set_params(OpAddStopColor *self, Op *p)
+{
+	OP_SET_OPERANDE(self, params, p);
+}
+
+#define OPADDSTOPCOLOR_PATTERN_NUM 0
+#define OPADDSTOPCOLOR_OFFSET 1
+#define OPADDSTOPCOLOR_RED 2
+#define OPADDSTOPCOLOR_GREEN 3
+#define OPADDSTOPCOLOR_BLUE 4
+#define OPADDSTOPCOLOR_ALPHA 5
+#define OPADDSTOPCOLOR_PARAMS 6
+
+void OpAddStopColor_set_pattern_num(OpAddStopColor *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPADDSTOPCOLOR_PATTERN_NUM);
+}
+
+void OpAddStopColor_set_offset(OpAddStopColor *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPADDSTOPCOLOR_OFFSET);
+}
+
+void OpAddStopColor_set_red(OpAddStopColor *self, Op *r)
+{
+	OP_ADD_OPERANDE(self, r, OPADDSTOPCOLOR_RED);
+}
+
+void OpAddStopColor_set_green(OpAddStopColor *self, Op *g)
+{
+	OP_ADD_OPERANDE(self, g, OPADDSTOPCOLOR_GREEN);
+}
+
+
+void OpAddStopColor_set_blue(OpAddStopColor *self, Op *b)
+{
+	OP_ADD_OPERANDE(self, b, OPADDSTOPCOLOR_BLUE);
+}
+
+
+void OpAddStopColor_set_alpha(OpAddStopColor *self, Op *a)
+{
+	OP_ADD_OPERANDE(self, a, OPADDSTOPCOLOR_ALPHA);
+}
+
+void OpAddStopColor_set_params(OpAddStopColor *self, Op *p)
+{
+	OP_ADD_OPERANDE(self, p, OPADDSTOPCOLOR_PARAMS);
+}
+
+int OpAddStopColor_fix_operandes(OpAddStopColor *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 6)
+	{
+		Op *n, *o, *r, *g, *b, *a = NULL, *params = NULL;
+		n = self->super.operandes[OPADDSTOPCOLOR_PATTERN_NUM];
+		o = self->super.operandes[OPADDSTOPCOLOR_OFFSET];
+		r = self->super.operandes[OPADDSTOPCOLOR_RED];
+		g = self->super.operandes[OPADDSTOPCOLOR_GREEN];
+		b = self->super.operandes[OPADDSTOPCOLOR_BLUE];
+		a = self->super.operandes[OPADDSTOPCOLOR_ALPHA];
+		if(self->super.nb_ops >= 7)
+			params = self->super.operandes[OPADDSTOPCOLOR_PARAMS];
+
+		if(n != NULL && o != NULL && r != NULL && g != NULL && b != NULL)
+		{
+			ret = 0;
+			_OpAddStopColor_set_pattern_num(self, n);
+			_OpAddStopColor_set_offset(self, o);
+			_OpAddStopColor_set_red(self, r);
+			_OpAddStopColor_set_green(self, g);
+			_OpAddStopColor_set_blue(self, b);
+			if(a != NULL)
+				_OpAddStopColor_set_alpha(self, a);
+		}
+		else if(params != NULL)
+		{
+			ret = 0;
+			_OpAddStopColor_set_params(self, params);
+		}
+	}
+	return ret;
+}
+
+Op *OpAddStopColor_new(void)
+{
+	return Op_new(&OpAddStopColor_isa);
+}
+
+OpIsa OpRecallPattern_isa = {
+		.name="RecallPattern",
+		.size=sizeof(OpRecallPattern),
+		.init = (void(*)(Op*))OpRecallPattern_init,
+		.terminate = (void(*)(Op*))OpRecallPattern_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpRecallPattern_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpRecallPattern_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpRecallPattern_check_args,
+};
+
+void OpRecallPattern_init(OpRecallPattern *self)
+{
+	Op_init(&self->super);
+	self->number = NULL;
+}
+
+void OpRecallPattern_terminate(OpRecallPattern *self)
+{
+	Op_terminate(&self->super);
+	_OpRecallPattern_set_number(self, NULL);
+}
+
+#define OPRECALLPATTERN_NUMBER 0
+
+void OpRecallPattern_set_number(OpRecallPattern *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPRECALLPATTERN_NUMBER);
+}
+
+void _OpRecallPattern_set_number(OpRecallPattern *self, Op *v)
+{
+	OP_SET_OPERANDE(self, number, v);
+}
+
+int OpRecallPattern_fix_operandes(OpRecallPattern *self, OpCanvaContext *canvactx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_OpRecallPattern_set_number(self, self->super.operandes[OPRECALLPATTERN_NUMBER]);
+	}
+	return ret;
+}
+
+int OpRecallPattern_check_args(OpRecallPattern *self, OpCanvaContext *canvactx)
+{
+	if(self->number != NULL)
+		return 0;
+	return -1;
+}
+
+int OpRecallPattern_execute(OpRecallPattern *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double n = NAN;
+	ret = Op_execute_get_double(self->number, (Op*)self, ctx, &n);
+
+	if(ret == 0)
+	{
+		fprintf(stderr, "Op Recall Pattern %f\n", n);
+		CanvaCtx_recall_pattern(canvactx->Canva, n);
+	}
+	return ret;
+}
+
+Op *OpRecallPattern_new(void)
+{
+	return Op_new(&OpRecallPattern_isa);
+}
+
+OpIsa OpUseMask_isa = {
+		.name="UseMask",
+		.size=sizeof(OpUseMask),
+		.init = (void(*)(Op*))OpUseMask_init,
+		.terminate = (void(*)(Op*))OpUseMask_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpUseMask_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpUseMask_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpUseMask_check_args,
+};
+
+void OpUseMask_init(OpUseMask *self)
+{
+	Op_init(&self->super);
+	self->number = NULL;
+}
+
+void OpUseMask_terminate(OpUseMask *self)
+{
+	Op_terminate(&self->super);
+	_OpUseMask_set_number(self, NULL);
+}
+
+#define OPUSEMAK_NUMBER 0
+
+void OpUseMask_set_number(OpUseMask *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPUSEMAK_NUMBER);
+}
+
+void _OpUseMask_set_number(OpUseMask *self, Op *v)
+{
+	OP_SET_OPERANDE(self, number, v);
+}
+
+int OpUseMask_fix_operandes(OpUseMask *self, OpCanvaContext *canvactx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_OpUseMask_set_number(self, self->super.operandes[OPUSEMAK_NUMBER]);
+	}
+	return ret;
+}
+
+int OpUseMask_check_args(OpUseMask *self, OpCanvaContext *canvactx)
+{
+	if(self->number != NULL)
+		return 0;
+	return -1;
+}
+
+int OpUseMask_execute(OpUseMask *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double n = NAN;
+	ret = Op_execute_get_double(self->number, (Op*)self, ctx, &n);
+
+	if(ret == 0)
+	{
+		if(!isnan(n))
+		{
+			String msg;
+			String_init(&msg);
+			fprintf(stderr, "Op Use Mask %f\n", n);
+			ret = CanvaCtx_use_mask(canvactx->Canva, (size_t)n, &msg);
+			if(ret != 0)
+				OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&msg));
+			String_finalize(&msg);
+		}
+		else
+		{
+			ret = -1;
+			OpContext_set_running_state(ctx, (Op*)self, Error, "Pattern number NAN");
+		}
+	}
+	return ret;
+}
+
+Op *OpUseMask_new(void)
+{
+	return Op_new(&OpUseMask_isa);
+}
+
+
+OpIsa OpPaint_isa = {
+		.name="Paint",
+		.size=sizeof(OpPaint),
+		.init = (void(*)(Op*))OpPaint_init,
+		.terminate = (void(*)(Op*))OpPaint_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpPaint_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpPaint_execute,
+		.check_args = (int(*)(Op*, OpContext*))NULL,
+};
+
+void OpPaint_init(OpPaint *self)
+{
+	Op_init(&self->super);
+	self->alpha = NULL;
+}
+
+void OpPaint_terminate(OpPaint *self)
+{
+	Op_terminate(&self->super);
+	_OpPaint_set_alpha(self, NULL);
+}
+
+#define OPPAINT_ALPHA 0
+
+void OpPaint_set_alpha(OpPaint *self, Op *v)
+{
+	OP_ADD_OPERANDE(self, v, OPPAINT_ALPHA);
+}
+
+void _OpPaint_set_alpha(OpPaint *self, Op *v)
+{
+	OP_SET_OPERANDE(self, alpha, v);
+}
+
+int OpPaint_fix_operandes(OpPaint *self, OpCanvaContext *canvactx)
+{
+	if(self->super.nb_ops >= 1)
+		_OpPaint_set_alpha(self, self->super.operandes[OPPAINT_ALPHA]);
+	return 0;//Can have child or not.
+}
+
+int OpPaint_execute(OpPaint *self, OpCanvaContext *canvactx)
+{
+	int ret = 0;
+	OpContext *ctx = (OpContext*)canvactx;
+	double a = NAN;
+	if(self->alpha != NULL)
+		ret = Op_execute_get_double(self->alpha, (Op*)self, ctx, &a);
+
+	if(ret == 0)
+	{
+		fprintf(stderr, "Op Paint with alpha %f\n", a);
+		if(!isnan(a))
+			CanvaCtx_paint_with_alpha(canvactx->Canva, a);
+		else
+			CanvaCtx_paint(canvactx->Canva);
+	}
+	return ret;
+}
+
+Op *OpPaint_new(void)
+{
+	return Op_new(&OpPaint_isa);
+}
+
 
 OpIsa OpFontSelector_isa = {
 		.name="FontSelector",

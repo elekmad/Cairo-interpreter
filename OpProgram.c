@@ -77,23 +77,34 @@ void OpProgram_free(OpProgram *self)
 	}
 }
 
-void OpProgram_fix_operandes(OpProgram *self)
+int OpProgram_fix_operandes(OpProgram *self)
 {
+	int ret = 0;
 	if(self->root != NULL)
-		Op_fix_operandes(self->root, self->ctx);
-	size_t i;
-	for(i = 0; i < self->number_of_modules; i++)
+		ret = Op_fix_operandes(self->root, self->ctx);
+	if(ret == 0)
 	{
-		OpModule *m = self->modules[i];
-		if(m != NULL)
-			OpModule_fix_operandes(m);
+		size_t i;
+		for(i = 0; i < self->number_of_modules; i++)
+		{
+			OpModule *m = self->modules[i];
+			if(m != NULL)
+			{
+				if((ret = OpModule_fix_operandes(m)) != 0)
+					break;
+			}
+		}
+		for(i = 0; i < self->number_of_imports; i++)
+		{
+			OpImport *p = self->imports[i];
+			if(p != NULL)
+			{
+				if((ret = OpImport_fix_operandes(p, self->ctx)) != 0)
+					break;
+			}
+		}
 	}
-	for(i = 0; i < self->number_of_imports; i++)
-	{
-		OpImport *p = self->imports[i];
-		if(p != NULL)
-			OpImport_fix_operandes(p, self->ctx);
-	}
+	return ret;
 }
 
 void OpProgram_set_Canva(OpProgram *self, CanvaCtx *c)
@@ -245,7 +256,6 @@ void OpParser_set_filename_prefix(OpParser *self, String *prefix)
 
 int OpParser_parse(OpParser *self, String *s)
 {
-	int ret = -1;
 	int fd = open("/tmp/foo", O_CREAT|O_TRUNC|O_WRONLY, 0666);
 	write(fd, String_get_char_string(s), String_get_length(s));
 	close(fd);
@@ -256,10 +266,16 @@ int OpParser_parse(OpParser *self, String *s)
 
     Op *root = NULL;
     if(yyparse(&root, self) == 0)
-    	ret = 0;
-    OpProgram_set_root(self->program, root);
-	OpProgram_fix_operandes(self->program);
-    return ret;
+    {
+		OpProgram_set_root(self->program, root);
+		if(OpProgram_fix_operandes(self->program) == 0)
+			return 0;
+		else
+			return -1;
+    }
+    else
+    	return -1;
+    return 0;
 }
 
 int OpParser_check_if_include_exist(OpParser *self, const char *name)

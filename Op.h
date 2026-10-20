@@ -110,11 +110,11 @@ typedef struct op
 
 #define OP_ADD_OPERANDE(self, op, num)\
 {\
-	typeof(self) _self = (self);\
+	Op *_self = (Op*)(self);\
 	typeof(op) _op = (op);\
 	typeof(num) _num = (num);\
-	Op_set_nb_ops(&_self->super, _num + 1);\
-	_self->super.operandes[_num] = _op;\
+	Op_set_nb_ops(_self, _num + 1);\
+	_self->operandes[_num] = _op;\
 }
 
 typedef struct op_isa_2_operandes

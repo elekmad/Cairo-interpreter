@@ -72,6 +72,14 @@ Op *root;
 %token GETLINEWIDTH
 %token FILL
 %token FILLPRESERVE
+%token PAINT
+%token PUSHGROUP
+%token POPGROUP
+%token USEPATTERN
+%token NEWLINEAR
+%token NEWRADIAL
+%token ADDSTOP
+%token MASK
 %token CLIP
 %token CLIPPRESERVE
 %token RESETCLIP
@@ -867,6 +875,40 @@ statement:
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       
+    | ADDSTOP '(' expression ','
+                 expression ','
+                 expression ','
+                 expression ','
+                 expression ','
+                 expression ')' ';'
+      {
+      	OpAddStopColor *op = (OpAddStopColor*)OpAddStopColor_new();
+      	$$ = (Op*)op;
+		OpAddStopColor_set_pattern_num(op, $3);
+		OpAddStopColor_set_offset(op, $5);
+      	OpAddStopColor_set_red(op, $7);
+      	OpAddStopColor_set_green(op, $9);
+      	OpAddStopColor_set_blue(op, $11);
+      	OpAddStopColor_set_alpha(op, $13);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+    | ADDSTOP '(' expression ')' ';'
+      {
+      	OpAddStopColor *op = (OpAddStopColor*)OpAddStopColor_new();
+      	$$ = (Op*)op;
+		OpAddStopColor_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+    | MASK '(' expression ')' ';'
+      {
+      	OpUseMask *op = (OpUseMask*)OpUseMask_new();
+      	$$ = (Op*)op;
+		OpUseMask_set_number(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
       | COLOR '(' expression ','
                  expression ','
                  expression ','
@@ -1332,6 +1374,32 @@ statement:
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
       }
       
+      | PAINT '(' ')' ';'
+      {
+      	$$ = OpPaint_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | PAINT '(' expression ')' ';'
+      {
+      	$$ = OpPaint_new();
+      	OpPaint_set_alpha((OpPaint*)$$, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+      | PUSHGROUP '(' ')' ';'
+      {
+      	$$ = OpPushGroup_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      	| USEPATTERN '(' expression ')' ';'
+      {
+		OpRecallPattern *op = (OpRecallPattern*)OpRecallPattern_new();
+      	$$ = (Op*)op;
+		OpRecallPattern_set_number(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      
       | SAVE '(' ')' ';'
       {
       	$$ = OpSave_new();
@@ -1407,6 +1475,60 @@ expression:
       	$$ = (Op*)op;
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
 	  }
+      
+      | POPGROUP '(' ')'
+      {
+      	$$ = OpPopGroup_new();
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+    | NEWLINEAR '(' expression ','
+                 expression ','
+                 expression ','
+                 expression ')'
+      {
+      	OpNewLinear *op = (OpNewLinear*)OpNewLinear_new();
+      	$$ = (Op*)op;
+		OpNewLinear_set_x1(op, $3);
+      	OpNewLinear_set_y1(op, $5);
+      	OpNewLinear_set_x2(op, $7);
+      	OpNewLinear_set_y2(op, $9);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+    | NEWLINEAR '(' expression ')'
+      {
+      	OpNewLinear *op = (OpNewLinear*)OpNewLinear_new();
+      	$$ = (Op*)op;
+		OpNewLinear_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+    | NEWRADIAL '(' expression ','
+                 expression ','
+                 expression ','
+                 expression ','
+                 expression ','
+                 expression ')'
+      {
+      	OpNewRadial *op = (OpNewRadial*)OpNewRadial_new();
+      	$$ = (Op*)op;
+		OpNewRadial_set_x1(op, $3);
+      	OpNewRadial_set_y1(op, $5);
+      	OpNewRadial_set_r1(op, $7);
+      	OpNewRadial_set_x2(op, $9);
+      	OpNewRadial_set_y2(op, $11);
+      	OpNewRadial_set_r2(op, $13);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      
+    | NEWRADIAL '(' expression ')'
+      {
+      	OpNewRadial *op = (OpNewRadial*)OpNewRadial_new();
+      	$$ = (Op*)op;
+		OpNewRadial_set_params(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
       
       | TEXTCONTENT
       {

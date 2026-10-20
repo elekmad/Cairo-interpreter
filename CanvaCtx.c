@@ -36,7 +36,8 @@ void _CanvaCtx_init(CanvaCtx *self)
 	String_init(&self->output_buffer);
 
 	self->surface = NULL;
-	self->pat = NULL;
+	self->patterns = NULL;
+	self->nb_patterns = 0;
 	self->text_color_is_set = false;
 	CanvaCtx_set_text_color(self, 0, 0, 0, 255);
 	self->cr = NULL;
@@ -128,6 +129,15 @@ void CanvaCtx_terminate(CanvaCtx *self)
     	cairo_destroy(self->cr);
     if(self->surface != NULL)
     	cairo_surface_destroy(self->surface);
+    if(self->nb_patterns != 0)
+    {
+    	size_t cmpt;
+    	for(cmpt = 0; cmpt < self->nb_patterns; cmpt++)
+    	{
+    		if(self->patterns[cmpt] != NULL)
+    			cairo_pattern_destroy(self->patterns[cmpt]);
+    	}
+    }
 }
 
 void CanvaCtx_set_default_stroke_color(CanvaCtx *self, unsigned char red, unsigned char green, unsigned char blue, unsigned char alpha)
@@ -302,29 +312,125 @@ void CanvaCtx_fill_preserve(CanvaCtx *self)
 
 void CanvaCtx_paint(CanvaCtx *self)
 {
-	cairo_pattern_t *pat = cairo_get_source(self->cr);
-	double r, g, b, a;
-	cairo_pattern_get_rgba(pat, &r, &g, &b, &a);
-	fprintf(stderr, "colors at paint %f %f %f %f\n", r, g, b, a);
 	fprintf(stderr, "Cairo paint %p\n", self->cr);
 	cairo_paint(self->cr);
 	self->color_set_up = false;
 }
 
+void CanvaCtx_paint_with_alpha(CanvaCtx *self, double a)
+{
+	fprintf(stderr, "Cairo paint %p with alpha %f\n", self->cr, a);
+	cairo_paint_with_alpha(self->cr, a);
+	self->color_set_up = false;
+}
+
+void CanvaCtx_push_group(CanvaCtx *self)
+{
+	fprintf(stderr, "Cairo push group %p\n", self->cr);
+	cairo_push_group(self->cr);
+}
+
+double CanvaCtx_pop_group(CanvaCtx *self)
+{
+	fprintf(stderr, "Cairo pop group to source %p\n", self->cr);
+	cairo_pattern_t *p = cairo_pop_group(self->cr);
+	return CanvaCtx_add_pattern(self, p);
+}
+
+double CanvaCtx_add_pattern(CanvaCtx *self, cairo_pattern_t *p)
+{
+	size_t num = (size_t)self->nb_patterns;
+	cairo_pattern_reference(p);
+	self->nb_patterns++;
+	self->patterns = realloc(self->patterns, sizeof(cairo_pattern_t*) * self->nb_patterns);
+	self->patterns[num] = p;
+	return (double)num;
+}
+
+void CanvaCtx_recall_pattern(CanvaCtx *self, double n)
+{
+	if(n > self->nb_patterns)
+		return;
+	cairo_pattern_t *p = self->patterns[(size_t)n];
+	if(p != NULL)
+	{
+		fprintf(stderr, "Cairo %p Recall pattern %f => %p\n", self->cr, n, p);
+		cairo_set_source(self->cr, p);
+	}
+	else
+		fprintf(stderr, "Recall pattern %f is null\n", n);
+}
+
+double CanvaCtx_new_linear_pattern(CanvaCtx *self, double x1, double y1, double x2, double y2)
+{
+	cairo_pattern_t *p = cairo_pattern_create_linear(x1, y1, x2, y2);
+	fprintf(stderr, "Cairo create linear pattern %f %f %f %f : %p\n", x1, y1, x2, y2, p);
+	return CanvaCtx_add_pattern(self, p);
+}
+
+double CanvaCtx_new_radial_pattern(CanvaCtx *self, double x1, double y1, double r1, double x2, double y2, double r2)
+{
+	cairo_pattern_t *p = cairo_pattern_create_radial(x1, y1, r1, x2, y2, r2);
+	fprintf(stderr, "Cairo create radial pattern %f %f %f %f %f %f : %p\n", x1, y1, r1, x2, y2, r2, p);
+	return CanvaCtx_add_pattern(self, p);
+}
+
+int CanvaCtx_add_stop_rgba(CanvaCtx *self, size_t p, double o, double r, double g, double b, double a, String *err_msg)
+{
+	if(p >= self->nb_patterns)
+	{
+		String_append_printf(err_msg, "Adding Stop pattern %zu do not exist", p);
+		return -1;
+	}
+	cairo_pattern_t *pattern = self->patterns[p];
+	if(pattern == NULL)
+	{
+		String_append_printf(err_msg, "Adding Stop pattern %zu do not exist", p);
+		return -1;
+	}
+	cairo_pattern_type_t type = cairo_pattern_get_type(pattern);
+	if(type != CAIRO_PATTERN_TYPE_LINEAR && type != CAIRO_PATTERN_TYPE_RADIAL)
+	{
+		String_append_char_string(err_msg, "Adding Stop color to a pattern not linear or radial type");
+		return -1;
+	}
+	if(!isnan(a))
+		cairo_pattern_add_color_stop_rgba(pattern, o, r, g, b, a);
+	else
+		cairo_pattern_add_color_stop_rgb(pattern, o, r, g, b);
+
+	fprintf(stderr, "Cairo %p add stop color {%f,%f,%f,%f,%f} to pattern %p\n", self->cr, o, r, g, b, a, pattern);
+	return 0;
+}
+
+int CanvaCtx_use_mask(CanvaCtx *self, size_t p, String *err_msg)
+{
+	if(p >= self->nb_patterns)
+	{
+		String_append_printf(err_msg, "Use of Mask with non existant pattern %zu", p);
+		return -1;
+	}
+	cairo_pattern_t *pattern = self->patterns[p];
+	if(pattern == NULL)
+	{
+		String_append_printf(err_msg, "Use of Mask with non existant pattern %zu", p);
+		return -1;
+	}
+	fprintf(stderr, "Cairo %p use pattern %p as mask\n", self->cr, pattern);
+	cairo_mask(self->cr, pattern);
+	return 0;
+}
+
 void CanvaCtx_save_source(CanvaCtx *self)
 {
-	if(self->pat != NULL)
-		cairo_pattern_destroy(self->pat);
-	self->pat = cairo_pattern_reference(cairo_get_source(self->cr));
+	fprintf(stderr, "Cairo save %p\n", self->cr);
+	cairo_save(self->cr);
 }
 
 void CanvaCtx_restore_source(CanvaCtx *self)
 {
-	if(self->pat == NULL)
-		return;
-	cairo_set_source(self->cr, self->pat);
-	cairo_pattern_destroy(self->pat);
-	self->pat = NULL;
+	fprintf(stderr, "Cairo restore %p\n", self->cr);
+	cairo_restore(self->cr);
 }
 
 void CanvaCtx_rotate(CanvaCtx *self, double a)

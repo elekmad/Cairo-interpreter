@@ -725,6 +725,7 @@ void Op_set_nb_ops(Op *self, size_t nb)
 int Op_fix_operandes(Op *self, OpContext *ctx)
 {
 	int ret = 0;
+	fprintf(stderr, "Fix operandes of %p\n", self);
 	if(self->isa->fix_operandes != NULL)
 		ret = self->isa->fix_operandes(self, ctx);
 	if(ret == 0)
@@ -737,10 +738,22 @@ int Op_fix_operandes(Op *self, OpContext *ctx)
 			{
 				ret = Op_fix_operandes(o, ctx);
 				if(ret != 0)
+				{
+					fprintf(stderr, "Fix operandes of %p gave -1\n", o);
 					break;
+				}
 			}
 		}
 	}
+	else
+	{
+		String msg;
+		String_init(&msg);
+		String_append_printf(&msg, "Error during fixing operandes of %s", self->isa->name);
+		OpContext_set_running_state(ctx, self, ParseError, String_get_char_string(&msg));
+		String_finalize(&msg);
+	}
+	fprintf(stderr, "Fin fix operandes of %p with %d\n", self, ret);
 	return ret;
 }
 

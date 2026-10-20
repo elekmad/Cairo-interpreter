@@ -68,6 +68,15 @@ int yycolumn = 1;
 (?i:"getlinewidth")	{ return GETLINEWIDTH; }
 (?i:"fill")			{ return FILL; }
 (?i:"fillpreserve")	{ return FILLPRESERVE; }
+(?i:"paint")			{ return PAINT; }
+(?i:"pushgroup")		{ return PUSHGROUP; }
+(?i:"popgroup")			{ return POPGROUP; }
+(?i:"usegroup")			{ return USEPATTERN; }
+(?i:"usepattern")			{ return USEPATTERN; }
+(?i:"newlinear")		{ return NEWLINEAR; }
+(?i:"newradial")		{ return NEWRADIAL; }
+(?i:"addstop")		{ return ADDSTOP; }
+(?i:"mask")		{ return MASK; }
 (?i:"rotate")		{ return ROTATE; }
 (?i:"translate")	{ return TRANSLATE; }
 (?i:"moveto")		{ return MOVETO; }

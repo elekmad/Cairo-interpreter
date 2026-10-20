@@ -70,7 +70,8 @@ typedef struct {
     String output_buffer;
 
     cairo_surface_t *surface;
-    cairo_pattern_t *pat;
+    cairo_pattern_t **patterns;
+    size_t nb_patterns;
     cairo_t *cr;
     double default_line_with;
     double default_stroke_color[4];

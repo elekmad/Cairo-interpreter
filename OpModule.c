@@ -102,9 +102,9 @@ OpCanvaBloc *OpModule_get_root(OpModule *self)
 	return self->root;
 }
 
-void OpModule_fix_operandes(OpModule *self)
+int OpModule_fix_operandes(OpModule *self)
 {
-	Op_fix_operandes((Op*)self->root, (OpContext*)self->ctx);
+	return Op_fix_operandes((Op*)self->root, (OpContext*)self->ctx);
 }
 
 void OpModule_set_name(OpModule *self, const char *name)
