@@ -494,8 +494,7 @@ int check_args_del(OpVariable *v1, OpVariable *v2)
 							ret = -1;
 					}
 					break;
-	case STRING :	if(t2 != STRING)
-						ret = -1;
+	case STRING :	ret = -1;
 					break;
 	case STRINGS :	ret = -1;
 					break;
@@ -604,8 +603,7 @@ int check_args_mult(OpVariable *v1, OpVariable *v2)
 							ret = -1;
 					}
 					break;
-	case STRING :	if(t2 != STRING)
-						ret = -1;
+	case STRING :	ret = -1;
 					break;
 	case STRINGS :	ret = -1;
 					break;
@@ -656,11 +654,36 @@ int compute_div(OpVariable *res, OpVariable *v1, OpVariable *v2)
 		if(t2 == DOUBLE)
 		{
 			OpVariable_set_type(res, DOUBLE);
-			OpVariable_set_double(res, OpVariable_get_double(v1) / OpVariable_get_double(v2));
+			double d1 = OpVariable_get_double(v1);
+			double d2 = OpVariable_get_double(v2);
+			if(double_eq(d2, 0) == false)
+				OpVariable_set_double(res, d1 / d2);
+			else
+				ret = -1;
+		}
+		else if(t2 == DOUBLES)
+		{
+			size_t cmpt, nb;
+			double *vs, v;
+			v = OpVariable_get_double(v1);
+			vs = OpVariable_get_doubles(v2);
+			nb = OpVariable_get_number_elements(v2);
+			OpVariable_set_type(res, DOUBLES);
+			for(cmpt = 0; cmpt < nb; cmpt++)
+			{
+				if(double_eq(vs[cmpt], 0) == false)
+					OpVariable_append_double(res, v / vs[cmpt]);
+				else
+				{
+					ret = -1;
+					break;
+				}
+			}
 		}
 		else
 			ret = -1;
-	} else if (t1 == DOUBLES)
+	}
+	else if (t1 == DOUBLES)
 	{
 		if(t2 == DOUBLE)
 		{
@@ -668,11 +691,18 @@ int compute_div(OpVariable *res, OpVariable *v1, OpVariable *v2)
 			double *vs, v;
 			vs = OpVariable_get_doubles(v1);
 			v = OpVariable_get_double(v2);
-			nb = OpVariable_get_number_elements(v1);
-			OpVariable_set_type(res, DOUBLES);
-			for(cmpt = 0; cmpt < nb; cmpt++)
+			if(double_eq(v, 0) == false)
 			{
-				OpVariable_append_double(res, vs[cmpt] / v);
+				nb = OpVariable_get_number_elements(v1);
+				OpVariable_set_type(res, DOUBLES);
+				for(cmpt = 0; cmpt < nb; cmpt++)
+				{
+					OpVariable_append_double(res, vs[cmpt] / v);
+				}
+			}
+			else
+			{
+				ret = -1;
 			}
 		}
 		else if(t2 == DOUBLES)
@@ -685,7 +715,13 @@ int compute_div(OpVariable *res, OpVariable *v1, OpVariable *v2)
 			OpVariable_set_type(res, DOUBLES);
 			for(cmpt = 0; cmpt < nb; cmpt++)
 			{
-				OpVariable_append_double(res, vs1[cmpt] / vs2[cmpt]);
+				if(double_eq(vs2[cmpt], 0) == false)
+					OpVariable_append_double(res, vs1[cmpt] / vs2[cmpt]);
+				else
+				{
+					ret = -1;
+					break;
+				}
 			}
 		}
 		else
@@ -718,8 +754,7 @@ int check_args_div(OpVariable *v1, OpVariable *v2)
 							ret = -1;
 					}
 					break;
-	case STRING :	if(t2 != STRING)
-						ret = -1;
+	case STRING :	ret = -1;
 					break;
 	case STRINGS :	ret = -1;
 					break;

@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="100%" height="100%" style="background-color: #f8f9fa; font-family: system-ui, sans-serif;">
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e5e7eb" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <!-- Fond avec grille -->
+  <rect width="100%" height="100%" fill="url(#grid)" />
+
+  <!-- Titre principal -->
+  <text x="450" y="45" font-size="24" font-weight="bold" text-anchor="middle" fill="#1f2937">Test pur des Transformations SVG</text>
+
+  <!-- 1. ORIGINE / REPERE (0,0) -->
+  <g transform="translate(100, 120)">
+    <text x="0" y="-15" font-size="14" font-weight="bold" fill="#4b5563">1. État initial (0,0)</text>
+    <line x1="-10" y1="0" x2="140" y2="0" stroke="#9ca3af" stroke-dasharray="3,3" />
+    <line x1="0" y1="-10" x2="0" y2="70" stroke="#9ca3af" stroke-dasharray="3,3" />
+
+    <g>
+      <rect x="0" y="0" width="100" height="60" rx="6" fill="#4f46e5" opacity="0.9" />
+      <polygon points="100,15 125,30 100,45" fill="#4f46e5" opacity="0.9" />
+      <circle cx="0" cy="0" r="4" fill="#ef4444" />
+      <text x="12" y="35" font-size="14" fill="#ffffff" font-weight="bold">ORIGINE</text>
+    </g>
+  </g>
+
+  <!-- 2. TRANSLATE -->
+  <g transform="translate(480, 120)">
+    <text x="0" y="-15" font-size="14" font-weight="bold" fill="#4b5563">2. translate(40, 30)</text>
+    <line x1="-10" y1="0" x2="140" y2="0" stroke="#9ca3af" stroke-dasharray="3,3" />
+    <line x1="0" y1="-10" x2="0" y2="70" stroke="#9ca3af" stroke-dasharray="3,3" />
+
+    <g transform="translate(40, 30)">
+      <rect x="0" y="0" width="100" height="60" rx="6" fill="#4f46e5" opacity="0.9" />
+      <polygon points="100,15 125,30 100,45" fill="#4f46e5" opacity="0.9" />
+      <circle cx="0" cy="0" r="4" fill="#ef4444" />
+      <text x="12" y="35" font-size="14" fill="#ffffff" font-weight="bold">ORIGINE</text>
+    </g>
+  </g>
+
+  <!-- 3. SCALE -->
+  <g transform="translate(100, 300)">
+    <text x="0" y="-15" font-size="14" font-weight="bold" fill="#4b5563">3. scale(1.4, 0.6)</text>
+    <line x1="-10" y1="0" x2="160" y2="0" stroke="#9ca3af" stroke-dasharray="3,3" />
+    <line x1="0" y1="-10" x2="0" y2="70" stroke="#9ca3af" stroke-dasharray="3,3" />
+
+    <g transform="scale(1.4, 0.6)">
+      <rect x="0" y="0" width="100" height="60" rx="6" fill="#4f46e5" opacity="0.9" />
+      <polygon points="100,15 125,30 100,45" fill="#4f46e5" opacity="0.9" />
+      <circle cx="0" cy="0" r="4" fill="#ef4444" />
+      <text x="12" y="35" font-size="14" fill="#ffffff" font-weight="bold">ORIGINE</text>
+    </g>
+  </g>
+
+  <!-- 4. ROTATE -->
+  <g transform="translate(480, 300)">
+    <text x="0" y="-15" font-size="14" font-weight="bold" fill="#4b5563">4. rotate(30) autour de (0,0)</text>
+    <line x1="-10" y1="0" x2="140" y2="0" stroke="#9ca3af" stroke-dasharray="3,3" />
+    <line x1="0" y1="-10" x2="0" y2="70" stroke="#9ca3af" stroke-dasharray="3,3" />
+
+    <g transform="rotate(30)">
+      <rect x="0" y="0" width="100" height="60" rx="6" fill="#4f46e5" opacity="0.9" />
+      <polygon points="100,15 125,30 100,45" fill="#4f46e5" opacity="0.9" />
+      <circle cx="0" cy="0" r="4" fill="#ef4444" />
+      <text x="12" y="35" font-size="14" fill="#ffffff" font-weight="bold">ORIGINE</text>
+    </g>
+  </g>
+
+  <!-- 5. SKEW X & Y -->
+  <g transform="translate(100, 480)">
+    <text x="0" y="-15" font-size="14" font-weight="bold" fill="#4b5563">5. skewX(20) (violet) &amp; skewY(15) (rose)</text>
+    <line x1="-10" y1="0" x2="160" y2="0" stroke="#9ca3af" stroke-dasharray="3,3" />
+    <line x1="0" y1="-10" x2="0" y2="70" stroke="#9ca3af" stroke-dasharray="3,3" />
+
+    <g transform="skewX(20)">
+      <rect x="0" y="0" width="100" height="60" rx="6" fill="#4f46e5" opacity="0.9" />
+      <polygon points="100,15 125,30 100,45" fill="#4f46e5" opacity="0.9" />
+      <circle cx="0" cy="0" r="4" fill="#ef4444" />
+      <text x="12" y="35" font-size="14" fill="#ffffff" font-weight="bold">ORIGINE</text>
+    </g>
+
+    <g transform="skewY(15)">
+      <rect x="0" y="0" width="100" height="60" rx="6" fill="#4f46e5" opacity="0.9" />
+      <polygon points="100,15 125,30 100,45" fill="#4f46e5" opacity="0.9" />
+      <circle cx="0" cy="0" r="4" fill="#ef4444" />
+      <text x="12" y="35" font-size="14" fill="#ffffff" font-weight="bold">ORIGINE</text>
+    </g>
+  </g>
+
+  <!-- 6. MATRIX -->
+  <g transform="translate(480, 480)">
+    <text x="0" y="-15" font-size="14" font-weight="bold" fill="#4b5563">6. matrix(1, 0.3, -0.3, 1, 20, 10)</text>
+    <line x1="-10" y1="0" x2="140" y2="0" stroke="#9ca3af" stroke-dasharray="3,3" />
+    <line x1="0" y1="-10" x2="0" y2="70" stroke="#9ca3af" stroke-dasharray="3,3" />
+
+    <g transform="matrix(1, 0.3, -0.3, 1, 20, 10)">
+      <rect x="0" y="0" width="100" height="60" rx="6" fill="#4f46e5" opacity="0.9" />
+      <polygon points="100,15 125,30 100,45" fill="#4f46e5" opacity="0.9" />
+      <circle cx="0" cy="0" r="4" fill="#ef4444" />
+      <text x="12" y="35" font-size="14" fill="#ffffff" font-weight="bold">ORIGINE</text>
+    </g>
+  </g>
+</svg>

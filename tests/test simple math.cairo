@@ -1,0 +1,16 @@
+message("add 1", 10 + 1);
+message("add 2", 10 + [1, 2]);
+message("add 3", [1, 2] + 10);
+message("add 4", [10, 11] + [1, 2]);
+message("sub 1", 10 - 1);
+message("sub 2", 10 - [1, 2]);
+message("sub 3", [1, 2] - 10);
+message("sub 4", [10, 11] - [1, 2]);
+message("mult 1", 10 * 2);
+message("mult 2", 10 * [1, 2]);
+message("mult 3", [1, 2] * 10);
+message("mult 4", [1, 2] * [10, 11]);
+message("div 1", 10 / 2);
+message("div 2", 10 / [1, 2]);
+message("div 3", [1, 2] / 10);
+message("div 4", [1, 2] / [10, 100]);
