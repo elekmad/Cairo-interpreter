@@ -2,6 +2,8 @@ Petit interpeteur au dessus de la lib cairo.
 
 Nécessite la lib cairo dev, la lib sdl2 dev si compilé avec sdl2, ainsi que flex et bison, uthash, et b64 pour le png via serveur
 
+https://github.com/rxi/log.c.git est utilisé pour les logs
+
 sudo apt install build-essential cmake bison flex python3 libcairo2-dev libxml2-dev libsdl2-dev libb64-dev uthash-dev
 
 Option NOSDL : désative la prise en charge de SDL2 pour la sortie graphique. Fonctionne alors 100% bash, utile poru le CGI.
