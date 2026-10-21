@@ -17,6 +17,7 @@
 #include <OpMaths.h>
 #include <OpTime.h>
 #include <OpModule.h>
+#include <log.h>
 
 extern int yylex();
 
@@ -316,7 +317,7 @@ statement:
       			free($1);
       			YYERROR;
   			}
-  			fprintf(stderr, "CALL MODULE WITHOUT BLOCK\n");
+  			log_trace("CALL MODULE WITHOUT BLOCK\n");
       		
       }
       
@@ -357,7 +358,7 @@ statement:
       			free($1);
       			YYERROR;
   			}
-  			fprintf(stderr, "CALL MODULE WITHOUT BLOCK\n");
+  			log_trace("CALL MODULE WITHOUT BLOCK\n");
       		
       }
       	| CHILDS '(' ')' ';'
@@ -418,7 +419,7 @@ statement:
       			free($1);
       			YYERROR;
   			}
-  			fprintf(stderr, "CALL MODULE WITH BLOCK\n");
+  			log_trace("CALL MODULE WITH BLOCK\n");
       }
       
       | IDENTIFIER '(' ')' block
@@ -460,7 +461,7 @@ statement:
       			free($1);
       			YYERROR;
   			}
-  			fprintf(stderr, "CALL MODULE WITH BLOCK\n");
+  			log_trace("CALL MODULE WITH BLOCK\n");
       }
       
       | DEFMODULE IDENTIFIER '(' def_args ')'
@@ -1996,7 +1997,7 @@ void yyerror(Op **root, OpParser *p, const char *s)
 		OpContext_report_parse_error(OpParser_get_current_context(p), s, &Pos);
 	}
 	if(root != NULL && *root != NULL)
-		fprintf(stderr, "Problem during parsing %s %p : %s @%d:%d\n", Op_get_name(*root), *root, s, yylloc.first_line, yylloc.first_column);
+		log_trace("Problem during parsing %s %p : %s @%d:%d\n", Op_get_name(*root), *root, s, yylloc.first_line, yylloc.first_column);
 	else
-		fprintf(stderr, "Problem during parsing with NULL op : %s\n", s);
+		log_trace("Problem during parsing with NULL op : %s\n", s);
 }

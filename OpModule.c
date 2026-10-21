@@ -8,6 +8,7 @@
 
 #include <OpModule.h>
 #include <stdio.h>
+#include <log.h>
 
 void OpModule_init(OpModule *self)
 {
@@ -22,7 +23,7 @@ OpModule *OpModule_new(void)
 {
 	OpModule *self = malloc(sizeof(OpModule));
 #ifdef DEBUG_FREE
-	fprintf(stderr, "Module New : %p\n", self);
+	log_trace("Module New : %p\n", self);
 #endif
 	if(self != NULL)
 		OpModule_init(self);
@@ -77,7 +78,7 @@ size_t OpModule_get_nb_argument(OpModule *self)
 
 void OpModule_add_to_root(OpModule *self, Op *op)
 {
-	fprintf(stderr, "Module %p add %p to root\n", self, op);
+	log_trace("Module %p add %p to root\n", self, op);
 	OpBloc_append_Op((OpBloc*)self->root, op);
 }
 
@@ -128,7 +129,7 @@ void OpModule_terminate(OpModule *self)
 void OpModule_free(OpModule *self)
 {
 #ifdef DEBUG_FREE
-	fprintf(stderr, "Module Free : %p\n", self);
+	log_trace("Module Free : %p\n", self);
 #endif
 	if(self != NULL)
 	{

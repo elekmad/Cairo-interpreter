@@ -16,12 +16,14 @@ extern "C"
 #include <parser.tab.h>
 #include <lexer.h>
 #include <unistd.h>
+#include <log.h>
 
 
 extern int yycolumn;
 extern int yylineno;
 int cairo_parse(String *buffer, String *prefix, String *out, String *msgs, int *is_xml, int *width, int *height)
 {
+	log_set_level(LOG_INFO);
 	CanvaCtx Canva;
 	size_t readed;
 	OpCanvaContext Ctx;
@@ -39,7 +41,7 @@ int cairo_parse(String *buffer, String *prefix, String *out, String *msgs, int *
 	/*extern int yydebug, yy_flex_debug;
 	yydebug = 1;
 	yy_flex_debug = 1;*/
-	fprintf(stderr, "Code String : %s\n", String_get_char_string(buffer));
+	log_trace("Code String : %s\n", String_get_char_string(buffer));
 
 	if(OpParser_parse(&Parser, buffer) == 0)
 	{

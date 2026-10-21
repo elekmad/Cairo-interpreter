@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <math.h>
+#include <log.h>
 
 
 OpProgram *OpProgram_new(void)
@@ -217,7 +218,7 @@ void OpProgram_set_context(OpProgram *self, OpContext *ctx)
 void OpProgram_set_root(OpProgram *self, Op *root)
 {
 #ifdef DEBUG_FREE
-	fprintf(stderr, "Program set root %p\n", root);
+	log_trace("Program set root %p\n", root);
 #endif
 	self->root = root;
 }
@@ -251,7 +252,7 @@ void OpParser_set_filename_prefix(OpParser *self, String *prefix)
 		if(String_get_char_at(&self->filename_prefix, String_get_length(&self->filename_prefix) - 1) != '/')
 			String_append_char(&self->filename_prefix, '/');
 	}
-	fprintf(stderr, "Filename Prefix : '%s'\n", String_get_char_string(&self->filename_prefix));
+	log_trace("Filename Prefix : '%s'\n", String_get_char_string(&self->filename_prefix));
 }
 
 int OpParser_parse(OpParser *self, String *s)
@@ -309,7 +310,7 @@ void OpParser_parse_include(OpParser *self, const char *name)
 	String_append_String(&filename, &self->filename_prefix);
 	String_append_String(&filename, Sname);
 	String *new_stream = String_new();
-	fprintf(stderr, "Import include : %s => %s\n", name, String_get_char_string(&filename));
+	log_trace("Import include : %s => %s\n", name, String_get_char_string(&filename));
 	char buf[100];
 	int fd = open(String_get_char_string(&filename), O_RDONLY);
 	ssize_t readed;
@@ -338,7 +339,7 @@ void OpParser_push_stream(OpParser *self, OpParserFile *s)
 		self->files_size = self->depth;
 	}
 	self->files[self->depth - 1] = s;
-	fprintf(stderr, "Parser push : depth = %d\n", self->depth);
+	log_trace("Parser push : depth = %d\n", self->depth);
 }
 
 int OpParser_pop_stream(OpParser *self)
@@ -352,7 +353,7 @@ int OpParser_pop_stream(OpParser *self)
 	self->depth--;
 	if(self->depth > 0)
 		yy_switch_to_buffer(self->files[self->depth - 1]->state);
-	fprintf(stderr, "Parser pop : depth = %d\n", self->depth);
+	log_trace("Parser pop : depth = %d\n", self->depth);
 	return self->depth;
 }
 
@@ -468,7 +469,7 @@ size_t OpParser_import_svg(OpParser *self, const char *name)
 		_OpParser_import_parse_transform_section(self, reader, bloc);
 
 	    if (xmlStrEqual(name, BAD_CAST "svg")) {
-	    	fprintf(stderr, "svg\n");
+	    	log_trace("svg\n");
 	        //parse_svg(reader);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "g")) {
@@ -539,7 +540,7 @@ void _OpParser_import_parse_transform_section(OpParser *self, xmlTextReaderPtr r
 					OpGetValue_set_value((OpGetValue*)g, y);
 					OpTranslate_set_y((OpTranslate*)Tr, g);
 					OpBloc_append_Op(ret, Tr);
-					fprintf(stderr, "Apply Translate (%f, %f) to bloc %p\n", x, y, ret);
+					log_trace("Apply Translate (%f, %f) to bloc %p\n", x, y, ret);
 				}
 				else if(sscanf(p+10, "%lf)", &x) == 1)
 				{
@@ -551,7 +552,7 @@ void _OpParser_import_parse_transform_section(OpParser *self, xmlTextReaderPtr r
 					OpGetValue_set_value((OpGetValue*)g, x);
 					OpTranslate_set_y((OpTranslate*)Tr, g);
 					OpBloc_append_Op(ret, Tr);
-					fprintf(stderr, "Apply Translate (%f) to bloc %p\n", x, ret);
+					log_trace("Apply Translate (%f) to bloc %p\n", x, ret);
 				}
 			}
 			else if(strncmp(p, "rotate(", 7) == 0)
@@ -579,7 +580,7 @@ void _OpParser_import_parse_transform_section(OpParser *self, xmlTextReaderPtr r
 					OpGetValue_set_value((OpGetValue*)g, -y);
 					OpTranslate_set_y((OpTranslate*)Tr, g);
 					OpBloc_append_Op(ret, Tr);
-					fprintf(stderr, "Apply Rotate Around Point to bloc %p\n", ret);
+					log_trace("Apply Rotate Around Point to bloc %p\n", ret);
 				}
 				else if(sscanf(p+7, "%lf)", &a) == 1)
 				{
@@ -588,7 +589,7 @@ void _OpParser_import_parse_transform_section(OpParser *self, xmlTextReaderPtr r
 					OpGetValue_set_value((OpGetValue*)g, a * M_PI / 180);
 					OpRotate_set_angle((OpRotate*)Rt, g);
 					OpBloc_append_Op(ret, Rt);
-					fprintf(stderr, "Apply Rotate to bloc %p\n", ret);
+					log_trace("Apply Rotate to bloc %p\n", ret);
 				}
 			}
 			else if(strncmp(p, "scale(", 6) == 0)
@@ -603,7 +604,7 @@ void _OpParser_import_parse_transform_section(OpParser *self, xmlTextReaderPtr r
 					OpGetValue_set_value((OpGetValue*)g, y);
 					OpScale_set_y((OpScale*)Sc, g);
 					OpBloc_append_Op(ret, Sc);
-					fprintf(stderr, "Apply Scale to bloc %p\n", ret);
+					log_trace("Apply Scale to bloc %p\n", ret);
 				}
 				else if(sscanf(p+6, "%lf)", &x) == 1)
 				{
@@ -615,7 +616,7 @@ void _OpParser_import_parse_transform_section(OpParser *self, xmlTextReaderPtr r
 					OpGetValue_set_value((OpGetValue*)g, x);
 					OpScale_set_y((OpScale*)Sc, g);
 					OpBloc_append_Op(ret, Sc);
-					fprintf(stderr, "Apply Scale to bloc %p\n", ret);
+					log_trace("Apply Scale to bloc %p\n", ret);
 				}
 			}
 			else if(sscanf(p, "matrix(%lf,%lf,%lf,%lf,%lf,%lf)", &m1, &m2, &m3, &m4, &m5, &m6) == 6)
@@ -646,7 +647,7 @@ void _OpParser_import_parse_transform_section(OpParser *self, xmlTextReaderPtr r
 				OpMatrix_set_m6((OpMatrix*)M, g);
 
 				OpBloc_append_Op(ret, M);
-				fprintf(stderr, "Apply Matrix to bloc %p\n", ret);
+				log_trace("Apply Matrix to bloc %p\n", ret);
 			}
 			else if(strncmp(p, "skew", 4) == 0)
 			{
@@ -659,7 +660,7 @@ void _OpParser_import_parse_transform_section(OpParser *self, xmlTextReaderPtr r
 						OpGetValue_set_value((OpGetValue*)g, a * M_PI / 180);
 						OpSkewX_set_angle((OpSkewX*)Sk, g);
 						OpBloc_append_Op(ret, Sk);
-						fprintf(stderr, "Apply SkewX %f rad (%f deg) to bloc %p\n", a*M_PI/180, a, ret);
+						log_trace("Apply SkewX %f rad (%f deg) to bloc %p\n", a*M_PI/180, a, ret);
 					}
 				}
 				else if(strncmp(p+4, "Y(", 2) == 0)
@@ -671,7 +672,7 @@ void _OpParser_import_parse_transform_section(OpParser *self, xmlTextReaderPtr r
 						OpGetValue_set_value((OpGetValue*)g, a * M_PI / 180);
 						OpSkewY_set_angle((OpSkewY*)Sk, g);
 						OpBloc_append_Op(ret, Sk);
-						fprintf(stderr, "Apply SkewY %f rad (%f deg) to bloc %p\n", a*M_PI/180, a, ret);
+						log_trace("Apply SkewY %f rad (%f deg) to bloc %p\n", a*M_PI/180, a, ret);
 					}
 				}
 			}
@@ -686,11 +687,11 @@ void _OpParser_import_parse_transform_section(OpParser *self, xmlTextReaderPtr r
 
 int OpParser_import_parser_group(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
-	fprintf(stderr, "Parse SVG Group %p\n", ret);
+	log_trace("Parse SVG Group %p\n", ret);
 
 	if(xmlTextReaderIsEmptyElement(reader))
 	{
-		fprintf(stderr, "Empty Group %p\n", ret);
+		log_trace("Empty Group %p\n", ret);
 		return -1;
 	}
 
@@ -753,14 +754,14 @@ int OpParser_import_parser_group(OpParser *self, xmlTextReaderPtr reader, OpBloc
 	    else
 	    	Op_free((Op*)bloc);
 	}
-	fprintf(stderr, "End of Group %p\n", ret);
+	log_trace("End of Group %p\n", ret);
 	return 1;
 }
 
 
 void OpParser_import_parser_rect(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
-	fprintf(stderr, "Parse SVG RECT\n");
+	log_trace("Parse SVG RECT\n");
 	double x = NAN, y = NAN, w = NAN, h = NAN;
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "x");
 	if(attr != NULL)
@@ -813,7 +814,7 @@ void OpParser_import_parser_rect(OpParser *self, xmlTextReaderPtr reader, OpBloc
 
 void OpParser_import_parser_line(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
-	fprintf(stderr, "Parse SVG LINE\n");
+	log_trace("Parse SVG LINE\n");
 	double x1 = NAN, y1 = NAN, x2 = NAN, y2 = NAN;
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "x1");
 	if(attr != NULL)
@@ -873,7 +874,7 @@ void OpParser_import_parser_line(OpParser *self, xmlTextReaderPtr reader, OpBloc
 
 void OpParser_import_parser_polyline(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret, bool is_polygone)
 {
-	fprintf(stderr, "Parse SVG POLYLINE/GONE (%d)\n", is_polygone);
+	log_trace("Parse SVG POLYLINE/GONE (%d)\n", is_polygone);
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "points");
 	if(attr != NULL)
 	{
@@ -913,7 +914,7 @@ void OpParser_import_parser_polyline(OpParser *self, xmlTextReaderPtr reader, Op
 
 void OpParser_import_parser_circle(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
-	fprintf(stderr, "Parse SVG CIRCLE\n");
+	log_trace("Parse SVG CIRCLE\n");
 	double cx = NAN, cy = NAN, r = NAN;
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "cx");
 	if(attr != NULL)
@@ -964,7 +965,7 @@ void OpParser_import_parser_circle(OpParser *self, xmlTextReaderPtr reader, OpBl
 
 void OpParser_import_parser_ellipse(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
-	fprintf(stderr, "Parse SVG CIRCLE\n");
+	log_trace("Parse SVG CIRCLE\n");
 	double cx = NAN, cy = NAN, rx = NAN, ry = NAN;
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "cx");
 	if(attr != NULL)
@@ -1129,7 +1130,7 @@ void _OpParser_import_parse_style_section(xmlTextReaderPtr reader, OpColor **fil
 				strcpy(e->value, String_get_char_string(&value));
 				HASH_ADD_STR(elts, name, e);
 
-				fprintf(stderr, "Name '%s' : value '%s'\n", String_get_char_string(&name), String_get_char_string(&value));
+				log_trace("Name '%s' : value '%s'\n", String_get_char_string(&name), String_get_char_string(&value));
 			}
 		}
 		String_finalize(&name);
@@ -1319,7 +1320,7 @@ void _OpParser_import_parse_color_section(xmlTextReaderPtr reader, OpColor **op,
 
 void OpParser_import_parser_path(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
-	fprintf(stderr, "Parse SVG PATH\n");
+	log_trace("Parse SVG PATH\n");
 	double lastx = 0, lasty = 0;
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "d");
 	if(attr != NULL)
@@ -1343,7 +1344,7 @@ void OpParser_import_parser_path(OpParser *self, xmlTextReaderPtr reader, OpBloc
 			else
 				p -= 2;//Move backward to parse as same as a command
 
-			fprintf(stderr, "Parsing Path '%c'\n", c);
+			log_trace("Parsing Path '%c'\n", c);
 			switch(c)
 			{
 			case 'M' :	lastx = 0;
@@ -1365,7 +1366,7 @@ void OpParser_import_parser_path(OpParser *self, xmlTextReaderPtr reader, OpBloc
 							OpMoveTo_set_y((OpMoveTo*)o, o2);
 
 							OpBloc_append_Op(ret, o);
-							fprintf(stderr, "Append Move Path %p to bloc %p\n", ret, o);
+							log_trace("Append Move Path %p to bloc %p\n", ret, o);
 							lastx = x;
 							lasty = y;
 							break;
@@ -1389,7 +1390,7 @@ void OpParser_import_parser_path(OpParser *self, xmlTextReaderPtr reader, OpBloc
 							OpDrawLineTo_set_y((OpDrawLineTo*)o, o2);
 
 							OpBloc_append_Op(ret, o);
-							fprintf(stderr, "Append Line Path %p to bloc %p\n", ret, o);
+							log_trace("Append Line Path %p to bloc %p\n", ret, o);
 
 							lastx = x;
 							lasty = y;
@@ -1412,7 +1413,7 @@ void OpParser_import_parser_path(OpParser *self, xmlTextReaderPtr reader, OpBloc
 							OpDrawLineTo_set_y((OpDrawLineTo*)o, o2);
 
 							OpBloc_append_Op(ret, o);
-							fprintf(stderr, "Append Line Path %p to bloc %p\n", ret, o);
+							log_trace("Append Line Path %p to bloc %p\n", ret, o);
 
 							lastx = x;
 							break;
@@ -1434,7 +1435,7 @@ void OpParser_import_parser_path(OpParser *self, xmlTextReaderPtr reader, OpBloc
 							OpDrawLineTo_set_y((OpDrawLineTo*)o, o2);
 
 							OpBloc_append_Op(ret, o);
-							fprintf(stderr, "Append Line Path %p to bloc %p\n", ret, o);
+							log_trace("Append Line Path %p to bloc %p\n", ret, o);
 
 							lasty = y;
 							break;
@@ -1485,9 +1486,9 @@ void OpParser_import_parser_path(OpParser *self, xmlTextReaderPtr reader, OpBloc
 							OpCurve_set_y((OpCurve*)o, o2);
 
 							OpBloc_append_Op(ret, o);
-							fprintf(stderr, "Append Curve Path %p to bloc %p\n", ret, o);
+							log_trace("Append Curve Path %p to bloc %p\n", ret, o);
 
-							fprintf(stderr, "Parsing Curve (from %f %f) %f %f %f %f %f %f\n", lastx, lasty, m1x, m1y, m2x, m2y, x, y);
+							log_trace("Parsing Curve (from %f %f) %f %f %f %f %f %f\n", lastx, lasty, m1x, m1y, m2x, m2y, x, y);
 
 							last_command_x = m2x + lastx;
 							last_command_y = m2y + lasty;
@@ -1526,7 +1527,7 @@ void OpParser_import_parser_path(OpParser *self, xmlTextReaderPtr reader, OpBloc
 								x += lastx;
 								y += lasty;
 							}
-							fprintf(stderr, "Parsing Smoothed Curve Path %c m2 (%f, %f) xy (%f, %f) (m1 (%f, %f) lastxy (%f, %f) lastcommand(%f, %f))\n", c, m2x, m2y, x, y, m1x, m1y, lastx, lasty, last_command_x, last_command_y);
+							log_trace("Parsing Smoothed Curve Path %c m2 (%f, %f) xy (%f, %f) (m1 (%f, %f) lastxy (%f, %f) lastcommand(%f, %f))\n", c, m2x, m2y, x, y, m1x, m1y, lastx, lasty, last_command_x, last_command_y);
 
 							o = OpCurve_new();
 
@@ -1554,7 +1555,7 @@ void OpParser_import_parser_path(OpParser *self, xmlTextReaderPtr reader, OpBloc
 							OpCurve_set_y((OpCurve*)o, o2);
 
 							OpBloc_append_Op(ret, o);
-							fprintf(stderr, "Append Curve Path %p to bloc %p\n", ret, o);
+							log_trace("Append Curve Path %p to bloc %p\n", ret, o);
 
 							last_command_x = m2x;
 							last_command_y = m2y;
@@ -1617,7 +1618,7 @@ void OpParser_import_parser_path(OpParser *self, xmlTextReaderPtr reader, OpBloc
 							OpCurve_set_y((OpCurve*)o, o2);
 
 							OpBloc_append_Op(ret, o);
-							fprintf(stderr, "Append Curve Path %p to bloc %p\n", ret, o);
+							log_trace("Append Curve Path %p to bloc %p\n", ret, o);
 
 							last_command_x = mx;
 							last_command_y = my;
@@ -1685,7 +1686,7 @@ void OpParser_import_parser_path(OpParser *self, xmlTextReaderPtr reader, OpBloc
 							OpCurve_set_y((OpCurve*)o, o2);
 
 							OpBloc_append_Op(ret, o);
-							fprintf(stderr, "Append Curve Path %p to bloc %p\n", ret, o);
+							log_trace("Append Curve Path %p to bloc %p\n", ret, o);
 
 							last_command_x = mx;
 							last_command_y = my;
@@ -1853,7 +1854,7 @@ void OpParser_import_parser_path(OpParser *self, xmlTextReaderPtr reader, OpBloc
 							p+=1;
 							o = OpClosePath_new();
 							OpBloc_append_Op(ret, o);
-							fprintf(stderr, "Append Close Path %p to bloc %p\n", ret, o);
+							log_trace("Append Close Path %p to bloc %p\n", ret, o);
 							break;
 						}
 			default :	do

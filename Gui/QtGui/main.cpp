@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QLoggingCategory>
 #include "mainwindow.h"
 
 #include <OpProgram.h>
@@ -11,6 +12,11 @@ extern "C"
 }
 
 int main(int argc, char *argv[]) {
+	QLoggingCategory::setFilterRules(
+	        "*.debug=false\n"
+	        "*.trace=false\n"
+	    );
+
     QApplication app(argc, argv);
 
     std::setlocale(LC_ALL, "C");//Rétablie la locale "C" globale pour le parsing "classique" des nombre à virgule.

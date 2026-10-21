@@ -14,6 +14,7 @@
 #include <time.h>
 #include <math.h>
 #include <string.h>
+#include <log.h>
 
 const char *_Op_get_running_state_string(OpRunningState state)
 {
@@ -103,7 +104,7 @@ void OpVariables_empty(OpVariable *self)
 	}
 }
 
-int OpVariable_copy(OpVariable *self, OpVariable *other)
+void OpVariable_copy(OpVariable *self, OpVariable *other)
 {
 	if(self->type == NONE)
 		OpVariable_set_type(self, other->type);
@@ -142,29 +143,16 @@ int OpVariable_copy(OpVariable *self, OpVariable *other)
 					}
 					break;
 	}
-	return 0;
 }
 
 void OpVariable_print(OpVariable *self)
 {
 	int cmpt;
-	fprintf(stderr, "self %p name '%s' content :", self, self->name != NULL ? self->name : "null");
-	switch(self->type)
-	{
-	case NONE : 	fprintf(stderr, "empty type");
-					break;
-	case DOUBLE : 	fprintf(stderr, "%f", self->v);
-					break;
-	case DOUBLES :	for(cmpt = 0; cmpt < self->number_of_elements; cmpt++)
-						fprintf(stderr, "%f, ", self->vs[cmpt]);
-					break;
-	case STRING :	fprintf(stderr, "'%s'", self->string);
-					break;
-	case STRINGS :	for(cmpt = 0; cmpt < self->number_of_elements; cmpt++)
-						fprintf(stderr, "'%s', ", self->strings[cmpt]);
-					break;
-	}
-	fprintf(stderr, "\n");
+	String msg;
+	String_init(&msg);
+	OpVariable_to_string(self, &msg);
+	log_info("%s", String_get_char_string(&msg));
+	String_finalize(&msg);
 }
 
 void OpVariable_to_string(OpVariable *self, String *s)
@@ -437,20 +425,39 @@ void OpContext_export_messages_to_xml(OpContext *self, String *xml)
 
 void OpContext_set_running_state(OpContext *self, Op *sender, OpRunningState state, const char *message)
 {
-	String s;
-	String_init(&s);
-	String_append_char_string(&s, message);
-	if(sender != NULL)
-		fprintf(stderr, "Context %p setting state %d '%s' @%d:%d\n", self, state, message, sender->pos.first_line, sender->pos.first_column);
-	else
-		fprintf(stderr, "Context %p setting state %d '%s'\n", self, state, message);
+	String params, log;
 	self->state = state;
+	String_init(&params);
+	String_append_char_string(&params, message);
+	String_init(&log);
 	OpMessage *msg = OpMessage_new();
 	if(sender != NULL)
-		OpMessage_set_params(msg, &sender->pos, state, &s);
+	{
+		OpMessage_set_params(msg, &sender->pos, state, &params);
+		String_append_printf(&log, "Context %p setting state %d '%s' @%d:%d\n", self, state, message, sender->pos.first_line, sender->pos.first_column);
+	}
 	else
-		OpMessage_set_params(msg, NULL, state, &s);
-	String_finalize(&s);
+	{
+		OpMessage_set_params(msg, NULL, state, &params);
+		String_append_printf(&log, "Context %p setting state %d '%s'\n", self, state, message);
+	}
+	String_finalize(&params);
+
+	switch(state)
+	{
+	case Init :
+	case PreRun :
+	case Ready :
+	case Run :
+	case Break :
+	case Continue :
+	case Finished : log_trace("%s", String_get_char_string(&log));
+					break;
+	case Error :
+	case ParseError :	log_error("%s", String_get_char_string(&log));
+						break;
+	}
+	String_finalize(&log);
 
 	LinkedList_append(&self->messages, msg);
 }
@@ -460,7 +467,7 @@ void OpContext_report_parse_error(OpContext *self, const char *message, SourcePo
 	String s;
 	String_init(&s);
 	String_append_char_string(&s, message);
-	fprintf(stderr, "Context %p parse error '%s' @%d:%d\n", self, message, Pos->first_line, Pos->first_column);
+	log_error("Context %p parse error '%s' @%d:%d\n", self, message, Pos->first_line, Pos->first_column);
 	self->state = ParseError;
 	OpMessage *msg = OpMessage_new();
 	OpMessage_set_params(msg, Pos, ParseError, &s);
@@ -579,7 +586,7 @@ int OpContext_set_variable_value_double(OpContext *self, size_t variable_number,
 		OpVariable_set_double(var, v);
 	}
 
-	fprintf(stderr, "Setting variable '%s' number %zu = %f\n", OpVariable_get_name(var), variable_number, v);
+	log_trace("Setting variable '%s' number %zu = %f\n", OpVariable_get_name(var), variable_number, v);
 	return 0;
 }
 
@@ -595,7 +602,7 @@ int OpContext_set_variable_value_string(OpContext *self, size_t variable_number,
 		OpVariable_set_string(var, v);
 	}
 
-	fprintf(stderr, "Setting variable '%s' number %zu = %s\n", OpVariable_get_name(var), variable_number, v);
+	log_trace("Setting variable '%s' number %zu = %s\n", OpVariable_get_name(var), variable_number, v);
 	return 0;
 }
 
@@ -606,13 +613,9 @@ int OpContext_copy_current_to_variable(OpContext *self, size_t var_num)
 		return -1;
 	var = self->variables[var_num];
 
-	fprintf(stderr, "Copying Internal state to '%s'@%zu\n", OpVariable_get_name(var), var_num);
+	log_trace("Copying Internal state to '%s'@%zu\n", OpVariable_get_name(var), var_num);
 	OpVariable_print(&self->current_value);
-	if(OpVariable_copy(var, &self->current_value) == -1)
-	{
-		fprintf(stderr, "Error copy from Internal State to '%s'@%zu two different types\n", OpVariable_get_name(var), var_num);
-		return -1;
-	}
+	OpVariable_copy(var, &self->current_value);
 	OpVariable_print(var);
 	return 0;
 }
@@ -633,7 +636,7 @@ OpVariable *OpContext_get_variable(OpContext *self, size_t variable_number)
 	if(self->number_of_variables < variable_number + 1)
 		return NULL;
 	var = self->variables[variable_number];
-	fprintf(stderr, "Getting variable '%s' number %zu\n", OpVariable_get_name(var), variable_number);
+	log_trace("Getting variable '%s' number %zu\n", OpVariable_get_name(var), variable_number);
 	OpVariable_print(var);
 	return var;
 }
@@ -648,7 +651,7 @@ double OpContext_get_variable_value(OpContext *self, size_t variable_number)
 	if(OpVariable_get_type(var) != DOUBLE)
 		return NAN;
 	val = OpVariable_get_double(var);
-	fprintf(stderr, "Getting variable '%s' number %zu = %f\n", OpVariable_get_name(var), variable_number, val);
+	log_trace("Getting variable '%s' number %zu = %f\n", OpVariable_get_name(var), variable_number, val);
 	return val;
 }
 
@@ -725,7 +728,7 @@ void Op_set_nb_ops(Op *self, size_t nb)
 int Op_fix_operandes(Op *self, OpContext *ctx)
 {
 	int ret = 0;
-	fprintf(stderr, "Fix operandes of %p\n", self);
+	log_trace("Fix operandes of %p\n", self);
 	if(self->isa->fix_operandes != NULL)
 		ret = self->isa->fix_operandes(self, ctx);
 	if(ret == 0)
@@ -739,7 +742,7 @@ int Op_fix_operandes(Op *self, OpContext *ctx)
 				ret = Op_fix_operandes(o, ctx);
 				if(ret != 0)
 				{
-					fprintf(stderr, "Fix operandes of %p gave -1\n", o);
+					log_trace("Fix operandes of %p gave -1\n", o);
 					break;
 				}
 			}
@@ -753,7 +756,7 @@ int Op_fix_operandes(Op *self, OpContext *ctx)
 		OpContext_set_running_state(ctx, self, ParseError, String_get_char_string(&msg));
 		String_finalize(&msg);
 	}
-	fprintf(stderr, "Fin fix operandes of %p with %d\n", self, ret);
+	log_trace("Fin fix operandes of %p with %d\n", self, ret);
 	return ret;
 }
 
@@ -774,7 +777,7 @@ Op *Op_new(OpIsa *isa)
 {
 	Op *self = malloc(isa->size);
 #ifdef DEBUG_FREE
-	fprintf(stderr, "Op New : %p isa %p '%s'\n", self, isa, isa->name);
+	log_trace("Op New : %p isa %p '%s'\n", self, isa, isa->name);
 #endif
 	if(self != NULL)
 	{
@@ -803,7 +806,7 @@ void Op_set_source_pos(Op *self, int fl, int fc, int ll, int lc)
 void Op_free(Op *self)
 {
 #ifdef DEBUG_FREE
-	fprintf(stderr, "Op Free : %p\n", self);
+	log_trace("Op Free : %p\n", self);
 #endif
 	if(self != NULL)
 	{
@@ -818,7 +821,7 @@ int Op_prerun(Op *self, OpContext *ctx)
 	OpRunningState state = OpContext_get_running_state(ctx);
 	if(state != Init)
 	{
-		fprintf(stderr, "Prerun Op %p Ctx %p failed : Ctx bad state : %d\n", self, ctx, state);
+		log_error("Prerun Op %p Ctx %p failed : Ctx bad state : %d\n", self, ctx, state);
 		return ret;
 	}
 	String m;
@@ -840,7 +843,7 @@ int Op_launch(Op *self, OpContext *ctx)
 	OpRunningState state = OpContext_get_running_state(ctx);
 	if(state != Ready)
 	{
-		fprintf(stderr, "Launching Op %p Ctx %p failed : Ctx bad state : %d\n", self, ctx, state);
+		log_error("Launching Op %p Ctx %p failed : Ctx bad state : %d\n", self, ctx, state);
 		return ret;
 	}
 	String m;
@@ -1020,42 +1023,42 @@ int Op_execute(Op *self, OpContext *ctx)
 	if(self != NULL && ctx != NULL)
 	{
 		OpRunningState state = OpContext_get_running_state(ctx);
-		fprintf(stderr, "Op %p : %s\n", self, self->isa->name);
+		log_trace("Op %p : %s\n", self, self->isa->name);
 		if(state == Run)
 		{
-			fprintf(stderr, "Op %p status Run check args\n", self);
+			log_trace("Op %p status Run check args\n", self);
 			if(self->isa->check_args != NULL)
 			{
 				ret = self->isa->check_args(self, ctx);
-				fprintf(stderr, "Checking Args of %p %p : %d\n", self, ctx, ret);
+				log_trace("Checking Args of %p %p : %d\n", self, ctx, ret);
 			}
 			if(ret == 0)
 			{
-				fprintf(stderr, "Op %p execute\n", self);
+				log_trace("Op %p execute\n", self);
 				ret = self->isa->execute(self, ctx);
 			}
 		}
 		else if(state == PreRun && self->for_prerunning == true)
 		{
-			fprintf(stderr, "Op %p status PreRun check args\n", self);
+			log_trace("Op %p status PreRun check args\n", self);
 			if(self->isa->check_args != NULL)
 			{
 				ret = self->isa->check_args(self, ctx);
-				fprintf(stderr, "Checking Args of %p %p : %d\n", self, ctx, ret);
+				log_trace("Checking Args of %p %p : %d\n", self, ctx, ret);
 			}
 			if(ret == 0)
 			{
-				fprintf(stderr, "Op %p execute\n", self);
+				log_trace("Op %p execute\n", self);
 				ret = self->isa->execute(self, ctx);
 			}
 		}
 		else if(state == Break || state == Continue)
 		{
-			fprintf(stderr, "Op %p Not executed because Ctx state %d, Lauching Break or Continue\n", self, state);
+			log_trace("Op %p Not executed because Ctx state %d, Lauching Break or Continue\n", self, state);
 		}
 		else
-			fprintf(stderr, "Op %p Not executed because Ctx state %d\n", self, state);
-		fprintf(stderr, "Fin Op %p : %s\n", self, self->isa->name);
+			log_trace("Op %p Not executed because Ctx state %d\n", self, state);
+		log_trace("Fin Op %p : %s\n", self, self->isa->name);
 	}
 	return ret;
 }
@@ -1083,7 +1086,7 @@ void OpBloc_append_Op(OpBloc *self, Op *op)
 	Op_set_nb_ops(s, n + 1);
 	s->operandes[n] = op;
 #ifdef DEBUG_FREE
-	fprintf(stderr, "Append Op %p (%s) in bloc %p (%s)\n", op, op->isa->name, self, self->super.isa->name);
+	log_trace("Append Op %p (%s) in bloc %p (%s)\n", op, op->isa->name, self, self->super.isa->name);
 #endif
 
 }
@@ -1187,7 +1190,7 @@ int OpPrintMessage_execute(OpPrintMessage *self, OpContext *ctx)
 			String_append_printf(&s, "Message '%s' : ", self->message);
 			OpVariable_content_to_string(&val, &s);
 			OpContext_set_running_state(ctx, (Op*)self, Run, String_get_char_string(&s));
-			fprintf(stderr, "%s\n", String_get_char_string(&s));
+			log_trace("%s\n", String_get_char_string(&s));
 		}
 		String_finalize(&s);
 		OpVariable_terminate(&val);
@@ -1342,31 +1345,31 @@ int OpIf_execute(OpIf *self, OpContext *ctx)
 {
 	int ret = 0;
 	double c = NAN;
-	fprintf(stderr, "If %p Entered\n", self);
+	log_trace("If %p Entered\n", self);
 
 	ret = Op_execute_get_double(self->condition, (Op*)self, ctx, &c);
 	if(ret == -1)
 	{
-		fprintf(stderr, "Error during if condifion\n");
+		log_trace("Error during if condifion\n");
 		return -1;
 
 	}
-	fprintf(stderr, "If %p Condition = %f\n", self, c);
+	log_trace("If %p Condition = %f\n", self, c);
 
 	if(c != 0)
 	{
-			fprintf(stderr, "If %p Branch True\n", self);
+			log_trace("If %p Branch True\n", self);
 			ret = Op_execute(self->true_branch, ctx);
 	}
 	else
 	{
 		if(self->false_branch != NULL)
 		{
-			fprintf(stderr, "If %p Branch False\n", self);
+			log_trace("If %p Branch False\n", self);
 			ret = Op_execute(self->false_branch, ctx);
 		}
 	}
-	fprintf(stderr, "If %p Exited\n", self);
+	log_trace("If %p Exited\n", self);
 	return ret;
 }
 
@@ -1447,34 +1450,34 @@ int OpWhile_execute(OpWhile *self, OpContext *ctx)
 {
 	int ret = 0;
 	double c = NAN;
-	fprintf(stderr, "While %p Entered\n", self);
+	log_trace("While %p Entered\n", self);
 	if(self->condition != NULL && self->bloc != NULL)
 	{
 		ret = Op_execute(self->condition, ctx);
 		c = OpContext_get_current_value_double(ctx);
-		fprintf(stderr, "While %p Condition = %f\n", self, c);
+		log_trace("While %p Condition = %f\n", self, c);
 		while(double_eq(c, 0.0) != 1)
 		{
-			fprintf(stderr, "While %p Execute bloc\n", self);
+			log_trace("While %p Execute bloc\n", self);
 			ret = Op_execute(self->bloc, ctx);
 			OpRunningState state = OpContext_get_running_state(ctx);
 			if(state == Break)
 			{
-				fprintf(stderr, "Catching Break\n");
+				log_trace("Catching Break\n");
 				OpContext_set_running_state(ctx, (Op*)self, Run, "Break Caught");
 				break;
 			}
 			else if(state == Continue)
 			{
-				fprintf(stderr, "Catching Continue\n");
+				log_trace("Catching Continue\n");
 				OpContext_set_running_state(ctx, (Op*)self, Run, "Continue Caught");
 			}
 			ret = Op_execute(self->condition, ctx);
 			c = OpContext_get_current_value_double(ctx);
-			fprintf(stderr, "While %p Condition = %f\n", self, c);
+			log_trace("While %p Condition = %f\n", self, c);
 		}
 	}
-	fprintf(stderr, "While %p Exited\n", self);
+	log_trace("While %p Exited\n", self);
 	return ret;
 }
 
@@ -1613,42 +1616,42 @@ int OpForLoop_execute(OpForLoop *self, OpContext *ctx)
 
 	bool stop = false;
 	double c = NAN, v;
-	fprintf(stderr, "ForLoop %p Start @%zu From %f TO %f STEP %f\n", self, self->variable_number, start, condition, step);
+	log_trace("ForLoop %p Start @%zu From %f TO %f STEP %f\n", self, self->variable_number, start, condition, step);
 	v = start;
-	fprintf(stderr, "ForLoop %p start op : @%zu = %f\n", self, self->variable_number, v);
+	log_trace("ForLoop %p start op : @%zu = %f\n", self, self->variable_number, v);
 	OpContext_set_variable_value_double(ctx, self->variable_number, v);
 	do
 	{
-		fprintf(stderr, "ForLoop %p Condition\n", self);
+		log_trace("ForLoop %p Condition\n", self);
 		c = condition;
 		v = OpContext_get_variable_value(ctx, self->variable_number);
-		fprintf(stderr, "ForLoop %p condition op : @%zu = %f\n", self, self->variable_number, v);
+		log_trace("ForLoop %p condition op : @%zu = %f\n", self, self->variable_number, v);
 		stop = double_eq(v, c) ? false : v > c ? true : false;
 		if(!stop)
 		{
-			fprintf(stderr, "ForLoop %p Loop\n", self);
+			log_trace("ForLoop %p Loop\n", self);
 			ret = Op_execute(self->loop, ctx);
-			fprintf(stderr, "ForLoop %p End Loop\n", self);
+			log_trace("ForLoop %p End Loop\n", self);
 			OpRunningState state = OpContext_get_running_state(ctx);
 			if(state == Break)
 			{
-				fprintf(stderr, "Catching Break\n");
+				log_trace("Catching Break\n");
 				OpContext_set_running_state(ctx, (Op*)self, Run, "Break Caught");
 				break;
 			}
 			else if(state == Continue)
 			{
-				fprintf(stderr, "Catching Continue\n");
+				log_trace("Catching Continue\n");
 				OpContext_set_running_state(ctx, (Op*)self, Run, "Continue Caught");
 			}
-			fprintf(stderr, "ForLoop %p Step\n", self);
+			log_trace("ForLoop %p Step\n", self);
 			v = v + step;
 			OpContext_set_variable_value_double(ctx, self->variable_number, v);
-			fprintf(stderr, "ForLoop %p step op : @%zu = %f\n", self, self->variable_number, v);
+			log_trace("ForLoop %p step op : @%zu = %f\n", self, self->variable_number, v);
 		}
 	}
 	while(!stop);
-	fprintf(stderr, "ForLoop %p Stopped\n", self);
+	log_trace("ForLoop %p Stopped\n", self);
 
 	return ret;
 }
@@ -1744,11 +1747,11 @@ int OpForEach_execute(OpForEach *self, OpContext *ctx)
 	ret = Op_execute(self->value, ctx);
 	if(ret != 0)
 	{
-		fprintf(stderr, "ForEach Evaluation of value failed\n");
+		log_trace("ForEach Evaluation of value failed\n");
 		return -1;
 	}
 
-	fprintf(stderr, "ForEach %p Start\n", self);
+	log_trace("ForEach %p Start\n", self);
 	OpVarType t = OpVariable_get_type(OpContext_get_current_value(ctx));
 	if(t == DOUBLES)
 	{
@@ -1764,19 +1767,19 @@ int OpForEach_execute(OpForEach *self, OpContext *ctx)
 			ret = Op_execute(self->loop, ctx);
 			if(ret != 0)
 			{
-				fprintf(stderr, "Evaluation of ForEach Loop Failed\n");
+				log_trace("Evaluation of ForEach Loop Failed\n");
 				break;
 			}
 			OpRunningState state = OpContext_get_running_state(ctx);
 			if(state == Break)
 			{
-				fprintf(stderr, "Catching Break\n");
+				log_trace("Catching Break\n");
 				OpContext_set_running_state(ctx, (Op*)self, Run, "Break Caught");
 				break;
 			}
 			else if(state == Continue)
 			{
-				fprintf(stderr, "Catching Continue\n");
+				log_trace("Catching Continue\n");
 				OpContext_set_running_state(ctx, (Op*)self, Run, "Continue Caught");
 			}
 		}
@@ -1797,19 +1800,19 @@ int OpForEach_execute(OpForEach *self, OpContext *ctx)
 			ret = Op_execute(self->loop, ctx);
 			if(ret != 0)
 			{
-				fprintf(stderr, "Evaluation of ForEach Loop Failed\n");
+				log_trace("Evaluation of ForEach Loop Failed\n");
 				break;
 			}
 			OpRunningState state = OpContext_get_running_state(ctx);
 			if(state == Break)
 			{
-				fprintf(stderr, "Catching Break\n");
+				log_trace("Catching Break\n");
 				OpContext_set_running_state(ctx, (Op*)self, Run, "Break Caught");
 				break;
 			}
 			else if(state == Continue)
 			{
-				fprintf(stderr, "Catching Continue\n");
+				log_trace("Catching Continue\n");
 				OpContext_set_running_state(ctx, (Op*)self, Run, "Continue Caught");
 			}
 		}
@@ -1819,11 +1822,11 @@ int OpForEach_execute(OpForEach *self, OpContext *ctx)
 	else
 	{
 		OpContext_set_running_state(ctx, (Op*)self, Error, "Value gave in ForEach is not an array");
-		fprintf(stderr, "ForEach %p Stopped\n", self);
+		log_trace("ForEach %p Stopped\n", self);
 		return -1;
 	}
 
-	fprintf(stderr, "ForEach %p Stopped\n", self);
+	log_trace("ForEach %p Stopped\n", self);
 
 	return ret;
 }
@@ -2041,7 +2044,7 @@ int OpGetVariable_execute(OpGetVariable *self, OpContext *ctx)
 {
 	int ret = 0;
 	OpVariable *var = OpContext_get_variable(ctx, self->variable_number);
-	fprintf(stderr, "OP %p Getting variable number %zu in context %p\n", self, self->variable_number, ctx);
+	log_trace("OP %p Getting variable number %zu in context %p\n", self, self->variable_number, ctx);
 	OpContext_copy_variable_to_current_value(ctx, var);
 	OpVariable_print(OpContext_get_current_value(ctx));
 	return ret;
@@ -2216,12 +2219,16 @@ int Op2_execute(Op2 *self, OpContext *ctx)
 			ret = ((OpIsaTwoOp*)((Op*)self)->isa)->compute(&res, &v1, &v2, &err_msg);
 			if(ret == 0)
 			{
-				fprintf(stderr, "Op %p 2 operandes '%s'\n", self, ((Op*)self)->isa->name);
-				OpVariable_print(&v1);
-				fprintf(stderr, "With\n");
-				OpVariable_print(&v2);
-				fprintf(stderr, "Give\n");
-				OpVariable_print(&res);
+				String log;
+				String_init(&log);
+				String_append_printf(&log, "Op %p 2 operandes '%s'\n", self, ((Op*)self)->isa->name);
+				OpVariable_to_string(&v1, &log);
+				String_append_char_string(&log, "With\n");
+				OpVariable_to_string(&v2, &log);
+				String_append_char_string(&log, "Give\n");
+				OpVariable_to_string(&res, &log);
+				log_trace("%s", String_get_char_string(&log));
+				String_finalize(&log);
 				OpVariable_copy(OpContext_get_current_value(ctx), &res);
 			}
 			else
@@ -2666,10 +2673,14 @@ int Op1_execute(Op1 *self, OpContext *ctx)
 			ret = ((OpIsaOneOp*)((Op*)self)->isa)->compute(&res, &v, &err_msg);
 			if(ret == 0)
 			{
-				fprintf(stderr, "Op %p 1 operandes '%s'\n", self, ((Op*)self)->isa->name);
-				OpVariable_print(&v);
-				fprintf(stderr, "Give\n");
-				OpVariable_print(&res);
+				String log;
+				String_init(&log);
+				String_append_printf(&log, "Op %p 1 operandes '%s'\n", self, ((Op*)self)->isa->name);
+				OpVariable_to_string(&v, &log);
+				String_append_char_string(&log, "Give\n");
+				OpVariable_to_string(&res, &log);
+				log_trace("%s", String_get_char_string(&log));
+				String_finalize(&log);
 				OpVariable_copy(OpContext_get_current_value(ctx), &res);
 			}
 			else

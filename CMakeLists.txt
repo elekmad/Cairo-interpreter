@@ -102,6 +102,18 @@ endif()
 target_link_libraries(CairoInterpreter PRIVATE Strings)
 target_include_directories(CairoInterpreter PRIVATE ${strings_SOURCE_DIR})
 
+FetchContent_Declare(
+	Logs
+	GIT_REPOSITORY https://github.com/rxi/log.c.git
+)
+
+if( UPDISTANT )
+	FetchContent_MakeAvailable(Logs)
+endif()
+
+target_sources(CairoInterpreter PRIVATE ${logs_SOURCE_DIR}/src/log.c)
+target_include_directories(CairoInterpreter PRIVATE ${logs_SOURCE_DIR}/src)
+
 find_package(Python3 REQUIRED)
 
 foreach(source ${CPP_SOURCE})
@@ -183,7 +195,7 @@ if( QTGUI)
 	    ${FLEX_Lexer_OUTPUTS}
 	)
 	
-	include_directories(CairoDSLEditor "${CMAKE_CURRENT_SOURCE_DIR}/Gui/QtGui/" ${Cairo_INCLUDE_DIR} ${strings_SOURCE_DIR} ${linkedlists_SOURCE_DIR})
+	include_directories(CairoDSLEditor "${CMAKE_CURRENT_SOURCE_DIR}/Gui/QtGui/" ${Cairo_INCLUDE_DIR} ${strings_SOURCE_DIR} ${linkedlists_SOURCE_DIR} ${logs_SOURCE_DIR}/src)
 	
 	target_link_libraries(CairoDSLEditor PRIVATE 
 	    Qt6::Widgets 
@@ -198,6 +210,7 @@ if( QTGUI)
 	target_link_libraries(CairoDSLEditor PRIVATE PkgConfig::RSVG)
 	target_link_libraries(CairoDSLEditor PRIVATE LinkedLists)
 	target_link_libraries(CairoDSLEditor PRIVATE Strings)
+	target_sources(CairoDSLEditor PRIVATE ${logs_SOURCE_DIR}/src/log.c)
 endif()
 
 include_directories(./)

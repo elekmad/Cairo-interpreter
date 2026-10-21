@@ -16,8 +16,8 @@
 #include <parser.tab.h>
 #include <lexer.h>
 #include <unistd.h>
+#include <log.h>
 
-#define SPEED_RATE 1
 
 
 
@@ -28,7 +28,6 @@ SDL_Renderer *renderer;
 SDL_Texture *texture;
 unsigned char *pixels;
 SDL_Window *window;
-int x=0, xspeed=0, y=0, yspeed=0;
 SDL_Event event;
 #endif
 int width = 640, height = 480;
@@ -36,11 +35,6 @@ int width = 640, height = 480;
 #ifndef NOSDL
 int one_iter(void)
 {
-    if(x + xspeed < 640 && x + xspeed >= 0)
-        x += xspeed;
-    if(y + yspeed < 480 && y + yspeed >= 0)
-        y += yspeed;
-
     // Check for messages
     if (SDL_PollEvent(&event))
     {
@@ -52,28 +46,15 @@ int one_iter(void)
                 break;
     	case SDL_KEYUP:
     	case SDL_KEYDOWN:
-    		fprintf(stderr, "keydown %d\n", event.key.keysym.sym);
+    		log_trace("keydown %d\n", event.key.keysym.sym);
     		switch(event.key.keysym.sym)
     		{
-                        case SDLK_DOWN:
-                            yspeed = (event.type == SDL_KEYDOWN ? SPEED_RATE : 0);
-                            break;
-                        case SDLK_UP:
-                            yspeed = (event.type == SDL_KEYDOWN ? -SPEED_RATE : 0);
-                            break;
-                        case SDLK_RIGHT:
-                            xspeed = (event.type == SDL_KEYDOWN ? SPEED_RATE : 0);
-                            break;
-                        case SDLK_LEFT:
-                            xspeed = (event.type == SDL_KEYDOWN ? -SPEED_RATE : 0);
-                            break;
                         case SDLK_ESCAPE:
                             SDL_Quit();
                             return -1;
                             break;
     		}
-    	        fprintf(stderr, "xspeed %d yspeed %d \n", xspeed, yspeed);
-    	        break;
+			break;
         }
     }
     //Update the display
@@ -92,6 +73,7 @@ int one_iter(void)
 
 int main( int argc, char *argv[ ] )
 {
+	log_set_level(LOG_INFO);
 	size_t readed;
 	OpCanvaContext Ctx;
 	OpProgram Prog;
@@ -112,7 +94,7 @@ int main( int argc, char *argv[ ] )
     char *length_env = getenv("CONTENT_LENGTH");
     if(length_env == NULL)
     {
-    	fprintf(stderr, "No CONTENT_LENGTH found into env\n");
+    	log_error("No CONTENT_LENGTH found into env\n");
     	return -1;
     }
     size_t length = strtoul(length_env, NULL, 10);
@@ -120,7 +102,7 @@ int main( int argc, char *argv[ ] )
     readed = read(0, cbuffer, length);
     if(readed != length)
     {
-    	fprintf(stderr, "read %zu != %zu\n", readed, length);
+    	log_error("read %zu != %zu\n", readed, length);
     	return -1;
     }
     String_append_data(buffer, length, (void*)cbuffer);
@@ -152,7 +134,7 @@ int main( int argc, char *argv[ ] )
 		{
 			if( SDL_Init( SDL_INIT_VIDEO ) == -1 )
 			{
-				fprintf(stderr,  "Can't init SDL:  %s\n", SDL_GetError( ) );
+				log_error("Can't init SDL:  %s\n", SDL_GetError( ) );
 				return EXIT_FAILURE;
 			}
 
@@ -167,7 +149,7 @@ int main( int argc, char *argv[ ] )
 
 			if( sdl_surface == NULL )
 			{
-				fprintf(stderr,  "Can't set video mode: %s\n", SDL_GetError( ) );
+				log_error("Can't set video mode: %s\n", SDL_GetError( ) );
 				return EXIT_FAILURE;
 			}
 			texture = SDL_CreateTexture(renderer,
@@ -232,7 +214,7 @@ int main( int argc, char *argv[ ] )
 			String out;
 			String_init(&out);
 			OpProgram_export_to_xml(&Prog, &out, false);
-			fprintf(stderr, "%s", String_get_char_string(&out));
+			log_trace("%s", String_get_char_string(&out));
 			String_finalize(&out);
 			CanvaCtx_write_to_fd(&Canva, 1);
 #endif

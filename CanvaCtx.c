@@ -15,6 +15,7 @@
 #include <cairo-svg.h>
 #include <b64/cencode.h>
 #include <math.h>
+#include <log.h>
 
 void _CanvaCtx_init(CanvaCtx *self)
 {
@@ -168,7 +169,7 @@ void CanvaCtx_set_text_color(CanvaCtx *self, unsigned char red, unsigned char gr
 void CanvaCtx_set_color(CanvaCtx *self, unsigned char red, unsigned char green, unsigned char blue, unsigned char alpha)
 {
 	double r, g, b, a;
-	fprintf(stderr, "Cairo %p set source %u %u %u %u\n", self->cr, red, green, blue, alpha);
+	log_trace("Cairo %p set source %u %u %u %u\n", self->cr, red, green, blue, alpha);
 	r = (double)red / 255.0;
 	g = (double)green / 255.0;
 	b = (double)blue / 255.0;
@@ -180,7 +181,7 @@ void CanvaCtx_set_color(CanvaCtx *self, unsigned char red, unsigned char green, 
 
 void _CanvaCtx_send_default_stroke_color(CanvaCtx *self)
 {
-	fprintf(stderr, "Sending default stroke color %f %f %f %f\n",
+	log_trace("Sending default stroke color %f %f %f %f\n",
 			self->default_stroke_color[0],
 			self->default_stroke_color[1],
 			self->default_stroke_color[2],
@@ -195,7 +196,7 @@ void _CanvaCtx_send_default_stroke_color(CanvaCtx *self)
 
 void _CanvaCtx_send_default_fill_color(CanvaCtx *self)
 {
-	fprintf(stderr, "Sending default fill color %f %f %f %f\n",
+	log_trace("Sending default fill color %f %f %f %f\n",
 			self->default_fill_color[0],
 			self->default_fill_color[1],
 			self->default_fill_color[2],
@@ -212,10 +213,10 @@ void CanvaCtx_send_text_color(CanvaCtx *self)
 {
 	if(self->text_color_is_set == false)
 	{
-		fprintf(stderr, "Text Color not set !\n");
+		log_trace("Text Color not set !\n");
 		return;
 	}
-	fprintf(stderr, "Sending Text olor %f %f %f %f\n",
+	log_trace("Sending Text olor %f %f %f %f\n",
 			self->text_color[0],
 			self->text_color[1],
 			self->text_color[2],
@@ -230,61 +231,61 @@ void CanvaCtx_send_text_color(CanvaCtx *self)
 
 void _CanvaCtx_set_color(CanvaCtx *self, double r, double g, double b, double a)
 {
-	fprintf(stderr, "Cairo %p set source doubles %f %f %f %f\n", self->cr, r, g, b, a);
+	log_trace("Cairo %p set source doubles %f %f %f %f\n", self->cr, r, g, b, a);
 	cairo_set_source_rgba (self->cr, r, g, b, a);
 }
 
 void CanvaCtx_draw_rectangle(CanvaCtx *self, double x, double y, double w, double h)
 {
-	fprintf(stderr, "Cairo %p rectangle %f %f %f %f\n", self->cr, x, y, w, h);
+	log_trace("Cairo %p rectangle %f %f %f %f\n", self->cr, x, y, w, h);
 	cairo_rectangle(self->cr, x, y, w, h);
 	self->pending_path = true;
 }
 
 void CanvaCtx_draw_arc(CanvaCtx *self, double x, double y, double r, double a1, double a2)
 {
-	fprintf(stderr, "Cairo %p arc %f %f %f %f %f\n", self->cr, x, y, r, a1, a2);
+	log_trace("Cairo %p arc %f %f %f %f %f\n", self->cr, x, y, r, a1, a2);
 	cairo_arc(self->cr, x, y, r, a1, a2);
 	self->pending_path = true;
 }
 
 void CanvaCtx_draw_arc_negative(CanvaCtx *self, double x, double y, double r, double a1, double a2)
 {
-	fprintf(stderr, "Cairo %p arc negative %f %f %f %f %f\n", self->cr, x, y, r, a1, a2);
+	log_trace("Cairo %p arc negative %f %f %f %f %f\n", self->cr, x, y, r, a1, a2);
 	cairo_arc_negative(self->cr, x, y, r, a1, a2);
 	self->pending_path = true;
 }
 
 void CanvaCtx_draw_line_to(CanvaCtx *self, double x, double y)
 {
-	fprintf(stderr, "Cairo %p draw line to %f %f\n", self->cr, x, y);
+	log_trace("Cairo %p draw line to %f %f\n", self->cr, x, y);
 	cairo_line_to(self->cr, x, y);
 	self->pending_path = true;
 }
 
 void CanvaCtx_draw_bezier(CanvaCtx *self, double x, double y, double m1x, double m1y, double m2x, double m2y)
 {
-	fprintf(stderr, "Cairo %p beziez to {%f, %f} handle 1 {%f, %f} handle 2 {%f, %f}\n", self->cr, x, y, m1x, m1y, m2x, m2y);
+	log_trace("Cairo %p beziez to {%f, %f} handle 1 {%f, %f} handle 2 {%f, %f}\n", self->cr, x, y, m1x, m1y, m2x, m2y);
 	cairo_curve_to(self->cr, m1x, m1y, m2x, m2y, x, y);
 	self->pending_path = true;
 }
 
 void CanvaCtx_clip(CanvaCtx *self)
 {
-	fprintf(stderr, "Cairo clip %p\n", self->cr);
+	log_trace("Cairo clip %p\n", self->cr);
 	cairo_clip(self->cr);
 	self->pending_path = false;
 }
 
 void CanvaCtx_clip_preserve(CanvaCtx *self)
 {
-	fprintf(stderr, "Cairo clip preserve %p\n", self->cr);
+	log_trace("Cairo clip preserve %p\n", self->cr);
 	cairo_clip_preserve(self->cr);
 }
 
 void CanvaCtx_reset_clip(CanvaCtx *self)
 {
-	fprintf(stderr, "Cairo reset clip %p\n", self->cr);
+	log_trace("Cairo reset clip %p\n", self->cr);
 	cairo_reset_clip(self->cr);
 }
 
@@ -293,8 +294,8 @@ void CanvaCtx_fill(CanvaCtx *self)
 	cairo_pattern_t *pat = cairo_get_source(self->cr);
 	double r, g, b, a;
 	cairo_pattern_get_rgba(pat, &r, &g, &b, &a);
-	fprintf(stderr, "colors at fill %f %f %f %f\n", r, g, b, a);
-	fprintf(stderr, "Cairo fill %p\n", self->cr);
+	log_trace("colors at fill %f %f %f %f\n", r, g, b, a);
+	log_trace("Cairo fill %p\n", self->cr);
 	cairo_fill(self->cr);
 	self->pending_path = false;
 	self->color_set_up = false;
@@ -305,34 +306,34 @@ void CanvaCtx_fill_preserve(CanvaCtx *self)
 	cairo_pattern_t *pat = cairo_get_source(self->cr);
 	double r, g, b, a;
 	cairo_pattern_get_rgba(pat, &r, &g, &b, &a);
-	fprintf(stderr, "colors at fill %f %f %f %f\n", r, g, b, a);
-	fprintf(stderr, "Cairo fill preserve %p\n", self->cr);
+	log_trace("colors at fill %f %f %f %f\n", r, g, b, a);
+	log_trace("Cairo fill preserve %p\n", self->cr);
 	cairo_fill_preserve(self->cr);
 }
 
 void CanvaCtx_paint(CanvaCtx *self)
 {
-	fprintf(stderr, "Cairo paint %p\n", self->cr);
+	log_trace("Cairo paint %p\n", self->cr);
 	cairo_paint(self->cr);
 	self->color_set_up = false;
 }
 
 void CanvaCtx_paint_with_alpha(CanvaCtx *self, double a)
 {
-	fprintf(stderr, "Cairo paint %p with alpha %f\n", self->cr, a);
+	log_trace("Cairo paint %p with alpha %f\n", self->cr, a);
 	cairo_paint_with_alpha(self->cr, a);
 	self->color_set_up = false;
 }
 
 void CanvaCtx_push_group(CanvaCtx *self)
 {
-	fprintf(stderr, "Cairo push group %p\n", self->cr);
+	log_trace("Cairo push group %p\n", self->cr);
 	cairo_push_group(self->cr);
 }
 
 double CanvaCtx_pop_group(CanvaCtx *self)
 {
-	fprintf(stderr, "Cairo pop group to source %p\n", self->cr);
+	log_trace("Cairo pop group to source %p\n", self->cr);
 	cairo_pattern_t *p = cairo_pop_group(self->cr);
 	return CanvaCtx_add_pattern(self, p);
 }
@@ -354,24 +355,24 @@ void CanvaCtx_recall_pattern(CanvaCtx *self, double n)
 	cairo_pattern_t *p = self->patterns[(size_t)n];
 	if(p != NULL)
 	{
-		fprintf(stderr, "Cairo %p Recall pattern %f => %p\n", self->cr, n, p);
+		log_trace("Cairo %p Recall pattern %f => %p\n", self->cr, n, p);
 		cairo_set_source(self->cr, p);
 	}
 	else
-		fprintf(stderr, "Recall pattern %f is null\n", n);
+		log_trace("Recall pattern %f is null\n", n);
 }
 
 double CanvaCtx_new_linear_pattern(CanvaCtx *self, double x1, double y1, double x2, double y2)
 {
 	cairo_pattern_t *p = cairo_pattern_create_linear(x1, y1, x2, y2);
-	fprintf(stderr, "Cairo create linear pattern %f %f %f %f : %p\n", x1, y1, x2, y2, p);
+	log_trace("Cairo create linear pattern %f %f %f %f : %p\n", x1, y1, x2, y2, p);
 	return CanvaCtx_add_pattern(self, p);
 }
 
 double CanvaCtx_new_radial_pattern(CanvaCtx *self, double x1, double y1, double r1, double x2, double y2, double r2)
 {
 	cairo_pattern_t *p = cairo_pattern_create_radial(x1, y1, r1, x2, y2, r2);
-	fprintf(stderr, "Cairo create radial pattern %f %f %f %f %f %f : %p\n", x1, y1, r1, x2, y2, r2, p);
+	log_trace("Cairo create radial pattern %f %f %f %f %f %f : %p\n", x1, y1, r1, x2, y2, r2, p);
 	return CanvaCtx_add_pattern(self, p);
 }
 
@@ -399,7 +400,7 @@ int CanvaCtx_add_stop_rgba(CanvaCtx *self, size_t p, double o, double r, double 
 	else
 		cairo_pattern_add_color_stop_rgb(pattern, o, r, g, b);
 
-	fprintf(stderr, "Cairo %p add stop color {%f,%f,%f,%f,%f} to pattern %p\n", self->cr, o, r, g, b, a, pattern);
+	log_trace("Cairo %p add stop color {%f,%f,%f,%f,%f} to pattern %p\n", self->cr, o, r, g, b, a, pattern);
 	return 0;
 }
 
@@ -416,50 +417,50 @@ int CanvaCtx_use_mask(CanvaCtx *self, size_t p, String *err_msg)
 		String_append_printf(err_msg, "Use of Mask with non existant pattern %zu", p);
 		return -1;
 	}
-	fprintf(stderr, "Cairo %p use pattern %p as mask\n", self->cr, pattern);
+	log_trace("Cairo %p use pattern %p as mask\n", self->cr, pattern);
 	cairo_mask(self->cr, pattern);
 	return 0;
 }
 
 void CanvaCtx_save_source(CanvaCtx *self)
 {
-	fprintf(stderr, "Cairo save %p\n", self->cr);
+	log_trace("Cairo save %p\n", self->cr);
 	cairo_save(self->cr);
 }
 
 void CanvaCtx_restore_source(CanvaCtx *self)
 {
-	fprintf(stderr, "Cairo restore %p\n", self->cr);
+	log_trace("Cairo restore %p\n", self->cr);
 	cairo_restore(self->cr);
 }
 
 void CanvaCtx_rotate(CanvaCtx *self, double a)
 {
-	fprintf(stderr, "Cairo rotate %p %f\n", self->cr, a);
+	log_trace("Cairo rotate %p %f\n", self->cr, a);
 	cairo_rotate(self->cr, a);
 }
 
 void CanvaCtx_translate(CanvaCtx *self, double x, double y)
 {
-	fprintf(stderr, "Cairo translate %p %f:%f\n", self->cr, x, y);
+	log_trace("Cairo translate %p %f:%f\n", self->cr, x, y);
 	cairo_translate(self->cr, x, y);
 }
 
 void CanvaCtx_skewx(CanvaCtx *self, double a)
 {
-	fprintf(stderr, "Cairo skewx %p %f\n", self->cr, a);
+	log_trace("Cairo skewx %p %f\n", self->cr, a);
 	CanvaCtx_apply_matrix_transform(self, 1, 0, tan(a), 1, 0, 0);
 }
 
 void CanvaCtx_skewy(CanvaCtx *self, double a)
 {
-	fprintf(stderr, "Cairo skewy %p %f\n", self->cr, a);
+	log_trace("Cairo skewy %p %f\n", self->cr, a);
 	CanvaCtx_apply_matrix_transform(self, 1, tan(a), 0, 1, 0, 0);
 }
 
 void CanvaCtx_apply_matrix_transform(CanvaCtx *self, double m1, double m2, double m3, double m4, double m5, double m6)
 {
-	fprintf(stderr, "Cairo matrix %p %f %f %f %f %f %f\n", self->cr, m1, m2, m3, m4, m5, m6);
+	log_trace("Cairo matrix %p %f %f %f %f %f %f\n", self->cr, m1, m2, m3, m4, m5, m6);
 	cairo_matrix_t m;
 	cairo_matrix_init(&m, m1, m2, m3, m4, m5, m6);
 	cairo_transform(self->cr, &m);
@@ -467,31 +468,31 @@ void CanvaCtx_apply_matrix_transform(CanvaCtx *self, double m1, double m2, doubl
 
 void CanvaCtx_new_path(CanvaCtx *self)
 {
-	fprintf(stderr, "Cairo new path %p\n", self->cr);
+	log_trace("Cairo new path %p\n", self->cr);
 	cairo_new_path(self->cr);
 }
 
 void CanvaCtx_new_sub_path(CanvaCtx *self)
 {
-	fprintf(stderr, "Cairo new subpath %p\n", self->cr);
+	log_trace("Cairo new subpath %p\n", self->cr);
 	cairo_new_sub_path(self->cr);
 }
 
 void CanvaCtx_close_path(CanvaCtx *self)
 {
-	fprintf(stderr, "Cairo close path %p\n", self->cr);
+	log_trace("Cairo close path %p\n", self->cr);
 	cairo_close_path(self->cr);
 }
 
 void CanvaCtx_save(CanvaCtx *self)
 {
-	fprintf(stderr, "Cairo save %p\n", self->cr);
+	log_trace("Cairo save %p\n", self->cr);
 	cairo_save(self->cr);
 }
 
 void CanvaCtx_restore(CanvaCtx *self)
 {
-	fprintf(stderr, "Cairo restore %p\n", self->cr);
+	log_trace("Cairo restore %p\n", self->cr);
 	cairo_restore(self->cr);
 }
 
@@ -509,50 +510,50 @@ void CanvaCtx_set_default_draw_mode(CanvaCtx *self, CanvaCtxAutoDrawMode m)
 
 void CanvaCtx_auto_draw(CanvaCtx *self)
 {
-	fprintf(stderr, "AutoStroke ?\n");
+	log_trace("AutoStroke ?\n");
 	if(self->pending_path == false)
 	{
-		fprintf(stderr, "No need AutoStroke !\n");
+		log_trace("No need AutoStroke !\n");
 		return;
 	}
-	fprintf(stderr, "Need AutoStroke !\n");
+	log_trace("Need AutoStroke !\n");
 	switch(self->default_auto_draw_mode)
 	{
 	case Fill :			if(self->color_set_up == false)
 						{
-							fprintf(stderr, "No Color Set up, sending default Fill Color\n");
+							log_trace("No Color Set up, sending default Fill Color\n");
 							_CanvaCtx_send_default_fill_color(self);
 						}
 						CanvaCtx_fill(self);
 						break;
 	case Stroke :		if(self->color_set_up == false)
 						{
-							fprintf(stderr, "No Color Set up, sending default Stroke Color\n");
+							log_trace("No Color Set up, sending default Stroke Color\n");
 							_CanvaCtx_send_default_stroke_color(self);
 						}
 						CanvaCtx_stroke(self);
 						break;
 	case FillStroke :	if(self->color_set_up == false)
 						{
-							fprintf(stderr, "No Color Set up, sending default Fill Color\n");
+							log_trace("No Color Set up, sending default Fill Color\n");
 							_CanvaCtx_send_default_fill_color(self);
 						}
 						CanvaCtx_fill_preserve(self);
 						{
-							fprintf(stderr, "No Color Set up, sending default Stroke Color\n");
+							log_trace("No Color Set up, sending default Stroke Color\n");
 							_CanvaCtx_send_default_stroke_color(self);
 						}
 						CanvaCtx_stroke(self);
 						break;
 	case StrokeFill :	if(self->color_set_up == false)
 						{
-							fprintf(stderr, "No Color Set up, sending default Stroke Color\n");
+							log_trace("No Color Set up, sending default Stroke Color\n");
 							_CanvaCtx_send_default_stroke_color(self);
 						}
 						CanvaCtx_stroke_preserve(self);
 						if(self->color_set_up == false)
 						{
-							fprintf(stderr, "No Color Set up, sending default Fill Color\n");
+							log_trace("No Color Set up, sending default Fill Color\n");
 							_CanvaCtx_send_default_fill_color(self);
 						}
 						CanvaCtx_fill(self);
@@ -564,14 +565,14 @@ void CanvaCtx_auto_draw(CanvaCtx *self)
 
 void CanvaCtx_set_line_width(CanvaCtx *self, double w)
 {
-	fprintf(stderr, "Cairo %p set line width %f\n", self->cr, w);
+	log_trace("Cairo %p set line width %f\n", self->cr, w);
 	cairo_set_line_width (self->cr, w);
 }
 
 double CanvaCtx_get_line_width(CanvaCtx *self)
 {
 	double w = cairo_get_line_width (self->cr);
-	fprintf(stderr, "Cairo %p get line width %f\n", self->cr, w);
+	log_trace("Cairo %p get line width %f\n", self->cr, w);
 	return w;
 }
 
@@ -588,7 +589,7 @@ void CanvaCtx_set_font(CanvaCtx *self, const char *name, const char *slant, cons
 	if(strcmp(weight, "bold") == 0)
 		w = CAIRO_FONT_WEIGHT_BOLD;
 
-	fprintf(stderr, "Cairo %p font '%s' %d ('%s') %d ('%s')\n", self->cr, name, s, slant, w, weight);
+	log_trace("Cairo %p font '%s' %d ('%s') %d ('%s')\n", self->cr, name, s, slant, w, weight);
 	cairo_select_font_face (self->cr, name, s, w);
 }
 
@@ -618,37 +619,37 @@ void CanvaCtx_get_font_extents(CanvaCtx *self, CanvaCtxFontExtent *e)
 void CanvaCtx_get_path_extents(CanvaCtx *self, double *x1, double *y1, double *x2, double *y2)
 {
 	cairo_path_extents (self->cr, x1, y1, x2, y2);
-	fprintf(stderr, "Cairo %p get path extents : %f %f %f %f\n", self->cr, *x1, *y1, *x2, *y2);
+	log_trace("Cairo %p get path extents : %f %f %f %f\n", self->cr, *x1, *y1, *x2, *y2);
 }
 
 void CanvaCtx_set_font_size(CanvaCtx *self, double size)
 {
-	fprintf(stderr, "Cairo %p font size %f\n", self->cr, size);
+	log_trace("Cairo %p font size %f\n", self->cr, size);
 	cairo_set_font_size (self->cr, size);
 }
 
 void CanvaCtx_move_to(CanvaCtx *self, double x, double y)
 {
-	fprintf(stderr, "Cairo %p move to %f, %f\n", self->cr, x, y);
+	log_trace("Cairo %p move to %f, %f\n", self->cr, x, y);
 	cairo_move_to(self->cr, x, y);
 }
 
 void CanvaCtx_scale(CanvaCtx *self, double x, double y)
 {
-	fprintf(stderr, "Cairo %p scale %f, %f\n", self->cr, x, y);
+	log_trace("Cairo %p scale %f, %f\n", self->cr, x, y);
 	cairo_scale(self->cr, x, y);
 }
 
 void CanvaCtx_draw_text(CanvaCtx *self, const char *text)
 {
-	fprintf(stderr, "Cairo %p draw text '%s'\n", self->cr, text);
+	log_trace("Cairo %p draw text '%s'\n", self->cr, text);
 	cairo_show_text(self->cr, text);
 	self->pending_path = true;
 }
 
 void CanvaCtx_draw_text_path(CanvaCtx *self, const char *text)
 {
-	fprintf(stderr, "Cairo %p draw text path '%s'\n", self->cr, text);
+	log_trace("Cairo %p draw text path '%s'\n", self->cr, text);
 	cairo_text_path(self->cr, text);
 	self->pending_path = true;
 }
@@ -658,8 +659,8 @@ void CanvaCtx_stroke(CanvaCtx *self)
 	cairo_pattern_t *pat = cairo_get_source(self->cr);
 	double r, g, b, a;
 	cairo_pattern_get_rgba(pat, &r, &g, &b, &a);
-	fprintf(stderr, "colors at stroke %f %f %f %f\n", r, g, b, a);
-	fprintf(stderr, "Cairo %p stroke\n", self->cr);
+	log_trace("colors at stroke %f %f %f %f\n", r, g, b, a);
+	log_trace("Cairo %p stroke\n", self->cr);
 	cairo_stroke (self->cr);
 	self->pending_path = false;
 	self->color_set_up = false;
@@ -670,8 +671,8 @@ void CanvaCtx_stroke_preserve(CanvaCtx *self)
 	cairo_pattern_t *pat = cairo_get_source(self->cr);
 	double r, g, b, a;
 	cairo_pattern_get_rgba(pat, &r, &g, &b, &a);
-	fprintf(stderr, "colors at stroke %f %f %f %f\n", r, g, b, a);
-	fprintf(stderr, "Cairo %p stroke preserve\n", self->cr);
+	log_trace("colors at stroke %f %f %f %f\n", r, g, b, a);
+	log_trace("Cairo %p stroke preserve\n", self->cr);
 	cairo_stroke_preserve (self->cr);
 }
 
@@ -694,7 +695,7 @@ void CanvaCtx_write_to_fd(CanvaCtx *self, int fd)
 	{
 		if(write(fd, (void*)String_get_data(&self->output_buffer), String_get_length(&self->output_buffer)) < 0)
 		{
-			fprintf(stderr, "Write Failed : %s", strerror(errno));
+			log_error("Write Failed : %s", strerror(errno));
 		}
 	}
 }

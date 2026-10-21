@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <log.h>
 #include "OpProgram.h"
 
 int yycolumn = 1;
@@ -177,19 +178,18 @@ int yycolumn = 1;
 }
 
 . {
-    fprintf(stderr,
-            "Caractere inconnu '%c'\n",
+    log_trace("Caractere inconnu '%c'\n",
             yytext[0]);
 }
 
 <<EOF>> {
 	if(OpParser_pop_stream(p) >= 1)
 	{
-		fprintf(stderr, "Pop exiting include\n");
+		log_trace("Pop exiting include\n");
 	}
 	else
 	{
-		fprintf(stderr, "Pop exiting parsing\n");
+		log_trace("Pop exiting parsing\n");
 		return 0;
 	}
 }

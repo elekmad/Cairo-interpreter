@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <log.h>
 
 
 
@@ -195,12 +196,12 @@ int OpCircle_execute(OpCircle *self, OpCanvaContext *canvactx)
 	{
 		if(self->negative_arc == false)
 		{
-			fprintf(stderr, "Op Draw Circle %f %f %f %f %f\n", x, y, r, a1, a2);
+			log_trace("Op Draw Circle %f %f %f %f %f\n", x, y, r, a1, a2);
 			CanvaCtx_draw_arc(canvactx->Canva, x, y, r, a1, a2);
 		}
 		else
 		{
-			fprintf(stderr, "Op Draw Negative Circle %f %f %f %f %f\n", x, y, r, a1, a2);
+			log_trace("Op Draw Negative Circle %f %f %f %f %f\n", x, y, r, a1, a2);
 			CanvaCtx_draw_arc_negative(canvactx->Canva, x, y, r, a1, a2);
 		}
 	}
@@ -389,7 +390,7 @@ int OpCurve_execute(OpCurve *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Draw Bezier Curve to {%f, %f}, handle 1 {%f, %f}, handle 2 {%f, %f}\n", x, y, m1x, m1y, m2x, m2y);
+		log_trace("Op Draw Bezier Curve to {%f, %f}, handle 1 {%f, %f}, handle 2 {%f, %f}\n", x, y, m1x, m1y, m2x, m2y);
 		CanvaCtx_draw_bezier(canvactx->Canva, x, y, m1x, m1y, m2x, m2y);
 	}
 	return ret;
@@ -583,7 +584,7 @@ int OpRectangle_execute(OpRectangle *self, OpCanvaContext *canvactx)
 	}
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Draw Rectangle %f %f %f %f\n", x, y, w, h);
+		log_trace("Op Draw Rectangle %f %f %f %f\n", x, y, w, h);
 		CanvaCtx_draw_rectangle(canvactx->Canva, x, y, w, h);
 	}
 	return ret;
@@ -764,7 +765,7 @@ int OpPolyline_execute(OpPolyline *self, OpCanvaContext *canvactx)
 	{
 		size_t i;
 		double *d = OpVariable_get_doubles(v);
-		fprintf(stderr, "Op Draw Polyline\n");
+		log_trace("Op Draw Polyline\n");
 		CanvaCtx_new_path(canvactx->Canva);
 		CanvaCtx_move_to(canvactx->Canva, d[0], d[1]);
 		for(i = 2; i < nb - 1; i+=2)
@@ -773,7 +774,7 @@ int OpPolyline_execute(OpPolyline *self, OpCanvaContext *canvactx)
 		}
 		if(self->is_polygon == 1)
 		{
-			fprintf(stderr, "CLosing Polyline for drawing Polygon\n");
+			log_trace("CLosing Polyline for drawing Polygon\n");
 			CanvaCtx_close_path(canvactx->Canva);
 		}
 	}
@@ -883,7 +884,7 @@ int OpColor_execute(OpColor *self, OpCanvaContext *canvactx)
 	}
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Set Color %f %f %f %f\n", r, g, b, a);
+		log_trace("Op Set Color %f %f %f %f\n", r, g, b, a);
 		CanvaCtx_set_color(canvactx->Canva, r, g, b, a);
 	}
 	return ret;
@@ -1031,7 +1032,7 @@ int OpSetBGColor_execute(OpColor *self, OpCanvaContext *canvactx)
 		int w, h;
 		w = OpCanvaContext_get_width(canvactx);
 		h = OpCanvaContext_get_height(canvactx);
-		fprintf(stderr, "Op Set BG Color %f %f %f %f\n", r, g, b, a);
+		log_trace("Op Set BG Color %f %f %f %f\n", r, g, b, a);
 		CanvaCtx_set_color(canvactx->Canva, r, g, b, a);
 		CanvaCtx_paint(canvactx->Canva);
 	}
@@ -1090,7 +1091,7 @@ int OpSetDefaultStrokeColor_execute(OpColor *self, OpCanvaContext *canvactx)
 		int w, h;
 		w = OpCanvaContext_get_width(canvactx);
 		h = OpCanvaContext_get_height(canvactx);
-		fprintf(stderr, "Op Set Default Stroke Color %f %f %f %f\n", r, g, b, a);
+		log_trace("Op Set Default Stroke Color %f %f %f %f\n", r, g, b, a);
 		CanvaCtx_set_default_stroke_color(canvactx->Canva, r, g, b, a);
 	}
 	return ret;
@@ -1148,7 +1149,7 @@ int OpSetTextColor_execute(OpColor *self, OpCanvaContext *canvactx)
 		int w, h;
 		w = OpCanvaContext_get_width(canvactx);
 		h = OpCanvaContext_get_height(canvactx);
-		fprintf(stderr, "Op Set Text Color %f %f %f %f\n", r, g, b, a);
+		log_trace("Op Set Text Color %f %f %f %f\n", r, g, b, a);
 		CanvaCtx_set_text_color(canvactx->Canva, r, g, b, a);
 	}
 	return ret;
@@ -1205,7 +1206,7 @@ int OpSetDefaultFillColor_execute(OpColor *self, OpCanvaContext *canvactx)
 		int w, h;
 		w = OpCanvaContext_get_width(canvactx);
 		h = OpCanvaContext_get_height(canvactx);
-		fprintf(stderr, "Op Set Default Fill Color %f %f %f %f\n", r, g, b, a);
+		log_trace("Op Set Default Fill Color %f %f %f %f\n", r, g, b, a);
 		CanvaCtx_set_default_fill_color(canvactx->Canva, r, g, b, a);
 	}
 	return ret;
@@ -1638,7 +1639,7 @@ int OpSetOutputSize_execute(OpSetOutputSize *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Set Output Size Width Height %f %f\n", w, h);
+		log_trace("Op Set Output Size Width Height %f %f\n", w, h);
 		OpCanvaContext_set_width(canvactx, (int)w);
 		OpCanvaContext_set_height(canvactx, (int)h);
 	}
@@ -1712,7 +1713,7 @@ int OpSetLineWidth_execute(OpSetLineWidth *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Set Line Width %f\n", w);
+		log_trace("Op Set Line Width %f\n", w);
 		CanvaCtx_set_line_width(canvactx->Canva, w);
 	}
 	return ret;
@@ -1749,7 +1750,7 @@ int OpGetLineWidth_execute(OpGetLineWidth *self, OpCanvaContext *canvactx)
 	int ret = 0;
 	OpContext *ctx = (OpContext*)canvactx;
 	double w  = CanvaCtx_get_line_width(canvactx->Canva);
-	fprintf(stderr, "Op Get Line Width : %f\n", w);
+	log_trace("Op Get Line Width : %f\n", w);
 
 	OpContext_set_current_value_double(ctx, w);
 	return ret;
@@ -1822,7 +1823,7 @@ int OpRotate_execute(OpRotate *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Rotate %f\n", a);
+		log_trace("Op Rotate %f\n", a);
 		CanvaCtx_rotate(canvactx->Canva, a);
 	}
 	return ret;
@@ -1895,7 +1896,7 @@ int OpSkewX_execute(OpSkewX *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op SkewX %f\n", a);
+		log_trace("Op SkewX %f\n", a);
 		CanvaCtx_skewx(canvactx->Canva, a);
 	}
 	return ret;
@@ -1968,7 +1969,7 @@ int OpSkewY_execute(OpSkewY *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op SkewY %f\n", a);
+		log_trace("Op SkewY %f\n", a);
 		CanvaCtx_skewy(canvactx->Canva, a);
 	}
 	return ret;
@@ -2099,7 +2100,7 @@ int OpTranslate_execute(OpTranslate *self, OpCanvaContext *canvactx)
 	}
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Translate %f %f\n", x, y);
+		log_trace("Op Translate %f %f\n", x, y);
 		CanvaCtx_translate(canvactx->Canva, x, y);
 	}
 	return ret;
@@ -2229,7 +2230,7 @@ int OpMoveTo_execute(OpMoveTo *self, OpCanvaContext *canvactx)
 	}
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Move To %f %f\n", x, y);
+		log_trace("Op Move To %f %f\n", x, y);
 		CanvaCtx_move_to(canvactx->Canva, x, y);
 	}
 	return ret;
@@ -2359,7 +2360,7 @@ int OpScale_execute(OpScale *self, OpCanvaContext *canvactx)
 	}
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Scale %f %f\n", x, y);
+		log_trace("Op Scale %f %f\n", x, y);
 		CanvaCtx_scale(canvactx->Canva, x, y);
 	}
 	return ret;
@@ -2448,7 +2449,7 @@ int OpMatrix_execute(OpMatrix *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Apply Matrix Transform {%f %f %f %f %f %f}\n", m1, m2, m3, m4, m5, m6);
+		log_trace("Op Apply Matrix Transform {%f %f %f %f %f %f}\n", m1, m2, m3, m4, m5, m6);
 		CanvaCtx_apply_matrix_transform(canvactx->Canva, m1, m2, m3, m4, m5, m6);
 	}
 	return ret;
@@ -2691,7 +2692,7 @@ int OpDrawLineTo_execute(OpDrawLineTo *self, OpCanvaContext *canvactx)
 	}
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Draw Line To %f %f\n", x, y);
+		log_trace("Op Draw Line To %f %f\n", x, y);
 		CanvaCtx_draw_line_to(canvactx->Canva, x, y);
 	}
 	return ret;
@@ -2737,7 +2738,7 @@ int OpCanvaBloc_execute(OpCanvaBloc *self, OpCanvaContext *canvactx)
 	if(state == PreRun)//PreRun ? Musn't play Canva part !
 		return OpBloc_execute(&self->super, (OpContext*)ctx);
 
-	fprintf(stderr, "Canva %p Save\n", canvactx->Canva);
+	log_trace("Canva %p Save\n", canvactx->Canva);
 	CanvaCtx_save(canvactx->Canva);
 	ret = OpBloc_execute(&self->super, (OpContext*)ctx);
 	if(ret == 0)
@@ -2745,7 +2746,7 @@ int OpCanvaBloc_execute(OpCanvaBloc *self, OpCanvaContext *canvactx)
 		if(self->auto_draw == true)
 			CanvaCtx_auto_draw(canvactx->Canva);
 
-		fprintf(stderr, "Canva %p Restore\n", canvactx->Canva);
+		log_trace("Canva %p Restore\n", canvactx->Canva);
 		CanvaCtx_restore(canvactx->Canva);
 	}
 	return ret;
@@ -2870,7 +2871,7 @@ int OpNewLinear_execute(OpNewLinear *self, OpCanvaContext *canvactx)
 	}
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op New Pattern Linear %f %f %f %f\n", x1, y1, x2, y2);
+		log_trace("Op New Pattern Linear %f %f %f %f\n", x1, y1, x2, y2);
 		double num = CanvaCtx_new_linear_pattern(canvactx->Canva, x1, y1, x2, y2);
 		if(!isnan(num))
 			OpContext_set_current_value_double(ctx, num);
@@ -3049,7 +3050,7 @@ int OpNewRadial_execute(OpNewRadial *self, OpCanvaContext *canvactx)
 	}
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op New Pattern Radial %f %f %f %f %f %f\n", x1, y1, r1, x2, y2, r2);
+		log_trace("Op New Pattern Radial %f %f %f %f %f %f\n", x1, y1, r1, x2, y2, r2);
 		double num = CanvaCtx_new_radial_pattern(canvactx->Canva, x1, y1, r1, x2, y2, r2);
 		if(!isnan(num))
 			OpContext_set_current_value_double(ctx, num);
@@ -3257,7 +3258,7 @@ int OpAddStopColor_execute(OpAddStopColor *self, OpCanvaContext *canvactx)
 	{
 		String msg;
 		String_init(&msg);
-		fprintf(stderr, "Op Set Color %f, %f %f %f %f to pattern %f\n", o, r, g, b, a, n);
+		log_trace("Op Set Color %f, %f %f %f %f to pattern %f\n", o, r, g, b, a, n);
 		if(CanvaCtx_add_stop_rgba(canvactx->Canva, (size_t)n, o, r, g, b, a, &msg) == -1)
 		{
 			OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&msg));
@@ -3451,7 +3452,7 @@ int OpRecallPattern_execute(OpRecallPattern *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Recall Pattern %f\n", n);
+		log_trace("Op Recall Pattern %f\n", n);
 		CanvaCtx_recall_pattern(canvactx->Canva, n);
 	}
 	return ret;
@@ -3527,7 +3528,7 @@ int OpUseMask_execute(OpUseMask *self, OpCanvaContext *canvactx)
 		{
 			String msg;
 			String_init(&msg);
-			fprintf(stderr, "Op Use Mask %f\n", n);
+			log_trace("Op Use Mask %f\n", n);
 			ret = CanvaCtx_use_mask(canvactx->Canva, (size_t)n, &msg);
 			if(ret != 0)
 				OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&msg));
@@ -3599,7 +3600,7 @@ int OpPaint_execute(OpPaint *self, OpCanvaContext *canvactx)
 
 	if(ret == 0)
 	{
-		fprintf(stderr, "Op Paint with alpha %f\n", a);
+		log_trace("Op Paint with alpha %f\n", a);
 		if(!isnan(a))
 			CanvaCtx_paint_with_alpha(canvactx->Canva, a);
 		else
@@ -3834,7 +3835,7 @@ int OpSetFontSize_execute(OpSetFontSize *self, OpCanvaContext *canvactx)
 	if(ret == 0)
 	{
 		CanvaCtx_set_font_size(canvactx->Canva, s);
-		fprintf(stderr, "Op Set Font Size %f\n", s);
+		log_trace("Op Set Font Size %f\n", s);
 	}
 	return ret;
 }
@@ -3926,7 +3927,7 @@ int OpGetTextExtents_execute(OpGetTextExtents *self, OpCanvaContext *canvactx)
 			String s;
 			String_init(&s);
 			OpVariable_to_string(&v, &s);
-			fprintf(stderr, "Get Text Extents : %s\n", String_get_char_string(&s));
+			log_trace("Get Text Extents : %s\n", String_get_char_string(&s));
 			String_finalize(&s);
 			OpVariable_terminate(&v);
 	}
@@ -3966,7 +3967,7 @@ int OpGetFontExtents_execute(Op *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	fprintf(stderr, "Get Font Extents : %s\n", String_get_char_string(&s));
+	log_trace("Get Font Extents : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -4003,7 +4004,7 @@ int OpGetPathExtents_execute(Op *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	fprintf(stderr, "Get Path Extents : %s\n", String_get_char_string(&s));
+	log_trace("Get Path Extents : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -4041,7 +4042,7 @@ int OpGetOutputSize_execute(Op *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	fprintf(stderr, "Get Output Size : %s\n", String_get_char_string(&s));
+	log_trace("Get Output Size : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -4077,7 +4078,7 @@ int OpGetRedColor_execute(Op *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	fprintf(stderr, "Get Red Color : %s\n", String_get_char_string(&s));
+	log_trace("Get Red Color : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -4112,7 +4113,7 @@ int OpGetGreenColor_execute(Op *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	fprintf(stderr, "Get Green Color : %s\n", String_get_char_string(&s));
+	log_trace("Get Green Color : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -4147,7 +4148,7 @@ int OpGetBlueColor_execute(Op *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	fprintf(stderr, "Get Blue Color : %s\n", String_get_char_string(&s));
+	log_trace("Get Blue Color : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -4183,7 +4184,7 @@ int OpGetBlackColor_execute(Op *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	fprintf(stderr, "Get Black Color : %s\n", String_get_char_string(&s));
+	log_trace("Get Black Color : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
@@ -4218,7 +4219,7 @@ int OpGetWhiteColor_execute(Op *self, OpCanvaContext *ctx)
 	String s;
 	String_init(&s);
 	OpVariable_to_string(&v, &s);
-	fprintf(stderr, "Get White Color Size : %s\n", String_get_char_string(&s));
+	log_trace("Get White Color Size : %s\n", String_get_char_string(&s));
 	String_finalize(&s);
 	OpVariable_terminate(&v);
 
