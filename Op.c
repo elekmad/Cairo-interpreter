@@ -1133,7 +1133,7 @@ OpIsa OpPrintMessage_isa = {
 		.terminate = (void(*)(Op*))OpPrintMessage_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))OpPrintMessage_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpPrintMessage_execute,
-		.check_args = NULL
+		.check_args = (int(*)(Op*, OpContext*))OpPrintMessage_check_args
 };
 
 void OpPrintMessage_init(OpPrintMessage *self)
@@ -1173,28 +1173,33 @@ void OpPrintMessage_set_message(OpPrintMessage *self, const char *m)
 		self->message = NULL;
 }
 
+int OpPrintMessage_check_args(OpPrintMessage *self, OpContext *ctx)
+{
+	if(self->value == NULL || self->message == NULL)
+		return -1;
+	return 0;
+}
+
 int OpPrintMessage_execute(OpPrintMessage *self, OpContext *ctx)
 {
 	int ret = 0;
 	OpVariable val;
 	String s;
 
-	if(self->value != NULL && self->message != NULL)
+	OpVariable_init(&val);
+	String_init(&s);
+	ret = Op_execute(self->value, ctx);
+	if(ret == 0)
 	{
-		OpVariable_init(&val);
-		String_init(&s);
-		ret = Op_execute(self->value, ctx);
-		if(ret == 0)
-		{
-			OpVariable_copy(&val, OpContext_get_current_value(ctx));
-			String_append_printf(&s, "Message '%s' : ", self->message);
-			OpVariable_content_to_string(&val, &s);
-			OpContext_set_running_state(ctx, (Op*)self, Run, String_get_char_string(&s));
-			log_trace("%s\n", String_get_char_string(&s));
-		}
-		String_finalize(&s);
-		OpVariable_terminate(&val);
+		OpVariable_copy(&val, OpContext_get_current_value(ctx));
+		String_append_printf(&s, "Message '%s' : ", self->message);
+		OpVariable_content_to_string(&val, &s);
+		OpContext_set_running_state(ctx, (Op*)self, Run, String_get_char_string(&s));
+		log_trace("%s\n", String_get_char_string(&s));
 	}
+	String_finalize(&s);
+	OpVariable_terminate(&val);
+
 	return ret;
 }
 
@@ -1257,6 +1262,96 @@ int OpGetValue_execute(OpGetValue *self, OpContext *ctx)
 Op *OpGetValue_new(void)
 {
 	return Op_new(&OpGetValue_isa);
+}
+
+
+
+int compute_getenv(OpVariable *res, OpVariable *v, String *err_msg)
+{
+	int ret = -1;
+	switch(OpVariable_get_type(v))
+	{
+	case NONE :		break;
+	case DOUBLE: 	break;
+	case DOUBLES :	break;
+	case STRING :	{
+						const char *name = OpVariable_get_string(v);
+						char *env;
+						env = getenv(name);
+						if(env != NULL)
+						{
+							ret = 0;
+							OpVariable_set_string(res, env);
+						}
+						else
+						{
+							String_append_printf(err_msg, "Env var '%s' do not exist", name);
+						}
+					}
+					break;
+	case STRINGS :	{
+						char *env;
+						const char * const * names;
+						size_t nb, cmpt;
+						nb = OpVariable_get_number_elements(v);
+						names = OpVariable_get_strings(v);
+						OpVariable_set_type(res, STRINGS);
+						ret = 0;
+						for(cmpt = 0; cmpt < nb; cmpt++)
+						{
+							env = getenv(names[cmpt]);
+							if(env != NULL)
+							{
+								OpVariable_append_string(res, env);
+							}
+							else
+							{
+								ret = -1;
+								String_append_printf(err_msg, "Env var '%s' do not exist", names[cmpt]);
+								break;
+							}
+						}
+					}
+					break;
+	}
+	return ret;
+}
+
+int check_args_GetEnv(OpVariable *v)
+{
+	int ret = 0;
+	OpVarType t = OpVariable_get_type(v);
+	switch(t)
+	{
+	case NONE :		return -1;
+					break;
+	case DOUBLE :	return -1;
+					break;
+	case DOUBLES :	return -1;
+					break;
+	case STRING :	return 0;
+					break;
+	case STRINGS :	return 0;
+					break;
+	}
+	return ret;
+}
+
+OpIsaOneOp OpGetEnv_isa = {
+		.super.name="OpGetEnv",
+		.super.size=sizeof(Op1),
+		.super.init = (void(*)(Op*))Op1_init,
+		.super.terminate = (void(*)(Op*))Op1_terminate,
+		.super.fix_operandes = (int(*)(Op*, OpContext*))Op1_fix_operandes,
+		.super.execute = (int(*)(Op*, OpContext*))Op1_execute,
+		.super.check_args = (int(*)(Op*,OpContext*))Op1_check_args,
+		.check_arg = check_args_GetEnv,
+		.compute = compute_getenv
+};
+
+Op *OpGetEnv_new(void)
+{
+	return Op_new(&OpGetEnv_isa.super);
 }
 
 OpIsa OpIf_isa = {

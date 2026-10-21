@@ -94,7 +94,7 @@ int check_args_GetGMTTime(OpVariable *v)
 }
 
 OpIsaOneOp OpGetGMTTime_isa = {
-		.super.name="OpGetGMTTime_isa",
+		.super.name="OpGetGMTTime",
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,
@@ -174,7 +174,7 @@ int check_args_GetLocalTime(OpVariable *v)
 }
 
 OpIsaOneOp OpGetLocalTime_isa = {
-		.super.name="OpGetLocalTime_isa",
+		.super.name="OpGetLocalTime",
 		.super.size=sizeof(Op1),
 		.super.init = (void(*)(Op*))Op1_init,
 		.super.terminate = (void(*)(Op*))Op1_terminate,

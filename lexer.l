@@ -115,6 +115,7 @@ int yycolumn = 1;
 (?i:"gettimeinsecs")	{ return GETTIMEINSECS; }
 (?i:"getgmttime")	{ return GETGMTTIME; }
 (?i:"getlocaltime")	{ return GETLOCALTIME; }
+(?i:"getenv")		{ return GETENV; }
 (?i:"red")			{ return RED; }
 (?i:"green")		{ return GREEN; }
 (?i:"blue")			{ return BLUE; }

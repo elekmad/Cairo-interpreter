@@ -120,6 +120,7 @@ Op *root;
 %token GETTIMEINSECS
 %token GETGMTTIME
 %token GETLOCALTIME
+%token GETENV
 %token RED
 %token GREEN
 %token BLUE
@@ -1588,6 +1589,13 @@ expression:
       	| GETLOCALTIME '(' expression ')'
       {
 		Op1 *op = (Op1*)OpGetLocalTime_new();
+      	$$ = (Op*)op;
+		Op1_set_operande(op, $3);
+  		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+	  }
+      	| GETENV '(' expression ')'
+      {
+		Op1 *op = (Op1*)OpGetEnv_new();
       	$$ = (Op*)op;
 		Op1_set_operande(op, $3);
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
