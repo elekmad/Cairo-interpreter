@@ -331,7 +331,7 @@ int main(int argc, char **argv)
     if(check_args_add(&v1, &v2) == 0)
     {
     	ret = -1;
-    	fprintf(stderr, "check DOUBLE + STRING with different sizes shouldn't work\n");
+    	fprintf(stderr, "check DOUBLE + STRING shouldn't work\n");
     }
 
     //Check Add DOUBLE + STRINGS
@@ -344,7 +344,7 @@ int main(int argc, char **argv)
     if(check_args_add(&v1, &v2) == 0)
     {
     	ret = -1;
-    	fprintf(stderr, "check DOUBLE + STRINGS with different sizes shouldn't work\n");
+    	fprintf(stderr, "check DOUBLE + STRINGS shouldn't work\n");
     }
 
 
@@ -357,7 +357,7 @@ int main(int argc, char **argv)
     if(check_args_add(&v1, &v2) == 0)
     {
     	ret = -1;
-    	fprintf(stderr, "check DOUBLES + STRING with different sizes shouldn't work\n");
+    	fprintf(stderr, "check DOUBLES + STRING shouldn't work\n");
     }
 
     //Check Add DOUBLES + STRINGS
@@ -370,7 +370,7 @@ int main(int argc, char **argv)
     if(check_args_add(&v1, &v2) == 0)
     {
     	ret = -1;
-    	fprintf(stderr, "check DOUBLES + STRINGS with different sizes shouldn't work\n");
+    	fprintf(stderr, "check DOUBLES + STRINGS shouldn't work\n");
     }
 
     //Check Add STRING + DOUBLE
@@ -382,7 +382,7 @@ int main(int argc, char **argv)
     if(check_args_add(&v1, &v2) == 0)
     {
     	ret = -1;
-    	fprintf(stderr, "check STRING + DOUBLE with different sizes shouldn't work\n");
+    	fprintf(stderr, "check STRING + DOUBLE shouldn't work\n");
     }
 
     //Check Add STRING + DOUBLES
@@ -395,7 +395,7 @@ int main(int argc, char **argv)
     if(check_args_add(&v1, &v2) == 0)
     {
     	ret = -1;
-    	fprintf(stderr, "check STRING + DOUBLES with different sizes shouldn't work\n");
+    	fprintf(stderr, "check STRING + DOUBLES shouldn't work\n");
     }
 
     //Check Add STRINGS + DOUBLE
@@ -407,7 +407,7 @@ int main(int argc, char **argv)
     if(check_args_add(&v1, &v2) == 0)
     {
     	ret = -1;
-    	fprintf(stderr, "check STRINGS + DOUBLE with different sizes shouldn't work\n");
+    	fprintf(stderr, "check STRINGS + DOUBLE shouldn't work\n");
     }
 
     //Check Add STRINGS + DOUBLES
@@ -419,7 +419,7 @@ int main(int argc, char **argv)
     if(check_args_add(&v1, &v2) == 0)
     {
     	ret = -1;
-    	fprintf(stderr, "check STRINGS + DOUBLES with different sizes shouldn't work\n");
+    	fprintf(stderr, "check STRINGS + DOUBLES shouldn't work\n");
     }
 
 
