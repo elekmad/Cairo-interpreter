@@ -35,7 +35,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/" FILES ${CPP_SOURCE})
 
-
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
@@ -57,6 +56,10 @@ ADD_FLEX_BISON_DEPENDENCY(
     Parser
 )
 
+add_library(CairoInterpreterLib
+	${LIB_SRC}
+        ${BISON_Parser_OUTPUTS}
+        ${FLEX_Lexer_OUTPUTS})
 
 add_executable(CairoInterpreter
 	${CPP_SOURCE}
@@ -64,16 +67,22 @@ add_executable(CairoInterpreter
     ${FLEX_Lexer_OUTPUTS}
 )
 
+set(testLink CairoInterpreterLib)
+include(unittests.cmake)
+
 #target_link_libraries(CairoInterpreter PRIVATE fl)
 
 find_package(LibXml2 REQUIRED)
 
+target_link_libraries(CairoInterpreterLib PRIVATE LibXml2::LibXml2)
+target_link_libraries(CairoInterpreterLib PRIVATE m)
 target_link_libraries(CairoInterpreter PRIVATE LibXml2::LibXml2)
 target_link_libraries(CairoInterpreter PRIVATE m)
 find_library(B64_LIBRARY
     NAMES libb64.a
 )
 
+target_link_libraries(CairoInterpreterLib PRIVATE ${B64_LIBRARY})
 target_link_libraries(CairoInterpreter PRIVATE ${B64_LIBRARY})
 
 include(FetchContent)
@@ -87,6 +96,8 @@ if( UPDISTANT )
 	FetchContent_MakeAvailable(LinkedLists)
 endif()
 
+target_link_libraries(CairoInterpreterLib PRIVATE LinkedLists)
+target_include_directories(CairoInterpreterLib PRIVATE ${linkedlists_SOURCE_DIR})
 target_link_libraries(CairoInterpreter PRIVATE LinkedLists)
 target_include_directories(CairoInterpreter PRIVATE ${linkedlists_SOURCE_DIR})
 
@@ -99,6 +110,8 @@ if( UPDISTANT )
 	FetchContent_MakeAvailable(Strings)
 endif()
 
+target_link_libraries(CairoInterpreterLib PRIVATE Strings)
+target_include_directories(CairoInterpreterLib PRIVATE ${strings_SOURCE_DIR})
 target_link_libraries(CairoInterpreter PRIVATE Strings)
 target_include_directories(CairoInterpreter PRIVATE ${strings_SOURCE_DIR})
 
@@ -111,6 +124,8 @@ if( UPDISTANT )
 	FetchContent_MakeAvailable(Logs)
 endif()
 
+target_sources(CairoInterpreterLib PRIVATE ${logs_SOURCE_DIR}/src/log.c)
+target_include_directories(CairoInterpreterLib PRIVATE ${logs_SOURCE_DIR}/src)
 target_sources(CairoInterpreter PRIVATE ${logs_SOURCE_DIR}/src/log.c)
 target_include_directories(CairoInterpreter PRIVATE ${logs_SOURCE_DIR}/src)
 
@@ -154,6 +169,7 @@ find_package(PkgConfig REQUIRED)
 
 #Cairo
 find_package(Cairo)
+target_link_libraries(CairoInterpreterLib PRIVATE Cairo::Cairo)
 target_link_libraries(CairoInterpreter PRIVATE Cairo::Cairo)
 message(STATUS "Cairo include: ${Cairo_INCLUDE_DIR}")
 message(STATUS "Cairo lib: ${Cairo_LIBRARY}")
@@ -170,6 +186,7 @@ endif()
 
 if( WITHSDL)
 find_package(SDL2 REQUIRED CONFIG)
+target_link_libraries(CairoInterpreterLib PRIVATE SDL2::SDL2)
 target_link_libraries(CairoInterpreter PRIVATE SDL2::SDL2)
 endif()
 
