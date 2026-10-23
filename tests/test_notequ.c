@@ -51,7 +51,7 @@ int main(int argc, char **argv)
     	ret = -1;
     	fprintf(stderr, "result DOUBLE <> DOUBLE should work : %f != %d\n", OpVariable_get_double(&res), 1);
     }
-    //Check not ==
+    //Check not <>
     OpVariable_set_double(&v2, D1);
     OpVariable_set_type(&res, NONE);
     compute_notequ(&res, &v1, &v2, &err);
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
     	ret = -1;
     	fprintf(stderr, "result STRING <> STRING not identical should work : %f != %d\n", OpVariable_get_double(&res), 1);
     }
-    //Check not equ
+    //Check not <>
     OpVariable_set_type(&v2, NONE);
     OpVariable_set_string(&v2, S1);
 	OpVariable_set_type(&res, NONE);
