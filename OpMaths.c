@@ -839,42 +839,10 @@ Op *OpEqu_new(void)
 
 int compute_notequ(OpVariable *res, OpVariable *v1, OpVariable *v2, String *err_msg)
 {
-	int ret = 0;
-	bool eq = true;
-	size_t cmpt, nb;
-	//Recherche de la premiere difference
-	switch(OpVariable_get_type(v1))
-	{
-	case DOUBLE :	eq = double_eq(OpVariable_get_double(v1), OpVariable_get_double(v2));
-					break;
-	case DOUBLES :	nb = OpVariable_get_number_elements(v1);
-					double *d1 = OpVariable_get_doubles(v1), *d2 = OpVariable_get_doubles(v2);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-					{
-						if(double_eq(d1[cmpt], d2[cmpt]) == false)
-						{
-							eq = false;
-							break;
-						}
-					}
-					break;
-	case STRING :	eq = strcmp(OpVariable_get_string(v1), OpVariable_get_string(v2)) == 0 ? true : false;
-					break;
-	case STRINGS :	nb = OpVariable_get_number_elements(v1);
-					const char * const *s1 = OpVariable_get_strings(v1);
-					const char * const *s2 = OpVariable_get_strings(v2);
-					for(cmpt = 0; cmpt < nb; cmpt++)
-					{
-						if(strcmp(s1[cmpt], s2[cmpt]) != 0)
-						{
-							eq = false;
-							break;
-						}
-					}
-					break;
-	}
-	OpVariable_set_double(res, eq == true ? 0.0 : 1.0);
-	return ret;
+	//Not equ is logical not of equ.
+	compute_equ(res, v1, v2, err_msg);
+	OpVariable_set_double(res, OpVariable_get_double(res) == 1.0 ? 0.0 : 1.0);
+	return 0;
 }
 
 int check_args_notequ(OpVariable *v1, OpVariable *v2)
