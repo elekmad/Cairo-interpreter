@@ -51,7 +51,7 @@ int main(int argc, char **argv)
     if(double_eq(OpVariable_get_double(&res), 0) == false)
 	{
 		ret = -1;
-		fprintf(stderr, "result DOUBLE > DOUBLE with not equan should work : %f != %d\n", OpVariable_get_double(&res), 0);
+		fprintf(stderr, "result DOUBLE > DOUBLE with not > should work : %f != %d\n", OpVariable_get_double(&res), 0);
 	}
 
     //Check Add DOUBLE > DOUBLES
