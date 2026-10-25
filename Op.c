@@ -1107,10 +1107,21 @@ int OpBloc_execute(OpBloc *self, OpContext *ctx)
 {
 	int ret = 0;
 
-	//Remplacer par un iterateur à construire, c'est plus propre !
-	LinkedList_do_to_all(&self->ops, (void(*)(void*, void*))Op_execute, ctx);
-	if(OpContext_get_running_state(ctx) == Error)
-		ret = -1;
+    LinkedListIterator ite;
+    LinkedListIterator_init(&ite, &self->ops);
+    while(!LinkedListIterator_is_eol(&ite))
+    {
+    	LinkedListIterator_go_to_next(&ite);
+    	Op *op = LinkedListIterator_get_current_value(&ite);
+    	if(op != NULL)
+    	{
+    		ret = Op_execute(op, ctx);
+    		if(ret == -1)
+    			break;
+    	}
+    }
+    LinkedListIterator_finalize(&ite);
+
 	return ret;
 }
 
