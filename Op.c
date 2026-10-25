@@ -852,8 +852,12 @@ int Op_launch(Op *self, OpContext *ctx)
 	OpContext_set_running_state(ctx, self, Run, String_get_char_string(&m));
 
 	ret = Op_execute(self, ctx);
+
 	String_empty(&m);
-	String_append_printf(&m, "Execution completed Op %p return %d", self, ret);
+	if(ret == 0)
+		String_append_printf(&m, "Execution succesfully completed, Op %p return %d", self, ret);
+	else
+		String_append_printf(&m, "Execution completed with an error, Op %p return %d", self, ret);
 	OpContext_set_running_state(ctx, self, Finished, String_get_char_string(&m));
 	String_finalize(&m);
 	return ret;
