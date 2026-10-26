@@ -18,6 +18,20 @@
 #include <QTextCursor>
 #include <QTextBlock>
 
+#include <QComboBox>
+#include <QTableWidget>
+#include <QHeaderView>
+#include <QAbstractItemView>
+
+#include <QSettings>
+#include <QInputDialog>
+#include <QMessageBox>
+#include <QSignalBlocker>
+#include <QTableWidgetItem>
+#include <QRegularExpression>
+
+#include <QLineEdit>
+
 
 
 #include <QImage>
@@ -67,9 +81,12 @@ QImage renderSVGWithLibrsvg(const QByteArray &svgData, int width, int height) {
 }
 }
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+{
     setupUi();
     applyDarkStyle();
+    loadEnvironmentProfiles();
     clearOutput();
 }
 
@@ -116,13 +133,78 @@ void MainWindow::setupUi() {
     editorHeaderLayout->addWidget(saveasBtn);
     editorHeaderLayout->addWidget(sendBtn);
 
-    // Zone d'édition
+    // Zone d'édition et panneau d'environnement
     editor = new QPlainTextEdit(this);
     editor->setPlaceholderText("Entrez votre code ici...");
     editor->setTabStopDistance(4 * fontMetrics().horizontalAdvance(' '));
 
+    QSplitter *editorSplitter = new QSplitter(Qt::Vertical, editorPanel);
+
+    // Partie code
+    QWidget *codePanel = new QWidget(editorSplitter);
+    QVBoxLayout *codeLayout = new QVBoxLayout(codePanel);
+    codeLayout->setContentsMargins(0, 0, 0, 0);
+    codeLayout->addWidget(editor);
+
+    // Partie environnement
+    QWidget *environmentPanel = new QWidget(editorSplitter);
+    QVBoxLayout *environmentLayout = new QVBoxLayout(environmentPanel);
+    environmentLayout->setContentsMargins(8, 8, 8, 8);
+
+    // Sélection et gestion des profils
+    QHBoxLayout *profileLayout = new QHBoxLayout();
+
+    QLabel *environmentTitle = new QLabel("Environnement", environmentPanel);
+
+    environmentProfileCombo = new QComboBox(environmentPanel);
+    environmentProfileCombo->setMinimumWidth(140);
+
+    addEnvironmentProfileBtn =
+        new QPushButton("Nouveau profil", environmentPanel);
+    deleteEnvironmentProfileBtn =
+        new QPushButton("Supprimer profil", environmentPanel);
+
+    profileLayout->addWidget(environmentTitle);
+    profileLayout->addWidget(environmentProfileCombo, 1);
+    profileLayout->addWidget(addEnvironmentProfileBtn);
+    profileLayout->addWidget(deleteEnvironmentProfileBtn);
+
+    // Tableau des variables
+    environmentTable = new QTableWidget(0, 2, environmentPanel);
+    environmentTable->setHorizontalHeaderLabels({"Nom", "Valeur"});
+    environmentTable->horizontalHeader()->setSectionResizeMode(
+        0, QHeaderView::ResizeToContents);
+    environmentTable->horizontalHeader()->setSectionResizeMode(
+        1, QHeaderView::Stretch);
+    environmentTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    environmentTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    environmentTable->setAlternatingRowColors(true);
+
+    // Ajout et suppression des variables
+    QHBoxLayout *variableLayout = new QHBoxLayout();
+
+    addEnvironmentVariableBtn =
+        new QPushButton("Ajouter variable", environmentPanel);
+    removeEnvironmentVariableBtn =
+        new QPushButton("Supprimer variable", environmentPanel);
+
+    variableLayout->addWidget(addEnvironmentVariableBtn);
+    variableLayout->addWidget(removeEnvironmentVariableBtn);
+    variableLayout->addStretch();
+
+    environmentLayout->addLayout(profileLayout);
+    environmentLayout->addWidget(environmentTable, 1);
+    environmentLayout->addLayout(variableLayout);
+
+    // Assemblage du séparateur vertical
+    editorSplitter->addWidget(codePanel);
+    editorSplitter->addWidget(environmentPanel);
+    editorSplitter->setStretchFactor(0, 4);
+    editorSplitter->setStretchFactor(1, 1);
+    editorSplitter->setSizes({500, 180});
+
     editorLayout->addWidget(editorHeader);
-    editorLayout->addWidget(editor);
+    editorLayout->addWidget(editorSplitter);
 
     // =========================================================
     // PANNEAU DROIT
@@ -203,6 +285,27 @@ void MainWindow::setupUi() {
     connect(messagesList, &QListWidget::itemClicked, this, &MainWindow::onMessageClicked);
     connect(editor, &QPlainTextEdit::textChanged, this, &MainWindow::onTextChanged);
 
+    connect(environmentProfileCombo,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onEnvironmentProfileChanged);
+
+    connect(addEnvironmentProfileBtn, &QPushButton::clicked,
+            this, &MainWindow::addEnvironmentProfile);
+
+    connect(deleteEnvironmentProfileBtn, &QPushButton::clicked,
+            this, &MainWindow::deleteEnvironmentProfile);
+
+    connect(addEnvironmentVariableBtn, &QPushButton::clicked,
+            this, &MainWindow::addEnvironmentVariable);
+
+    connect(removeEnvironmentVariableBtn, &QPushButton::clicked,
+            this, &MainWindow::removeEnvironmentVariable);
+
+    connect(environmentTable, &QTableWidget::itemChanged,
+            this, [this](QTableWidgetItem *) {
+                saveEnvironmentProfiles();
+            });
+
     resize(1100, 700);
 }
 
@@ -274,6 +377,57 @@ void MainWindow::applyDarkStyle() {
         QSplitter::handle { background-color: #444; }
     )";
     this->setStyleSheet(style);
+
+
+    // Panneau des variables d'environnement
+
+    environmentTable->setStyleSheet(
+        "QTableWidget {"
+        "  background-color: #252526;"
+        "  alternate-background-color: #2d2d30;"
+        "  color: #eeeeee;"
+        "  gridline-color: #444444;"
+        "  selection-background-color: #264f78;"
+        "  selection-color: #ffffff;"
+        "}"
+        "QTableWidget::item {"
+        "  background-color: #252526;"
+        "  color: #eeeeee;"
+        "}"
+        "QTableWidget::item:alternate {"
+        "  background-color: #2d2d30;"
+        "}"
+        "QTableWidget QLineEdit {"
+        "  background-color: #333333;"
+        "  color: #eeeeee;"
+        "  selection-background-color: #264f78;"
+        "  selection-color: #ffffff;"
+        "  border: 1px solid #555555;"
+        "}"
+        "QHeaderView::section {"
+        "  background-color: #333333;"
+        "  color: #eeeeee;"
+        "  padding: 5px;"
+        "  border: 1px solid #444444;"
+        "}"
+    );
+
+
+    environmentProfileCombo->setStyleSheet(
+        "QComboBox {"
+        "  background-color: #333333;"
+        "  color: #eeeeee;"
+        "  border: 1px solid #555555;"
+        "  padding: 4px;"
+        "}"
+        "QComboBox QAbstractItemView {"
+        "  background-color: #252526;"
+        "  color: #eeeeee;"
+        "  selection-background-color: #264f78;"
+        "  selection-color: #ffffff;"
+        "}"
+    );
+
 }
 
 
@@ -364,6 +518,8 @@ void MainWindow::saveSourceAs() {
 void MainWindow::processCode() {
     clearMessages();
     addLocalMessage("Run", "Traitement en cours par la bibliothèque C++...");
+
+    applyEnvironmentProfile();
 
     // Appel direct à la lib C++ au lieu de la requête HTTP
     QString msgs;
@@ -579,3 +735,333 @@ void MainWindow::updateFilename() {
         filenameLabel->setText(QFileInfo(currentFilePath).fileName());
     }
 }
+
+
+void MainWindow::loadEnvironmentProfiles()
+{
+    QSettings settings("CairoDSL", "CairoDSL");
+
+    QStringList profiles =
+        settings.value("Environment/ProfileNames").toStringList();
+
+    if (profiles.isEmpty()) {
+        profiles << "Défaut";
+        settings.setValue("Environment/ProfileNames", profiles);
+    }
+
+    {
+        QSignalBlocker blocker(environmentProfileCombo);
+
+        environmentProfileCombo->clear();
+        environmentProfileCombo->addItems(profiles);
+
+        QString lastProfile =
+            settings.value("Environment/LastProfile").toString();
+
+        int index = environmentProfileCombo->findText(lastProfile);
+        if (index < 0)
+            index = 0;
+
+        environmentProfileCombo->setCurrentIndex(index);
+        currentEnvironmentProfile =
+            environmentProfileCombo->currentText();
+    }
+
+    loadEnvironmentProfile();
+
+    settings.setValue("Environment/LastProfile",
+                      currentEnvironmentProfile);
+}
+
+void MainWindow::loadEnvironmentProfile()
+{
+    QSignalBlocker blocker(environmentTable);
+
+    environmentTable->setRowCount(0);
+
+    if (currentEnvironmentProfile.isEmpty())
+        return;
+
+    QSettings settings("CairoDSL", "CairoDSL");
+    settings.beginGroup(
+        "Environment/Profiles/" + currentEnvironmentProfile);
+
+    const QStringList names = settings.childKeys();
+
+    for (const QString &name : names) {
+        int row = environmentTable->rowCount();
+        environmentTable->insertRow(row);
+
+        environmentTable->setItem(
+            row, 0, new QTableWidgetItem(name));
+
+        environmentTable->setItem(
+            row, 1,
+            new QTableWidgetItem(settings.value(name).toString()));
+    }
+
+    settings.endGroup();
+}
+
+void MainWindow::saveEnvironmentProfiles()
+{
+    if (currentEnvironmentProfile.isEmpty())
+        return;
+
+    QSettings settings("CairoDSL", "CairoDSL");
+
+    settings.beginGroup(
+        "Environment/Profiles/" + currentEnvironmentProfile);
+
+    // Remplace les valeurs enregistrées par le contenu actuel du tableau.
+    settings.remove("");
+
+    const QRegularExpression validName(
+        "^[A-Za-z_][A-Za-z0-9_]*$");
+
+    for (int row = 0; row < environmentTable->rowCount(); ++row) {
+        QTableWidgetItem *nameItem = environmentTable->item(row, 0);
+        QTableWidgetItem *valueItem = environmentTable->item(row, 1);
+
+        if (!nameItem)
+            continue;
+
+        QString name = nameItem->text().trimmed();
+
+        if (!validName.match(name).hasMatch())
+            continue;
+
+        // Évite qu'une variable dupliquée écrase silencieusement
+        // une autre ligne du tableau.
+        bool duplicate = false;
+        for (int previous = 0; previous < row; ++previous) {
+            QTableWidgetItem *previousItem =
+                environmentTable->item(previous, 0);
+
+            if (previousItem &&
+                previousItem->text().trimmed() == name) {
+                duplicate = true;
+                break;
+            }
+        }
+
+        if (duplicate)
+            continue;
+
+        settings.setValue(
+            name, valueItem ? valueItem->text() : QString());
+    }
+
+    settings.endGroup();
+
+    settings.setValue("Environment/LastProfile",
+                      currentEnvironmentProfile);
+
+    settings.sync();
+}
+
+
+void MainWindow::onEnvironmentProfileChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    QString newProfile = environmentProfileCombo->itemText(index);
+
+    if (newProfile == currentEnvironmentProfile)
+        return;
+
+    // Sauvegarde le tableau de l'ancien profil avant de le remplacer.
+    saveEnvironmentProfiles();
+
+    currentEnvironmentProfile = newProfile;
+
+    loadEnvironmentProfile();
+
+    QSettings settings("CairoDSL", "CairoDSL");
+    settings.setValue("Environment/LastProfile",
+                      currentEnvironmentProfile);
+}
+
+void MainWindow::addEnvironmentProfile()
+{
+    bool ok = false;
+
+    QInputDialog dialog(this);
+    dialog.setWindowTitle("Nouveau profil");
+    dialog.setLabelText("Nom du profil :");
+    dialog.setInputMode(QInputDialog::TextInput);
+    dialog.setStyleSheet(
+        "QInputDialog {"
+        "  background-color: #202124;"
+        "  color: #eeeeee;"
+        "}"
+        "QLabel {"
+        "  color: #eeeeee;"
+        "}"
+        "QLineEdit {"
+        "  background-color: #333333;"
+        "  color: #eeeeee;"
+        "  selection-background-color: #264f78;"
+        "  selection-color: #ffffff;"
+        "  border: 1px solid #555555;"
+        "  padding: 4px;"
+        "}"
+    );
+
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    QString name = dialog.textValue().trimmed();
+
+    if (!ok || name.isEmpty())
+        return;
+
+    if (name.contains('/') || name.contains('\\')) {
+        QMessageBox::warning(
+            this, "Nom invalide",
+            "Le nom du profil ne doit pas contenir de séparateur.");
+        return;
+    }
+
+    if (environmentProfileCombo->findText(name) >= 0) {
+        QMessageBox::warning(
+            this, "Profil existant",
+            "Un profil porte déjà ce nom.");
+        return;
+    }
+
+    saveEnvironmentProfiles();
+
+    QSettings settings("CairoDSL", "CairoDSL");
+
+    QStringList profiles =
+        settings.value("Environment/ProfileNames").toStringList();
+
+    profiles << name;
+    settings.setValue("Environment/ProfileNames", profiles);
+
+    environmentProfileCombo->addItem(name);
+    environmentProfileCombo->setCurrentIndex(
+        environmentProfileCombo->count() - 1);
+}
+
+void MainWindow::deleteEnvironmentProfile()
+{
+    if (environmentProfileCombo->count() <= 1) {
+        QMessageBox::information(
+            this, "Suppression impossible",
+            "Il faut conserver au moins un profil.");
+        return;
+    }
+
+    QString name = currentEnvironmentProfile;
+
+    auto answer = QMessageBox::question(
+        this, "Supprimer le profil",
+        QString("Supprimer le profil « %1 » ?").arg(name));
+
+    if (answer != QMessageBox::Yes)
+        return;
+
+    saveEnvironmentProfiles();
+
+    QSettings settings("CairoDSL", "CairoDSL");
+
+    QStringList profiles =
+        settings.value("Environment/ProfileNames").toStringList();
+
+    profiles.removeAll(name);
+
+    settings.setValue("Environment/ProfileNames", profiles);
+    settings.remove("Environment/Profiles/" + name);
+
+    {
+        QSignalBlocker blocker(environmentProfileCombo);
+
+        int index = environmentProfileCombo->currentIndex();
+        environmentProfileCombo->removeItem(index);
+
+        currentEnvironmentProfile =
+            environmentProfileCombo->currentText();
+    }
+
+    loadEnvironmentProfile();
+
+    settings.setValue("Environment/LastProfile",
+                      currentEnvironmentProfile);
+
+    saveEnvironmentProfiles();
+}
+
+void MainWindow::addEnvironmentVariable()
+{
+    int row = environmentTable->rowCount();
+    environmentTable->insertRow(row);
+
+    auto *nameItem = new QTableWidgetItem();
+    auto *valueItem = new QTableWidgetItem();
+
+    environmentTable->setItem(row, 0, nameItem);
+    environmentTable->setItem(row, 1, valueItem);
+
+    environmentTable->setCurrentCell(row, 0);
+    environmentTable->editItem(nameItem);
+}
+
+void MainWindow::removeEnvironmentVariable()
+{
+    int row = environmentTable->currentRow();
+
+    if (row < 0)
+        return;
+
+    environmentTable->removeRow(row);
+    saveEnvironmentProfiles();
+}
+
+
+void MainWindow::applyEnvironmentProfile()
+{
+    saveEnvironmentProfiles();
+
+    const QRegularExpression validName(
+        "^[A-Za-z_][A-Za-z0-9_]*$");
+
+    QStringList newManagedVariables;
+
+    // Récupère les variables valides du profil actif.
+    for (int row = 0; row < environmentTable->rowCount(); ++row) {
+        QTableWidgetItem *nameItem = environmentTable->item(row, 0);
+        QTableWidgetItem *valueItem = environmentTable->item(row, 1);
+
+        if (!nameItem)
+            continue;
+
+        QString name = nameItem->text().trimmed();
+
+        if (!validName.match(name).hasMatch())
+            continue;
+
+        if (newManagedVariables.contains(name))
+            continue;
+
+        QByteArray nameBytes = name.toUtf8();
+        QByteArray valueBytes =
+            valueItem ? valueItem->text().toUtf8() : QByteArray();
+
+        if (qputenv(nameBytes.constData(), valueBytes))
+            newManagedVariables << name;
+    }
+
+    // Retire les variables du précédent profil qui ne sont plus utilisées.
+    for (const QString &oldName : managedEnvironmentVariables) {
+        if (!newManagedVariables.contains(oldName)) {
+            QByteArray nameBytes = oldName.toUtf8();
+            qunsetenv(nameBytes.constData());
+        }
+    }
+
+    managedEnvironmentVariables = newManagedVariables;
+}
+
