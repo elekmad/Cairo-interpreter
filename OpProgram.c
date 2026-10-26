@@ -440,18 +440,21 @@ void OpParser_set_program(OpParser *self, OpProgram *p)
 	self->program = p;
 }
 
-size_t OpParser_import_svg(OpParser *self, const char *name)
+int OpParseImport_import_svg(OpParseImport *self, OpImport *import, OpContext *ctx, const char *name)
 {
-	OpImport *import = OpImport_new();
 	OpBloc *CanvaBloc = (OpBloc*)OpCanvaBloc_new();
 	String filename;
 	String_init(&filename);
-	String_append_String(&filename, &self->filename_prefix);
+	if(name[0] != '/')//Absolute path
+		String_append_String(&filename, &self->prefix);
 	String_append_char_string(&filename, name);
 
 	xmlTextReaderPtr reader = xmlReaderForFile(String_get_char_string(&filename), NULL, 0);
 
 	String_finalize(&filename);
+
+	if(reader == NULL)
+		return -1;
 
 	while (xmlTextReaderRead(reader) == 1)
 	{
@@ -466,47 +469,62 @@ size_t OpParser_import_svg(OpParser *self, const char *name)
 
 	    OpBloc *bloc = (OpBloc*)OpCanvaBloc_new();
 
-		_OpParser_import_parse_transform_section(self, reader, bloc);
+		_OpParseImport_import_parse_transform_section(self, reader, bloc);
 
 	    if (xmlStrEqual(name, BAD_CAST "svg")) {
+
+	    	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "viewBox");
+	    	if(attr != NULL)
+	    	{
+	    		size_t x, y, w, h;
+	    		if(sscanf((char*)attr, "%zu %zu %zu %zu", &x, &y, &w, &h) == 4)
+	    		{
+	    			import->x = x;
+	    			import->y = y;
+	    			import->w = w;
+	    			import->h = h;
+	    		}
+	    		xmlFree(attr);
+	    	}
+
 	    	log_trace("svg\n");
 	        //parse_svg(reader);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "g")) {
-	    	append = OpParser_import_parser_group(self, reader, bloc);
+	    	append = OpParseImport_import_parser_group(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "rect")) {
 	    	append = 1;
-	    	OpParser_import_parser_rect(self, reader, bloc);
+	    	OpParseImport_import_parser_rect(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "circle")) {
 	    	append = 1;
-	    	OpParser_import_parser_circle(self, reader, bloc);
+	    	OpParseImport_import_parser_circle(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "ellipse")) {
 	    	append = 1;
-	    	OpParser_import_parser_ellipse(self, reader, bloc);
+	    	OpParseImport_import_parser_ellipse(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "path")) {
 	    	append = 1;
-	    	OpParser_import_parser_path(self, reader, bloc);
+	    	OpParseImport_import_parser_path(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "line")) {
 	    	append = 1;
-	    	OpParser_import_parser_line(self, reader, bloc);
+	    	OpParseImport_import_parser_line(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "polyline")) {
 	    	append = 1;
-	    	OpParser_import_parser_polyline(self, reader, bloc, 0);
+	    	OpParseImport_import_parser_polyline(self, reader, bloc, 0);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "polygon")) {
 	    	append = 1;
-	    	OpParser_import_parser_polyline(self, reader, bloc, 1);
+	    	OpParseImport_import_parser_polyline(self, reader, bloc, 1);
 	    }
 
 	    if(append == 1)
 	    {
-			OpParser_import_parse_color_section(reader, bloc);
+			OpParseImport_import_parse_color_section(reader, bloc);
 
 			OpBloc_append_Op(CanvaBloc, (Op*)bloc);
 	    }
@@ -515,11 +533,12 @@ size_t OpParser_import_svg(OpParser *self, const char *name)
 	}
 
 	xmlFreeTextReader(reader);
+	Op_fix_operandes((Op*)CanvaBloc, ctx);
 	OpImport_set_root(import, (Op*)CanvaBloc);
-	return OpProgram_add_import(self->program, import);
+	return 0;
 }
 
-void _OpParser_import_parse_transform_section(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
+void _OpParseImport_import_parse_transform_section(OpParseImport *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "transform");
 	if(attr != NULL)
@@ -685,7 +704,7 @@ void _OpParser_import_parse_transform_section(OpParser *self, xmlTextReaderPtr r
 }
 
 
-int OpParser_import_parser_group(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
+int OpParseImport_import_parser_group(OpParseImport *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
 	log_trace("Parse SVG Group %p\n", ret);
 
@@ -710,44 +729,44 @@ int OpParser_import_parser_group(OpParser *self, xmlTextReaderPtr reader, OpBloc
 
 	    OpBloc *bloc = (OpBloc*)OpCanvaBloc_new();
 
-		_OpParser_import_parse_transform_section(self, reader, bloc);
+		_OpParseImport_import_parse_transform_section(self, reader, bloc);
 
 	    if (xmlStrEqual(name, BAD_CAST "g"))
 	    {
-			append = OpParser_import_parser_group(self, reader, bloc);
+			append = OpParseImport_import_parser_group(self, reader, bloc);
 		}
 	    else if (xmlStrEqual(name, BAD_CAST "rect")) {
 	    	append = 1;
-	    	OpParser_import_parser_rect(self, reader, bloc);
+	    	OpParseImport_import_parser_rect(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "circle")) {
 	    	append = 1;
-	    	OpParser_import_parser_circle(self, reader, bloc);
+	    	OpParseImport_import_parser_circle(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "ellipse")) {
 	    	append = 1;
-	    	OpParser_import_parser_ellipse(self, reader, bloc);
+	    	OpParseImport_import_parser_ellipse(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "path")) {
 	    	append = 1;
-	    	OpParser_import_parser_path(self, reader, bloc);
+	    	OpParseImport_import_parser_path(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "line")) {
 	    	append = 1;
-	    	OpParser_import_parser_line(self, reader, bloc);
+	    	OpParseImport_import_parser_line(self, reader, bloc);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "polyline")) {
 	    	append = 1;
-	    	OpParser_import_parser_polyline(self, reader, bloc, 0);
+	    	OpParseImport_import_parser_polyline(self, reader, bloc, 0);
 	    }
 	    else if (xmlStrEqual(name, BAD_CAST "polygon")) {
 	    	append = 1;
-	    	OpParser_import_parser_polyline(self, reader, bloc, 1);
+	    	OpParseImport_import_parser_polyline(self, reader, bloc, 1);
 	    }
 
 	    if(append == 1)
 	    {
-			OpParser_import_parse_color_section(reader, bloc);
+			OpParseImport_import_parse_color_section(reader, bloc);
 
 			OpBloc_append_Op(ret, (Op*)bloc);
 	    }
@@ -759,7 +778,7 @@ int OpParser_import_parser_group(OpParser *self, xmlTextReaderPtr reader, OpBloc
 }
 
 
-void OpParser_import_parser_rect(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
+void OpParseImport_import_parser_rect(OpParseImport *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
 	log_trace("Parse SVG RECT\n");
 	double x = NAN, y = NAN, w = NAN, h = NAN;
@@ -812,7 +831,7 @@ void OpParser_import_parser_rect(OpParser *self, xmlTextReaderPtr reader, OpBloc
 }
 
 
-void OpParser_import_parser_line(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
+void OpParseImport_import_parser_line(OpParseImport *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
 	log_trace("Parse SVG LINE\n");
 	double x1 = NAN, y1 = NAN, x2 = NAN, y2 = NAN;
@@ -872,7 +891,7 @@ void OpParser_import_parser_line(OpParser *self, xmlTextReaderPtr reader, OpBloc
 }
 
 
-void OpParser_import_parser_polyline(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret, bool is_polygone)
+void OpParseImport_import_parser_polyline(OpParseImport *self, xmlTextReaderPtr reader, OpBloc *ret, bool is_polygone)
 {
 	log_trace("Parse SVG POLYLINE/GONE (%d)\n", is_polygone);
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "points");
@@ -912,7 +931,7 @@ void OpParser_import_parser_polyline(OpParser *self, xmlTextReaderPtr reader, Op
 }
 
 
-void OpParser_import_parser_circle(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
+void OpParseImport_import_parser_circle(OpParseImport *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
 	log_trace("Parse SVG CIRCLE\n");
 	double cx = NAN, cy = NAN, r = NAN;
@@ -963,7 +982,7 @@ void OpParser_import_parser_circle(OpParser *self, xmlTextReaderPtr reader, OpBl
 }
 
 
-void OpParser_import_parser_ellipse(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
+void OpParseImport_import_parser_ellipse(OpParseImport *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
 	log_trace("Parse SVG CIRCLE\n");
 	double cx = NAN, cy = NAN, rx = NAN, ry = NAN;
@@ -1047,15 +1066,15 @@ void OpParser_import_parser_ellipse(OpParser *self, xmlTextReaderPtr reader, OpB
 }
 
 
-void OpParser_import_parse_color_section(xmlTextReaderPtr reader, OpBloc *ret)
+void OpParseImport_import_parse_color_section(xmlTextReaderPtr reader, OpBloc *ret)
 {
 	OpColor *fill_color = NULL, *stroke_color = NULL;
 	int fill_present = 0, stroke_present = 0, line_width_present = 0;
 	Op *fill_draw = NULL, *stroke_draw = NULL, *style = NULL;
-	_OpParser_import_parse_style_section(reader, &fill_color, &fill_present, &stroke_color, &stroke_present, &style, &line_width_present);
+	_OpParseImport_import_parse_style_section(reader, &fill_color, &fill_present, &stroke_color, &stroke_present, &style, &line_width_present);
 
 	if(stroke_color == NULL && stroke_present == 0)
-		_OpParser_import_parse_color_section(reader, &stroke_color, "stroke");
+		_OpParseImport_import_parse_color_section(reader, &stroke_color, "stroke");
 	if(stroke_color != NULL && line_width_present == 0)
 	{
 		xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "stroke-width");
@@ -1081,7 +1100,7 @@ void OpParser_import_parse_color_section(xmlTextReaderPtr reader, OpBloc *ret)
 		OpBloc_append_Op(ret, style);
 
 	if(fill_color == NULL && fill_present == 0)
-		_OpParser_import_parse_color_section(reader, &fill_color, "fill");
+		_OpParseImport_import_parse_color_section(reader, &fill_color, "fill");
 	if(fill_color != NULL)
 	{
 		OpBloc_append_Op(ret, (Op*)fill_color);
@@ -1099,7 +1118,7 @@ void OpParser_import_parse_color_section(xmlTextReaderPtr reader, OpBloc *ret)
 	}
 }
 
-void _OpParser_import_parse_style_section(xmlTextReaderPtr reader, OpColor **fill, int *fill_present, OpColor **stroke, int *stroke_present, Op **style, int *linewidth_present)
+void _OpParseImport_import_parse_style_section(xmlTextReaderPtr reader, OpColor **fill, int *fill_present, OpColor **stroke, int *stroke_present, Op **style, int *linewidth_present)
 {
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST "style");
 	if(attr != NULL)
@@ -1146,7 +1165,7 @@ void _OpParser_import_parse_style_section(xmlTextReaderPtr reader, OpColor **fil
 		{
 			*fill_present = 1;
 			HASH_FIND_STR(elts, opacity_name, opacity);
-			_OpParser_import_get_rgba_color(color->value, opacity != NULL ? opacity->value : NULL, fill);
+			_OpParseImport_import_get_rgba_color(color->value, opacity != NULL ? opacity->value : NULL, fill);
 		}
 
 		col_name = "stroke";
@@ -1157,7 +1176,7 @@ void _OpParser_import_parse_style_section(xmlTextReaderPtr reader, OpColor **fil
 		{
 			*stroke_present = 1;
 			HASH_FIND_STR(elts, opacity_name, opacity);
-			_OpParser_import_get_rgba_color(color->value, opacity != NULL ? opacity->value : NULL, stroke);
+			_OpParseImport_import_get_rgba_color(color->value, opacity != NULL ? opacity->value : NULL, stroke);
 
 			OpParserHashElt *line_width;
 			HASH_FIND_STR(elts, "stroke-width", line_width);
@@ -1188,7 +1207,7 @@ void _OpParser_import_parse_style_section(xmlTextReaderPtr reader, OpColor **fil
 	}
 }
 
-unsigned int _OpParser_import_hex_to_int(const char *e, int size)
+unsigned int _OpParseImport_import_hex_to_int(const char *e, int size)
 {
 	unsigned int r = 0;
 	for(int i = 0; i < size; i++)
@@ -1206,7 +1225,7 @@ unsigned int _OpParser_import_hex_to_int(const char *e, int size)
 	return r;
 }
 
-void _OpParser_import_get_rgba_color(const char *color, const char *opacity, OpColor **op)
+void _OpParseImport_import_get_rgba_color(const char *color, const char *opacity, OpColor **op)
 {
 	double r = NAN, g = NAN, b = NAN, a = NAN;
 	if(*color == '\0')
@@ -1228,15 +1247,15 @@ void _OpParser_import_get_rgba_color(const char *color, const char *opacity, OpC
 	{
 		if(strlen(color+1) == 3)
 		{
-			r = (double)_OpParser_import_hex_to_int(color + 1, 1);
-			g = (double)_OpParser_import_hex_to_int(color + 2, 1);
-			b = (double)_OpParser_import_hex_to_int(color + 3, 1);
+			r = (double)_OpParseImport_import_hex_to_int(color + 1, 1);
+			g = (double)_OpParseImport_import_hex_to_int(color + 2, 1);
+			b = (double)_OpParseImport_import_hex_to_int(color + 3, 1);
 		}
 		else
 		{
-			r = (double)_OpParser_import_hex_to_int(color + 1, 2);
-			g = (double)_OpParser_import_hex_to_int(color + 3, 2);
-			b = (double)_OpParser_import_hex_to_int(color + 5, 2);
+			r = (double)_OpParseImport_import_hex_to_int(color + 1, 2);
+			g = (double)_OpParseImport_import_hex_to_int(color + 3, 2);
+			b = (double)_OpParseImport_import_hex_to_int(color + 5, 2);
 		}
 	}
 	else if(strncmp(color, "rgb(", 4) == 0)
@@ -1272,9 +1291,9 @@ void _OpParser_import_get_rgba_color(const char *color, const char *opacity, OpC
 		const char *rgb = getrgb(color);
 		if(rgb != NULL)
 		{
-			r = (double)_OpParser_import_hex_to_int(rgb, 2);
-			g = (double)_OpParser_import_hex_to_int(rgb + 2, 2);
-			b = (double)_OpParser_import_hex_to_int(rgb + 4, 2);
+			r = (double)_OpParseImport_import_hex_to_int(rgb, 2);
+			g = (double)_OpParseImport_import_hex_to_int(rgb + 2, 2);
+			b = (double)_OpParseImport_import_hex_to_int(rgb + 4, 2);
 		}
 	}
 	if(!isnan(r) && !isnan(g) && !isnan(b))
@@ -1294,7 +1313,7 @@ void _OpParser_import_get_rgba_color(const char *color, const char *opacity, OpC
 	}
 }
 
-void _OpParser_import_parse_color_section(xmlTextReaderPtr reader, OpColor **op, const char *name)
+void _OpParseImport_import_parse_color_section(xmlTextReaderPtr reader, OpColor **op, const char *name)
 {
 	xmlChar *attr = xmlTextReaderGetAttribute(reader, BAD_CAST name);
 	if(attr != NULL)
@@ -1308,7 +1327,7 @@ void _OpParser_import_parse_color_section(xmlTextReaderPtr reader, OpColor **op,
 		if(attr2 != NULL)
 			opacity = (char*)attr2;
 
-		_OpParser_import_get_rgba_color(color, opacity, op);
+		_OpParseImport_import_get_rgba_color(color, opacity, op);
 
 		if(attr2 != NULL)
 			xmlFree(attr2);
@@ -1318,7 +1337,7 @@ void _OpParser_import_parse_color_section(xmlTextReaderPtr reader, OpColor **op,
 }
 
 
-void OpParser_import_parser_path(OpParser *self, xmlTextReaderPtr reader, OpBloc *ret)
+void OpParseImport_import_parser_path(OpParseImport *self, xmlTextReaderPtr reader, OpBloc *ret)
 {
 	log_trace("Parse SVG PATH\n");
 	double lastx = 0, lasty = 0;
@@ -1901,6 +1920,7 @@ void OpParserFile_free(OpParserFile *self)
 void OpImport_init(OpImport *self)
 {
 	self->root = NULL;
+	self->parser = NULL;
 }
 
 OpImport *OpImport_new(void)
@@ -1918,6 +1938,13 @@ void OpImport_set_root(OpImport *self, Op *root)
 	self->root = root;
 }
 
+void OpImport_set_parser(OpImport *self, Op *p)
+{
+	if(self->parser != NULL)
+		Op_free(self->parser);
+	self->parser = p;
+}
+
 int OpImport_fix_operandes(OpImport *self, OpContext *ctx)
 {
 	if(self->root != NULL)
@@ -1927,20 +1954,134 @@ int OpImport_fix_operandes(OpImport *self, OpContext *ctx)
 
 int OpImport_run(OpImport *self, OpContext *ctx)
 {
-	if(self->root != NULL)
+	int ret = 0;
+
+	if(self->root == NULL)
+	{
+		ret = OpImport_parse(self, ctx);
+	}
+	if(ret == 0)
 		return Op_execute(self->root, ctx);
+	return ret;
+}
+
+int OpImport_parse(OpImport *self, OpContext *ctx)
+{
+	if(self->parser != NULL)
+	{
+		if(Op_fix_operandes(self->parser, ctx) == -1)
+			return -1;
+		return Op_execute(self->parser, ctx);
+	}
 	return 0;
 }
 
 void OpImport_terminate(OpImport *self)
 {
 	OpImport_set_root(self, NULL);
+	OpImport_set_parser(self, NULL);
 }
 
 void OpImport_free(OpImport *self)
 {
 	OpImport_terminate(self);
 	free(self);
+}
+
+OpIsa OpParseImport_isa = {
+		.name="ParseImport",
+		.size=sizeof(OpParseImport),
+		.init = (void(*)(Op*))OpParseImport_init,
+		.terminate = (void(*)(Op*))OpParseImport_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpParseImport_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpParseImport_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpParseImport_check_args
+};
+
+void OpParseImport_init(OpParseImport *self)
+{
+	Op_init(&self->super);
+	String_init(&self->prefix);
+	self->name = NULL;
+}
+
+void OpParseImport_terminate(OpParseImport *self)
+{
+	Op_terminate(&self->super);
+	String_finalize(&self->prefix);
+	_OpParseImport_set_name(self, NULL);
+}
+
+void OpParseImport_set_prefix(OpParseImport *self, String *prefix)
+{
+	String_cpy(&self->prefix, prefix);
+}
+
+void OpParseImport_set_program(OpParseImport *self, OpProgram *p)
+{
+	self->program = p;
+}
+
+#define OPPARSEIMPORT_NAME 0
+
+void OpParseImport_set_name(OpParseImport *self, Op *op)
+{
+	OP_ADD_OPERANDE(self, op, OPPARSEIMPORT_NAME);
+}
+
+void _OpParseImport_set_name(OpParseImport *self, Op *op)
+{
+	OP_SET_OPERANDE(self, name, op);
+}
+
+int OpParseImport_fix_operandes(OpParseImport *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_OpParseImport_set_name(self, self->super.operandes[OPPARSEIMPORT_NAME]);
+	}
+	return ret;
+}
+
+int OpParseImport_check_args(OpParseImport *self, OpContext *ctx)
+{
+	if(self->name == NULL)
+		return -1;
+	return 0;
+}
+
+int OpParseImport_execute(OpParseImport *self, OpContext *ctx)
+{
+	int ret = 0;
+	const char *v;
+	ret = Op_execute_get_string(self->name, (Op*)self, ctx, &v);
+	if(ret == 0)
+	{
+		size_t num;
+		OpImport *import = OpImport_new();
+		num = OpProgram_add_import(self->program, import);
+		ret = OpParseImport_import_svg(self, import, ctx, v);
+		if(ret < 0)
+		{
+			String err_msg;
+			String_init(&err_msg);
+			String_append_printf(&err_msg, "Error during import of '%s'", v);
+			OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&err_msg));
+			String_finalize(&err_msg);
+		}
+		else
+		{
+			OpContext_set_current_value_double(ctx, (double)num);
+		}
+	}
+	return ret;
+}
+
+Op *OpParseImport_new(void)
+{
+	return Op_new(&OpParseImport_isa);
 }
 
 OpIsa OpDrawImport_isa = {
@@ -1950,7 +2091,7 @@ OpIsa OpDrawImport_isa = {
 		.terminate = (void(*)(Op*))OpDrawImport_terminate,
 		.fix_operandes = (int(*)(Op*, OpContext*))OpDrawImport_fix_operandes,
 		.execute = (int(*)(Op*, OpContext*))OpDrawImport_execute,
-		.check_args = NULL
+		.check_args = (int(*)(Op*, OpContext*))OpDrawImport_check_args
 };
 
 void OpDrawImport_init(OpDrawImport *self)
@@ -1993,6 +2134,13 @@ int OpDrawImport_fix_operandes(OpDrawImport *self, OpContext *ctx)
 	return ret;
 }
 
+int OpDrawImport_check_args(OpDrawImport *self, OpContext *ctx)
+{
+	if(self->number == NULL)
+		return -1;
+	return 0;
+}
+
 int OpDrawImport_execute(OpDrawImport *self, OpContext *ctx)
 {
 	int ret = 0;
@@ -2019,4 +2167,98 @@ int OpDrawImport_execute(OpDrawImport *self, OpContext *ctx)
 Op *OpDrawImport_new(void)
 {
 	return Op_new(&OpDrawImport_isa);
+}
+
+OpIsa OpGetImportExtents_isa = {
+		.name="GetImportExtents",
+		.size=sizeof(OpGetImportExtents),
+		.init = (void(*)(Op*))OpGetImportExtents_init,
+		.terminate = (void(*)(Op*))OpGetImportExtents_terminate,
+		.fix_operandes = (int(*)(Op*, OpContext*))OpGetImportExtents_fix_operandes,
+		.execute = (int(*)(Op*, OpContext*))OpGetImportExtents_execute,
+		.check_args = (int(*)(Op*, OpContext*))OpGetImportExtents_check_args
+};
+
+void OpGetImportExtents_init(OpGetImportExtents *self)
+{
+	Op_init(&self->super);
+	self->number = NULL;
+}
+
+void OpGetImportExtents_terminate(OpGetImportExtents *self)
+{
+	Op_terminate(&self->super);
+	_OpGetImportExtents_set_number(self, NULL);
+}
+
+void OpGetImportExtents_set_program(OpGetImportExtents *self, OpProgram *p)
+{
+	self->program = p;
+}
+
+#define OPGETIMPORTSEXTENTS_NUMBER 0
+
+void OpGetImportExtents_set_number(OpGetImportExtents *self, Op *op)
+{
+	OP_ADD_OPERANDE(self, op, OPGETIMPORTSEXTENTS_NUMBER);
+}
+
+void _OpGetImportExtents_set_number(OpGetImportExtents *self, Op *op)
+{
+	OP_SET_OPERANDE(self, number, op);
+}
+
+int OpGetImportExtents_fix_operandes(OpGetImportExtents *self, OpContext *ctx)
+{
+	int ret = -1;
+	if(self->super.nb_ops >= 1)
+	{
+		ret = 0;
+		_OpGetImportExtents_set_number(self, self->super.operandes[OPGETIMPORTSEXTENTS_NUMBER]);
+	}
+	return ret;
+}
+
+int OpGetImportExtents_check_args(OpGetImportExtents *self, OpContext *ctx)
+{
+	if(self->number == NULL)
+		return -1;
+	return 0;
+}
+
+int OpGetImportExtents_execute(OpGetImportExtents *self, OpContext *ctx)
+{
+	int ret = 0;
+	double v;
+	ret = Op_execute_get_double(self->number, (Op*)self, ctx, &v);
+	if(ret == 0)
+	{
+		OpImport *import = OpProgram_get_import(self->program, (size_t)v);
+		if(import != NULL)
+		{
+			OpVariable ex;
+			OpVariable_init(&ex);
+			OpVariable_append_double(&ex, (double)import->x);
+			OpVariable_append_double(&ex, (double)import->y);
+			OpVariable_append_double(&ex, (double)import->w);
+			OpVariable_append_double(&ex, (double)import->h);
+			OpContext_copy_variable_to_current_value(ctx, &ex);
+			OpVariable_terminate(&ex);
+		}
+		else
+		{
+			ret = -1;
+			String msg;
+			String_init(&msg);
+			String_append_printf(&msg, "Import number %zu does not exist", (size_t)v);
+			OpContext_set_running_state(ctx, (Op*)self, Error, String_get_char_string(&msg));
+			String_finalize(&msg);
+		}
+	}
+	return ret;
+}
+
+Op *OpGetImportExtents_new(void)
+{
+	return Op_new(&OpGetImportExtents_isa);
 }

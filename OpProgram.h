@@ -64,7 +64,20 @@ typedef struct op_parser_hash_elt
 typedef struct op_import
 {
 	Op *root;
+	Op *parser;
+	size_t x;
+	size_t y;
+	size_t w;
+	size_t h;
 }OpImport;
+
+typedef struct op_parse_import
+{
+	Op super;
+	String prefix;
+	Op *name;
+	OpProgram *program;
+}OpParseImport;
 
 typedef struct op_draw_import
 {
@@ -73,6 +86,14 @@ typedef struct op_draw_import
 	OpProgram *program;
 
 }OpDrawImport;
+
+typedef struct op_get_import_extents
+{
+	Op super;
+	Op *number;
+	OpProgram *program;
+
+}OpGetImportExtents;
 
 
 #include <OpProgram.proto.h>

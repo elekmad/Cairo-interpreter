@@ -161,6 +161,7 @@ Op *root;
 %token INCLUDE
 %token IMPORT
 %token DRAWIMPORT
+%token GETIMPORTEXTENTS
 
 
 %type <program> program
@@ -530,31 +531,16 @@ statement:
 			free($2);
 			$$ = NULL;
       }
-      | IMPORT '(' TEXTCONTENT ')' ';'
+      | IMPORT '(' expression ')' ';'
       {
-			size_t n = OpParser_import_svg(p, $3);
-			free($3);
-			Op *draw = OpDrawImport_new();
-			$$ = draw;
-			OpDrawImport_set_program((OpDrawImport*)draw, OpParser_get_program(p));
-			OpGetValue *v = (OpGetValue*)OpGetValue_new();
-	      	OpGetValue_set_value(v, (double)n);
-	      	OpDrawImport_set_number((OpDrawImport*)draw, (Op*)v);
-      }
-      | IDENTIFIER '=' IMPORT '(' TEXTCONTENT ')' ';'
-      {
-			size_t n = OpParser_import_svg(p, $5);
-			free($5);
-	      	
-      		size_t var_num = OpContext_get_variable_number(OpParser_get_current_context(p), $1);
-      		OpSetVariable *op = (OpSetVariable*)OpSetVariable_new() ;
-      		$$ = (Op*)op;
-			OpGetValue *v = (OpGetValue*)OpGetValue_new();
-	      	OpGetValue_set_value(v, (double)n);
-      		OpSetVariable_set_variable_number(op, var_num);
-      		OpSetVariable_set_value(op, (Op*)v);
+			$$ = OpDrawImport_new();
+			OpDrawImport_set_program((OpDrawImport*)$$, OpParser_get_program(p));
+			Op *op = OpParseImport_new();
+	      	OpDrawImport_set_number((OpDrawImport*)$$, op);
+			OpParseImport_set_name((OpParseImport*)op, $3);
+			OpParseImport_set_program((OpParseImport*)op, OpParser_get_program(p));
+      		Op_set_source_pos(op, @1.first_line, @1.first_column, @3.last_line, @3.last_column);
       		Op_set_source_pos($$, @1.first_line, @1.first_column, @3.last_line, @3.last_column);
-      		free($1);
       }
       | DRAWIMPORT '(' expression ')' ';'
       {
@@ -562,6 +548,7 @@ statement:
 			$$ = draw;
 			OpDrawImport_set_program((OpDrawImport*)draw, OpParser_get_program(p));
 	      	OpDrawImport_set_number((OpDrawImport*)draw, $3);
+      		Op_set_source_pos($$, @1.first_line, @1.first_column, @3.last_line, @3.last_column);
       }
 
       | UNSET '(' IDENTIFIER ')' ';'
@@ -1482,6 +1469,20 @@ expression:
       {
       	$$ = OpPopGroup_new();
   		Op_set_source_pos($$, @1.first_line, @1.first_column, @1.last_line, @1.last_column);
+      }
+      | IMPORT '(' expression ')'
+      {
+			$$ = OpParseImport_new();
+			OpParseImport_set_name((OpParseImport*)$$, $3);
+			OpParseImport_set_program((OpParseImport*)$$, OpParser_get_program(p));
+      		Op_set_source_pos($$, @1.first_line, @1.first_column, @3.last_line, @3.last_column);
+      }
+      | GETIMPORTEXTENTS '(' expression ')'
+      {
+			$$ = OpGetImportExtents_new();
+			OpGetImportExtents_set_number((OpGetImportExtents*)$$, $3);
+			OpGetImportExtents_set_program((OpGetImportExtents*)$$, OpParser_get_program(p));
+      		Op_set_source_pos($$, @1.first_line, @1.first_column, @3.last_line, @3.last_column);
       }
       
     | NEWLINEAR '(' expression ','

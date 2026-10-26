@@ -144,12 +144,13 @@ int yycolumn = 1;
 (?i:"children")		{ return CHILDS; }
 (?i:"import")		{ return IMPORT; } 
 (?i:"drawimport")		{ return DRAWIMPORT; }  
+(?i:"getimportextents")		{ return GETIMPORTEXTENTS; } 
 ^(?i:"#initmessage")	{ return PREMESSAGE; }
 ^(?i:"#setoutputsize")	{ return SETOUTPUTSIZE; } 
 ^(?i:"#setpngoutput")	{ return SETPNGOUTPUT; }
 ^(?i:"#setsvgoutput")	{ return SETSVGOUTPUT; } 
 ^(?i:"#include")	{ return INCLUDE; } 
-^(?i:"module")		{ return DEFMODULE; }  
+(?i:"module")		{ return DEFMODULE; }  
 
 [0-9]+(\.[0-9]+)? {
     yylval.number = atof(yytext);
